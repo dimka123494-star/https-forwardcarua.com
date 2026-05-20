@@ -699,8 +699,8 @@ h1.hero-title span{color:var(--blue)}
       <input type="text" class="form-input" placeholder="Промокод" style="flex:1">
       <button class="edit-btn" style="white-space:nowrap;padding:11px 16px" onclick="showToast('Промокод застосовано! -50%')">Застосувати</button>
     </div>
-    <button class="pay-btn" onclick="processPayment()"><i class="ti ti-lock"></i>Оплатити <span id="pay-btn-amount">599</span> грн</button>
-    <div class="secure-note"><i class="ti ti-shield-check" style="color:var(--green)"></i>Захищено SSL · LiqPay · PCI DSS</div>
+    <button class="pay-btn" onclick="processPayment()"><i class="ti ti-lock"></i>Оплатити через Wayforpay <span id="pay-btn-amount">599</span> грн</button>
+    <div class="secure-note"><i class="ti ti-shield-check" style="color:var(--green)"></i>Захищено SSL · Wayforpay · PCI DSS</div>
   </div>
 </div>
 
@@ -842,24 +842,102 @@ function openBroker(id) {
   document.getElementById('broker-modal').classList.add('open');
 }
 
-// PAYMENT
+// WAYFORPAY PAYMENT
+const WFP_MERCHANT = 'forwardcarua_com';
+const WFP_DOMAIN = 'https://forwardcarua.com';
+
+let currentPlanName = '';
+let currentPlanPrice = 0;
+
 function openPayment(planName, price) {
+  currentPlanName = planName;
+  currentPlanPrice = parseInt(price);
   document.getElementById('pay-plan-name').textContent = planName + ' план';
   document.getElementById('pay-plan-price').textContent = price;
   document.getElementById('pay-btn-amount').textContent = price;
   document.getElementById('payment-modal').classList.add('open');
 }
+
 function closePayment() { document.getElementById('payment-modal').classList.remove('open'); }
 function selectMethod(el) { document.querySelectorAll('.pay-method').forEach(m=>m.classList.remove('selected')); el.classList.add('selected'); }
 function formatCard(el) {
   let v = el.value.replace(/\D/g,'').substring(0,16);
   el.value = v.replace(/(\d{4})(?=\d)/g,'$1 ');
 }
-function processPayment() {
-  showToast('✅ Оплата успішна! Підписку активовано.');
-  closePayment();
-  setTimeout(()=>showPage('cabinet'),1200);
+
+async function processPayment() {
+  const btn = document.querySelector('.pay-btn');
+  btn.innerHTML = '<i class="ti ti-loader" style="animation:spin 1s linear infinite"></i> Перенаправлення...';
+  btn.disabled = true;
+
+  const orderRef = 'order_' + Date.now();
+  const orderDate = Math.floor(Date.now() / 1000);
+  const amount = currentPlanPrice;
+  const productName = 'Підписка МитнийБрокер — ' + currentPlanName;
+
+  // Формуємо дані для Wayforpay
+  const formData = {
+    merchantAccount: WFP_MERCHANT,
+    merchantDomainName: 'forwardcarua.com',
+    orderReference: orderRef,
+    orderDate: orderDate,
+    amount: amount,
+    currency: 'UAH',
+    productName: [productName],
+    productCount: [1],
+    productPrice: [amount],
+    returnUrl: WFP_DOMAIN + '/?payment=success&plan=' + encodeURIComponent(currentPlanName),
+    serviceUrl: WFP_DOMAIN + '/payment-callback',
+  };
+
+  // Створюємо форму і відправляємо на Wayforpay
+  const form = document.createElement('form');
+  form.method = 'POST';
+  form.action = 'https://secure.wayforpay.com/pay';
+  form.style.display = 'none';
+
+  const fields = {
+    merchantAccount: WFP_MERCHANT,
+    merchantDomainName: 'forwardcarua.com',
+    orderReference: orderRef,
+    orderDate: orderDate,
+    amount: amount,
+    currency: 'UAH',
+    'productName[]': productName,
+    'productCount[]': 1,
+    'productPrice[]': amount,
+    returnUrl: WFP_DOMAIN + '/?payment=success',
+    serviceUrl: WFP_DOMAIN + '/payment-callback',
+    language: 'UA',
+    paymentSystems: 'card;googlePay;applePay',
+    defaultPaymentSystem: 'card',
+  };
+
+  Object.entries(fields).forEach(([key, val]) => {
+    const input = document.createElement('input');
+    input.type = 'hidden';
+    input.name = key;
+    input.value = val;
+    form.appendChild(input);
+  });
+
+  document.body.appendChild(form);
+  form.submit();
 }
+
+// Перевірка успішної оплати
+window.addEventListener('load', () => {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('payment') === 'success') {
+    const plan = params.get('plan') || 'Стандарт';
+    setTimeout(() => {
+      showToast('✅ Оплату отримано! Підписку ' + plan + ' активовано!');
+      showPage('cabinet');
+    }, 500);
+    // Очищаємо URL
+    window.history.replaceState({}, '', '/');
+  }
+});
 
 // BILLING TOGGLE
 let isYearly = false;
