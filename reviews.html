@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Відгуки — Кабінет брокера</title>
+<link rel="stylesheet" href="/assets/css/style.css">
+<style>
+.cab-nav{display:flex;gap:2px;border-bottom:0.5px solid rgba(0,0,0,.12);margin-bottom:1.25rem}
+.cnav{padding:8px 14px;font-size:13px;color:#73726c;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-0.5px;text-decoration:none;display:flex;align-items:center;gap:5px;transition:color .12s}
+.cnav:hover{color:#1a1a18}
+.cnav.active{color:#BA7517;border-bottom-color:#BA7517;font-weight:500}
+.notif{background:#FAEEDA;color:#633806;font-size:10px;padding:1px 6px;border-radius:8px;font-weight:600}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:1rem}
+.stat{background:#F5F4EF;border-radius:8px;padding:10px 12px}
+.stat-val{font-size:20px;font-weight:600}
+.stat-val.gold{color:#BA7517}
+.stat-lbl{font-size:12px;color:#73726c;margin-top:2px}
+.rating-block{background:#fff;border:0.5px solid rgba(0,0,0,.12);border-radius:12px;padding:1rem 1.25rem;margin-bottom:1rem;display:grid;grid-template-columns:auto 1fr;gap:20px;align-items:center}
+.big-score{font-size:42px;font-weight:600;color:#BA7517;line-height:1}
+.bar-row{display:flex;align-items:center;gap:8px;font-size:12px;color:#73726c;margin-bottom:4px}
+.bar-track{flex:1;height:5px;background:#F5F4EF;border-radius:3px;overflow:hidden}
+.bar-fill{height:100%;border-radius:3px;background:#BA7517}
+.filter-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;align-items:center}
+.chip{padding:4px 11px;border-radius:16px;border:0.5px solid rgba(0,0,0,.2);background:transparent;font-size:12px;cursor:pointer;color:#73726c}
+.chip.on{background:#FAEEDA;border-color:#EF9F27;color:#633806}
+.rv-list{display:flex;flex-direction:column;gap:10px}
+.rv{background:#fff;border:0.5px solid rgba(0,0,0,.12);border-radius:12px;overflow:hidden}
+.rv.new-rv{border-color:#EF9F27}
+.rv-head{display:flex;justify-content:space-between;align-items:flex-start;padding:10px 14px 0}
+.av{width:32px;height:32px;border-radius:50%;background:#E6F1FB;color:#185FA5;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex-shrink:0}
+.rv-name{font-size:13px;font-weight:500}
+.rv-date{font-size:11px;color:#73726c}
+.new-pill{font-size:10px;padding:1px 7px;border-radius:8px;background:#FAEEDA;color:#633806;font-weight:600;margin-left:6px}
+.rv-body{padding:8px 14px 10px}
+.svc-tag{display:inline-block;font-size:11px;padding:2px 7px;border-radius:8px;background:#F5F4EF;color:#73726c;margin-bottom:6px}
+.rv-text{font-size:13px;line-height:1.55}
+.reply-block{margin:0 14px 12px;padding:10px 12px;background:#E1F5EE;border-radius:8px;border-left:2px solid #5DCAA5;border-top-left-radius:0;border-bottom-left-radius:0}
+.reply-lbl{font-size:11px;font-weight:500;color:#085041;margin-bottom:4px}
+.reply-txt{font-size:13px;line-height:1.5}
+.reply-date{font-size:11px;color:#73726c;margin-top:4px}
+.edit-btn{font-size:11px;color:#73726c;background:none;border:none;cursor:pointer;margin-top:4px}
+.edit-btn:hover{color:#1a1a18}
+.reply-form{margin:0 14px 12px;padding:10px 12px;background:#F5F4EF;border-radius:8px;border:0.5px solid rgba(0,0,0,.15)}
+.form-lbl{font-size:12px;color:#73726c;margin-bottom:6px;display:block}
+.char-cnt{font-size:11px;color:#9c9a92;text-align:right;margin-top:3px}
+.form-acts{display:flex;gap:6px;margin-top:8px;align-items:center}
+.btn-send{padding:6px 14px;background:#E1F5EE;border:0.5px solid #5DCAA5;color:#085041;border-radius:8px;font-size:12px;font-weight:500;cursor:pointer}
+.btn-send:hover{background:#9FE1CB}
+.btn-cancel{padding:6px 12px;background:transparent;border:0.5px solid rgba(0,0,0,.2);color:#73726c;border-radius:8px;font-size:12px;cursor:pointer}
+.tip{font-size:11px;color:#9c9a92;margin-left:auto}
+.reply-cta{padding:0 14px 12px;display:flex;align-items:center;gap:8px}
+.btn-reply{padding:5px 12px;background:transparent;border:0.5px solid rgba(0,0,0,.2);color:#73726c;border-radius:8px;font-size:12px;cursor:pointer;transition:all .12s}
+.btn-reply:hover{background:#E1F5EE;border-color:#5DCAA5;color:#085041}
+.no-reply-tip{font-size:11px;color:#9c9a92}
+</style>
+</head>
+<body>
+<nav class="nav">
+  <a class="nav-logo" href="/index.html">Митний<span>Брокер</span></a>
+  <div class="nav-links">
+    <a class="nav-link" href="/catalog.html">Каталог</a>
+  </div>
+  <a class="btn nav-primary" href="/broker/profile.html" style="background:#FAEEDA;border:0.5px solid #EF9F27;color:#633806;padding:6px 14px;border-radius:8px;font-size:13px;font-weight:500;text-decoration:none">Мій профіль</a>
+</nav>
+<div class="container">
+  <div class="cab-nav">
+    <a class="cnav" href="/cabinet/dashboard.html">📊 Дашборд</a>
+    <a class="cnav active" href="/cabinet/reviews.html">⭐ Відгуки <span class="notif">2</span></a>
+    <a class="cnav" href="/cabinet/analytics.html">📈 Аналітика</a>
+    <a class="cnav" href="/cabinet/subscription.html">💳 Підписка</a>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><div class="stat-val gold" id="avgSt">4.8★</div><div class="stat-lbl">рейтинг</div></div>
+    <div class="stat"><div class="stat-val" id="totSt">5</div><div class="stat-lbl">всього відгуків</div></div>
+    <div class="stat"><div class="stat-val" id="noRepSt">2</div><div class="stat-lbl">без відповіді</div></div>
+  </div>
+
+  <div class="rating-block">
+    <div>
+      <div class="big-score" id="bigScore">4.8</div>
+      <div style="display:flex;gap:3px;margin:5px 0" id="bigStars"></div>
+      <div style="font-size:12px;color:#73726c" id="bigTotal">5 відгуків</div>
+    </div>
+    <div id="barsEl"></div>
+  </div>
+
+  <div class="filter-row">
+    <button class="chip on" onclick="setF(this,'all')">Всі</button>
+    <button class="chip" onclick="setF(this,'no-reply')">Без відповіді</button>
+    <button class="chip" onclick="setF(this,'replied')">З відповіддю</button>
+    <select style="margin-left:auto;font-size:12px;padding:5px 8px;border-radius:8px;border:0.5px solid rgba(0,0,0,.2)" onchange="setSort(this.value)">
+      <option value="newest">Нові спочатку</option>
+      <option value="lowest">Низький рейтинг</option>
+    </select>
+  </div>
+
+  <div class="rv-list" id="rvList"></div>
+</div>
+<footer class="footer">© 2025 МитнийБрокер</footer>
+<script src="/assets/js/main.js"></script>
+<script>
+const reviews=[
+  {id:1,ini:'ОВ',name:'Олексій В.',r:5,svc:'Розмитнення авто',txt:'Все швидко і чітко. Toyota Camry зі США — жодних затримок.',date:'21 трав., 10:32',isNew:true,reply:null},
+  {id:2,ini:'МК',name:'Марія К.',r:5,svc:'Оцінка авто',txt:'Швидко провела оцінку для банку. Бездоганно.',date:'21 трав., 09:14',isNew:true,reply:null},
+  {id:3,ini:'ТМ',name:'Тарас М.',r:5,svc:'Консультація',txt:'Дав вичерпну консультацію щодо розмитнення Tesla.',date:'19 трав., 16:40',isNew:false,reply:{txt:'Тарасе, дякую! Чекаємо на вас з Tesla.',date:'19 трав., 18:05'}},
+  {id:4,ini:'СП',name:'Сергій П.',r:4,svc:'Договір КП',txt:'Загалом добре, але трохи довго відповідав у перший день.',date:'17 трав., 14:22',isNew:false,reply:{txt:'Сергію, вибачте за затримку! Намагатимемось швидше.',date:'17 трав., 15:10'}},
+  {id:5,ini:'ІЛ',name:'Ірина Л.',r:3,svc:'Розмитнення авто',txt:'Нормально, але хотілося б більше оновлень по статусу.',date:'15 трав., 11:00',isNew:false,reply:null},
+];
+let openForms={},editMode={},filt='all',sortMode='newest';
+function ss(n,sz=13){let h='';for(let i=1;i<=5;i++)h+=`<span style="font-size:${sz}px;color:${i<=n?'#BA7517':'rgba(0,0,0,.2)'}">★</span>`;return h;}
+function calcStats(){const c={5:0,4:0,3:0,2:0,1:0};reviews.forEach(r=>c[r.r]++);const tot=reviews.length,avg=tot?reviews.reduce((s,r)=>s+r.r,0)/tot:0,noRep=reviews.filter(r=>!r.reply).length;return{c,tot,avg,noRep};}
+function renderStats(){const{c,tot,avg,noRep}=calcStats();document.getElementById('avgSt').textContent=avg.toFixed(1)+'★';document.getElementById('totSt').textContent=tot;document.getElementById('noRepSt').textContent=noRep;document.getElementById('bigScore').textContent=avg.toFixed(1);document.getElementById('bigStars').innerHTML=ss(Math.round(avg),16);document.getElementById('bigTotal').textContent=tot+' відгуків';let bars='';[5,4,3,2,1].forEach(v=>{const pct=tot?Math.round(c[v]/tot*100):0;bars+=`<div class="bar-row"><span style="min-width:22px">${v}★</span><div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div><span style="min-width:14px;text-align:right;color:#9c9a92">${c[v]}</span></div>`;});document.getElementById('barsEl').innerHTML=bars;}
+function getList(){let list=reviews.filter(r=>{if(filt==='no-reply')return!r.reply;if(filt==='replied')return!!r.reply;return true;});if(sortMode==='lowest')list=[...list].sort((a,b)=>a.r-b.r);return list;}
+function renderList(){
+  const list=getList(),el=document.getElementById('rvList');
+  if(!list.length){el.innerHTML=`<div style="text-align:center;padding:2rem;color:#73726c">Немає відгуків</div>`;return;}
+  el.innerHTML=list.map(r=>{
+    const isOpen=openForms[r.id],isEdit=editMode[r.id],hasReply=!!r.reply;
+    return`<div class="rv${r.isNew&&!hasReply?' new-rv':''}" id="rvc-${r.id}">
+      <div class="rv-head">
+        <div style="display:flex;align-items:center;gap:8px"><div class="av">${r.ini}</div><div><div class="rv-name">${r.name}${r.isNew?`<span class="new-pill">Новий</span>`:''}</div><div class="rv-date">${r.date}</div></div></div>
+        <div>${ss(r.r)}</div>
+      </div>
+      <div class="rv-body"><span class="svc-tag">${r.svc}</span><p class="rv-text">${r.txt}</p></div>
+      ${hasReply&&!isEdit?`<div class="reply-block"><div class="reply-lbl">✅ Ваша відповідь</div><p class="reply-txt">${r.reply.txt}</p><div class="reply-date">${r.reply.date}</div><button class="edit-btn" onclick="startEdit(${r.id})">✏️ Редагувати</button></div>`:''}
+      ${isOpen||isEdit?`<div class="reply-form"><label class="form-lbl">${isEdit?'Редагувати відповідь':'Ваша відповідь'}</label><textarea id="ta-${r.id}" style="width:100%;min-height:70px;resize:none;font-size:13px" oninput="updChar(${r.id})" placeholder="Напишіть ввічливу відповідь...">${isEdit?r.reply.txt:''}</textarea><div class="char-cnt" id="cc-${r.id}">${isEdit?r.reply.txt.length:0} / 500</div><div class="form-acts"><button class="btn-send" onclick="sendReply(${r.id})">${isEdit?'💾 Зберегти':'📨 Надіслати'}</button><button class="btn-cancel" onclick="cancelForm(${r.id})">Скасувати</button><span class="tip">Відповідь видно всім</span></div></div>`:''}
+      ${!hasReply&&!isOpen?`<div class="reply-cta"><button class="btn-reply" onclick="openForm(${r.id})">💬 Відповісти</button><span class="no-reply-tip">Відповідь підвищує довіру</span></div>`:''}
+    </div>`;
+  }).join('');
+}
+function updChar(id){const ta=document.getElementById('ta-'+id);if(ta){const l=ta.value.length;document.getElementById('cc-'+id).textContent=l+' / 500';}}
+function openForm(id){openForms[id]=true;renderList();setTimeout(()=>document.getElementById('ta-'+id)?.focus(),50);}
+function cancelForm(id){openForms[id]=false;editMode[id]=false;renderList();}
+function startEdit(id){editMode[id]=true;renderList();setTimeout(()=>document.getElementById('ta-'+id)?.focus(),50);}
+function sendReply(id){
+  const ta=document.getElementById('ta-'+id);const txt=ta?.value.trim();
+  if(!txt||txt.length<10)return;
+  const r=reviews.find(x=>x.id===id);const now=new Date();const ms=['січ.','лют.','бер.','квіт.','трав.','черв.','лип.','серп.','вер.','жовт.','лист.','груд.'];
+  r.reply={txt,date:now.getDate()+' '+ms[now.getMonth()]+', '+String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0')};
+  r.isNew=false;openForms[id]=false;editMode[id]=false;
+  renderStats();renderList();showToast('Відповідь надіслана','success');
+}
+function setF(el,f){document.querySelectorAll('.chip').forEach(c=>c.classList.remove('on'));el.classList.add('on');filt=f;renderList();}
+function setSort(v){sortMode=v;renderList();}
+renderStats();renderList();
+</script>
+</body>
+</html>

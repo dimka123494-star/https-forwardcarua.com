@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Профіль брокера — МитнийБрокер</title>
+<link rel="stylesheet" href="/assets/css/style.css">
+<style>
+.hero{display:grid;grid-template-columns:auto 1fr auto;gap:16px;align-items:flex-start;padding:1.25rem;background:#fff;border:0.5px solid rgba(0,0,0,.12);border-radius:12px;margin-bottom:12px}
+.av{width:72px;height:72px;border-radius:50%;background:#FAEEDA;color:#633806;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:600;position:relative}
+.av-check{position:absolute;bottom:2px;right:2px;width:18px;height:18px;background:#1D9E75;border-radius:50%;border:2px solid #fff;display:flex;align-items:center;justify-content:center;font-size:10px;color:#fff}
+.hero-info .name{font-size:18px;font-weight:600;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.hero-info .meta{font-size:13px;color:#73726c;margin-top:4px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.hero-info .bio{font-size:13px;color:#73726c;margin-top:8px;line-height:1.5}
+.hero-cta{display:flex;flex-direction:column;gap:6px;min-width:120px}
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px}
+.stat{background:#F5F4EF;border-radius:8px;padding:10px 12px}
+.stat-val{font-size:20px;font-weight:600}
+.stat-val.gold{color:#BA7517}
+.stat-lbl{font-size:12px;color:#73726c;margin-top:2px}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.svc-row{display:flex;justify-content:space-between;padding:7px 0;border-bottom:0.5px solid rgba(0,0,0,.08);font-size:13px}
+.svc-row:last-child{border:none}
+.svc-price{color:#BA7517;font-weight:500}
+.contact-row{display:flex;align-items:center;gap:8px;padding:6px 0;font-size:13px;color:#73726c}
+.rating-block{background:#fff;border:0.5px solid rgba(0,0,0,.12);border-radius:12px;padding:1rem 1.25rem;margin-bottom:12px;display:grid;grid-template-columns:auto 1fr;gap:20px;align-items:center}
+.big-score{font-size:44px;font-weight:600;line-height:1;color:#BA7517}
+.bar-row{display:flex;align-items:center;gap:8px;font-size:12px;color:#73726c;margin-bottom:4px}
+.bar-track{flex:1;height:5px;background:#F5F4EF;border-radius:3px;overflow:hidden}
+.bar-fill{height:100%;border-radius:3px;background:#BA7517}
+.filter-chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.chip{padding:4px 11px;border-radius:16px;border:0.5px solid rgba(0,0,0,.2);background:transparent;font-size:12px;cursor:pointer;color:#73726c}
+.chip.on{background:#FAEEDA;border-color:#EF9F27;color:#633806}
+.rv-list{display:flex;flex-direction:column;gap:10px}
+.rv{background:#fff;border:0.5px solid rgba(0,0,0,.12);border-radius:12px;padding:1rem 1.25rem}
+.rv-head{display:flex;justify-content:space-between;margin-bottom:8px}
+.rv-av{width:32px;height:32px;border-radius:50%;background:#E6F1FB;color:#185FA5;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex-shrink:0}
+.rv-name{font-size:13px;font-weight:500}
+.rv-date{font-size:11px;color:#73726c}
+.rv-svc{display:inline-block;font-size:11px;padding:2px 7px;border-radius:8px;background:#F5F4EF;color:#73726c;margin-bottom:6px}
+.rv-text{font-size:13px;line-height:1.55}
+.rv-reply{margin-top:8px;padding:8px 10px;background:#E1F5EE;border-radius:8px;border-left:2px solid #5DCAA5;border-top-left-radius:0;border-bottom-left-radius:0}
+.rv-reply-lbl{font-size:11px;font-weight:500;color:#085041;margin-bottom:3px}
+.rv-reply-txt{font-size:12px;line-height:1.5}
+.hlp-btn{display:flex;align-items:center;gap:4px;font-size:12px;color:#73726c;border:none;background:none;cursor:pointer;margin-top:8px;padding:0}
+.form-section{background:#fff;border:0.5px solid rgba(0,0,0,.12);border-radius:12px;padding:1.25rem;margin-top:12px}
+.form-sec-title{font-size:15px;font-weight:500;margin-bottom:12px}
+.star-pick{display:flex;gap:6px;margin-bottom:12px}
+.sp{font-size:28px;cursor:pointer;color:rgba(0,0,0,.2);user-select:none;transition:color .1s}
+.sp.lit{color:#BA7517}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.form-lbl{font-size:12px;color:#73726c;margin-bottom:4px;display:block}
+.submit-btn{padding:9px 22px;background:#FAEEDA;border:0.5px solid #EF9F27;color:#633806;border-radius:8px;font-size:14px;font-weight:500;cursor:pointer}
+.submit-btn:hover{background:#FAC775}
+.ok-msg{display:none;padding:8px 12px;background:#E1F5EE;border-radius:8px;color:#085041;font-size:13px;margin-top:10px}
+.online-badge{display:inline-flex;align-items:center;gap:4px;font-size:12px;color:#1D9E75}
+.online-dot{width:7px;height:7px;border-radius:50%;background:#1D9E75}
+@media(max-width:600px){.hero{grid-template-columns:auto 1fr;}.hero-cta{display:none}.stats-row{grid-template-columns:1fr 1fr}.two-col{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<nav class="nav">
+  <a class="nav-logo" href="/index.html">Митний<span>Брокер</span></a>
+  <div class="nav-links">
+    <a class="nav-link" href="/catalog.html">Каталог</a>
+    <a class="nav-link" href="/request.html">Залишити заявку</a>
+  </div>
+  <a class="btn nav-cta" href="/cabinet/dashboard.html">Кабінет</a>
+</nav>
+<div class="container">
+  <p style="font-size:13px;color:#73726c;margin-bottom:12px"><a href="/catalog.html" style="color:#BA7517">← Каталог</a></p>
+
+  <div class="hero">
+    <div class="av">ДК<div class="av-check">✓</div></div>
+    <div class="hero-info">
+      <div class="name">Дмитро Крикун <span class="badge badge-gold">⚡ Стандарт</span><span class="badge badge-teal">ТОП</span></div>
+      <div class="meta">📍 Київ · <span class="online-badge"><span class="online-dot"></span>Онлайн зараз</span> · 7 років досвіду</div>
+      <div class="bio">Спеціалізуюсь на розмитненні авто зі США та Європи. Працюю швидко і прозоро — жодних прихованих платежів.</div>
+    </div>
+    <div class="hero-cta">
+      <a class="btn btn-primary" href="/request.html?broker=1">Залишити заявку</a>
+      <a class="btn btn-ghost" href="https://t.me/dmytro_broker" target="_blank">Telegram</a>
+      <a class="btn btn-ghost" href="tel:+380501234567">Подзвонити</a>
+    </div>
+  </div>
+
+  <div class="stats-row">
+    <div class="stat"><div class="stat-val">248</div><div class="stat-lbl">переглядів</div></div>
+    <div class="stat"><div class="stat-val">24</div><div class="stat-lbl">відгуки</div></div>
+    <div class="stat"><div class="stat-val gold">4.8★</div><div class="stat-lbl">рейтинг</div></div>
+    <div class="stat"><div class="stat-val">7 р.</div><div class="stat-lbl">досвід</div></div>
+  </div>
+
+  <div class="two-col">
+    <div class="card">
+      <div style="font-size:14px;font-weight:500;margin-bottom:10px">📋 Послуги</div>
+      <div class="svc-row"><span>Розмитнення авто</span><span class="svc-price">від 3 000 ₴</span></div>
+      <div class="svc-row"><span>Оцінка авто</span><span class="svc-price">від 800 ₴</span></div>
+      <div class="svc-row"><span>Договір КП</span><span class="svc-price">від 500 ₴</span></div>
+    </div>
+    <div class="card">
+      <div style="font-size:14px;font-weight:500;margin-bottom:10px">📞 Контакти</div>
+      <div class="contact-row">📱 <span style="color:#1a1a18">+38 (050) 123-45-67</span></div>
+      <div class="contact-row">✈️ <span style="color:#1a1a18">@dmytro_broker</span></div>
+      <div class="contact-row">📧 <span style="color:#1a1a18">d.krykun@gmail.com</span></div>
+      <div class="contact-row">🟢 <span style="color:#1D9E75">Онлайн зараз</span></div>
+    </div>
+  </div>
+
+  <div class="rating-block">
+    <div>
+      <div class="big-score" id="avgScore">4.8</div>
+      <div style="display:flex;gap:3px;margin:5px 0" id="avgStars"></div>
+      <div style="font-size:12px;color:#73726c" id="totalLbl">24 відгуки</div>
+    </div>
+    <div id="barsEl"></div>
+  </div>
+
+  <div class="filter-chips">
+    <button class="chip on" onclick="setF(this,'all')">Всі</button>
+    <button class="chip" onclick="setF(this,'5')">★ 5</button>
+    <button class="chip" onclick="setF(this,'4')">★ 4</button>
+    <button class="chip" onclick="setF(this,'3')">★ 3</button>
+    <button class="chip" onclick="setF(this,'2')">★ 2</button>
+    <button class="chip" onclick="setF(this,'1')">★ 1</button>
+  </div>
+  <div class="rv-list" id="rvList"></div>
+
+  <div class="form-section">
+    <div class="form-sec-title">Залишити відгук</div>
+    <div class="star-pick" id="spRow">
+      <span class="sp" data-v="1">★</span><span class="sp" data-v="2">★</span>
+      <span class="sp" data-v="3">★</span><span class="sp" data-v="4">★</span>
+      <span class="sp" data-v="5">★</span>
+    </div>
+    <div class="form-row">
+      <div><label class="form-lbl">Ваше ім'я *</label><input type="text" id="rName" placeholder="Андрій В."></div>
+      <div><label class="form-lbl">Послуга *</label>
+        <select id="rSvc">
+          <option value="">Оберіть...</option>
+          <option>Розмитнення авто</option><option>Оцінка авто</option>
+          <option>Договір КП</option><option>Консультація</option>
+        </select>
+      </div>
+    </div>
+    <textarea id="rText" placeholder="Розкажіть про свій досвід..."></textarea>
+    <button class="submit-btn" onclick="submitReview()" style="margin-top:10px">Надіслати відгук</button>
+    <div class="ok-msg" id="okMsg">✅ Дякуємо! Відгук опубліковано.</div>
+  </div>
+</div>
+<footer class="footer">© 2025 МитнийБрокер</footer>
+<script src="/assets/js/main.js"></script>
+<script>
+const reviews=[
+  {id:1,ini:'ОВ',name:'Олексій В.',r:5,svc:'Розмитнення авто',txt:'Все швидко і чітко. Дмитро допоміг з розмитненням Toyota Camry зі США — жодних затримок, всі документи в порядку.',date:'12 трав. 2025',hlp:7,rep:'Дякуємо, Олексію! Звертайтесь знову!'},
+  {id:2,ini:'МК',name:'Марія К.',r:5,svc:'Оцінка авто',txt:'Швидко провела оцінку для банку. Документи підготовлені бездоганно.',date:'8 трав. 2025',hlp:4,rep:null},
+  {id:3,ini:'СП',name:'Сергій П.',r:4,svc:'Договір КП',txt:'Загалом добре, але трохи довго відповідав у перший день.',date:'2 трав. 2025',hlp:2,rep:null},
+  {id:4,ini:'ТМ',name:'Тарас М.',r:5,svc:'Консультація',txt:'Дав вичерпну консультацію щодо розмитнення Tesla. Чітко пояснив всі витрати і терміни.',date:'28 квіт. 2025',hlp:5,rep:'Тарасе, дякую! Чекаємо на вас.'},
+  {id:5,ini:'ІЛ',name:'Ірина Л.',r:3,svc:'Розмитнення авто',txt:'Нормально, але хотілося б більше оновлень по статусу.',date:'20 квіт. 2025',hlp:1,rep:null},
+];
+let filt='all',ur=0;
+const hlpSet=new Set();
+function ss(n,sz=13){let h='';for(let i=1;i<=5;i++)h+=`<span style="font-size:${sz}px;color:${i<=n?'#BA7517':'rgba(0,0,0,.2)'}">★</span>`;return h;}
+function calcS(){const c={5:0,4:0,3:0,2:0,1:0};reviews.forEach(r=>c[r.r]++);const tot=reviews.length,avg=tot?reviews.reduce((s,r)=>s+r.r,0)/tot:0;return{c,tot,avg};}
+function renderS(){
+  const{c,tot,avg}=calcS();
+  document.getElementById('avgScore').textContent=avg.toFixed(1);
+  document.getElementById('avgStars').innerHTML=ss(Math.round(avg),16);
+  document.getElementById('totalLbl').textContent=tot+' відгуків';
+  let bars='';[5,4,3,2,1].forEach(v=>{const pct=tot?Math.round(c[v]/tot*100):0;bars+=`<div class="bar-row"><span style="min-width:22px">${v}★</span><div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div><span style="min-width:16px;text-align:right;color:#9c9a92">${c[v]}</span></div>`;});
+  document.getElementById('barsEl').innerHTML=bars;
+}
+function renderR(){
+  const arr=filt==='all'?reviews:reviews.filter(r=>r.r===Number(filt));
+  document.getElementById('rvList').innerHTML=arr.length?arr.map(r=>`
+    <div class="rv">
+      <div class="rv-head">
+        <div style="display:flex;align-items:center;gap:8px"><div class="rv-av">${r.ini}</div><div><div class="rv-name">${r.name}</div><div class="rv-date">${r.date}</div></div></div>
+        <div>${ss(r.r)}</div>
+      </div>
+      <span class="rv-svc">${r.svc}</span>
+      <p class="rv-text">${r.txt}</p>
+      ${r.rep?`<div class="rv-reply"><div class="rv-reply-lbl">✅ Відповідь брокера</div><p class="rv-reply-txt">${r.rep}</p></div>`:''}
+      <button class="hlp-btn" onclick="hlp(${r.id},this)">👍 <span id="h${r.id}">${r.hlp} корисних</span></button>
+    </div>`).join(''):`<div style="text-align:center;padding:2rem;color:#73726c">Немає відгуків</div>`;
+}
+function hlp(id,btn){if(hlpSet.has(id))return;hlpSet.add(id);const r=reviews.find(x=>x.id===id);r.hlp++;document.getElementById('h'+id).textContent=r.hlp+' корисних';btn.style.color='#1a1a18';}
+function setF(el,f){document.querySelectorAll('.chip').forEach(c=>c.classList.remove('on'));el.classList.add('on');filt=f;renderR();}
+const sps=document.querySelectorAll('.sp');
+sps.forEach(s=>{
+  s.addEventListener('mouseover',()=>{const v=Number(s.dataset.v);sps.forEach(p=>p.classList.toggle('lit',Number(p.dataset.v)<=v));});
+  s.addEventListener('click',()=>{ur=Number(s.dataset.v);sps.forEach(p=>p.classList.toggle('lit',Number(p.dataset.v)<=ur));});
+});
+document.getElementById('spRow').addEventListener('mouseleave',()=>sps.forEach(p=>p.classList.toggle('lit',Number(p.dataset.v)<=ur)));
+function submitReview(){
+  const name=document.getElementById('rName').value.trim();
+  const svc=document.getElementById('rSvc').value;
+  const txt=document.getElementById('rText').value.trim();
+  if(!ur||!name||!svc||!txt)return;
+  const ini=name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+  const d=new Date();const ms=['січ.','лют.','бер.','квіт.','трав.','черв.','лип.','серп.','вер.','жовт.','лист.','груд.'];
+  reviews.unshift({id:Date.now(),ini,name,r:ur,svc,txt,date:d.getDate()+' '+ms[d.getMonth()]+' '+d.getFullYear(),hlp:0,rep:null});
+  document.getElementById('rName').value='';document.getElementById('rSvc').value='';document.getElementById('rText').value='';
+  ur=0;sps.forEach(p=>p.classList.remove('lit'));
+  document.getElementById('okMsg').style.display='block';setTimeout(()=>document.getElementById('okMsg').style.display='none',3000);
+  renderS();renderR();
+}
+renderS();renderR();
+</script>
+</body>
+</html>

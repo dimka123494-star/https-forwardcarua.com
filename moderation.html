@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Модерація відгуків — Адмін</title>
+<link rel="stylesheet" href="/assets/css/style.css">
+<style>
+.admin-nav{background:#1a1a18;color:#fff;padding:0 1.5rem;height:52px;display:flex;align-items:center;gap:1rem;font-size:13px}
+.admin-nav a{color:rgba(255,255,255,.6);text-decoration:none;padding:4px 10px;border-radius:6px;transition:all .15s}
+.admin-nav a:hover,.admin-nav a.active{color:#fff;background:rgba(255,255,255,.1)}
+.admin-title{font-weight:600;color:#fff;margin-right:auto}
+.topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:8px}
+.page-h{font-size:16px;font-weight:600}
+.kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:1rem}
+.kpi{background:#fff;border:0.5px solid rgba(0,0,0,.12);border-radius:8px;padding:10px 12px}
+.kpi-val{font-size:20px;font-weight:600}
+.kpi-val.amber{color:#BA7517}.kpi-val.blue{color:#185FA5}.kpi-val.green{color:#1D9E75}.kpi-val.red{color:#A32D2D}
+.kpi-lbl{font-size:12px;color:#73726c;margin-top:2px}
+.controls{display:flex;gap:6px;margin-bottom:1rem;flex-wrap:wrap;align-items:center}
+.chip{padding:4px 11px;border-radius:16px;border:0.5px solid rgba(0,0,0,.2);background:transparent;font-size:12px;cursor:pointer;color:#73726c}
+.chip.on{background:#FAEEDA;border-color:#EF9F27;color:#633806}
+.search{flex:1;max-width:220px;font-size:13px;padding:5px 10px 5px 30px;border-radius:8px;border:0.5px solid rgba(0,0,0,.2);position:relative}
+.search-wrap{position:relative}
+.search-wrap span{position:absolute;left:9px;top:50%;transform:translateY(-50%);color:#9c9a92;pointer-events:none}
+.rv-list{display:flex;flex-direction:column;gap:8px}
+.rv-card{background:#fff;border:0.5px solid rgba(0,0,0,.12);border-radius:12px;overflow:hidden}
+.rv-card.rejecting{border-color:#F09595}
+.rv-head{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:0.5px solid rgba(0,0,0,.08);flex-wrap:wrap}
+.av{width:30px;height:30px;border-radius:50%;background:#E6F1FB;color:#185FA5;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex-shrink:0}
+.rv-name{font-size:13px;font-weight:500}
+.rv-date{font-size:11px;color:#73726c}
+.st-badge{font-size:11px;padding:2px 8px;border-radius:8px;font-weight:500;margin-left:auto}
+.st-pending{background:#FAEEDA;color:#633806}
+.st-published{background:#E1F5EE;color:#085041}
+.st-rejected{background:#FCEBEB;color:#791F1F}
+.rv-body{padding:10px 14px}
+.svc-tag{font-size:11px;padding:2px 7px;border-radius:8px;background:#F5F4EF;color:#73726c;display:inline-block;margin-bottom:6px}
+.rv-text{font-size:13px;line-height:1.55}
+.rv-broker{font-size:12px;color:#73726c;margin-top:6px}
+.rv-foot{display:flex;align-items:center;gap:6px;padding:8px 14px;background:#F5F4EF;border-top:0.5px solid rgba(0,0,0,.08);flex-wrap:wrap}
+.act-btn{display:flex;align-items:center;gap:4px;padding:5px 12px;border-radius:8px;font-size:12px;cursor:pointer;font-weight:500;border:0.5px solid;transition:all .12s}
+.btn-pub{background:#E1F5EE;border-color:#5DCAA5;color:#085041}
+.btn-pub:hover{background:#9FE1CB}
+.btn-rej{background:#FCEBEB;border-color:#F09595;color:#791F1F}
+.btn-rej:hover{background:#F7C1C1}
+.btn-undo{background:#fff;border-color:rgba(0,0,0,.2);color:#73726c}
+.btn-undo:hover{background:#F5F4EF}
+.rej-form{display:none;padding:10px 14px;background:#FFF5F5;border-top:0.5px solid #F09595}
+.rej-form.open{display:block}
+.rej-form select,.rej-form textarea{width:100%;font-size:13px;margin-top:4px}
+.rej-form textarea{min-height:52px;resize:none;margin-top:8px}
+.rej-confirm{margin-top:8px;padding:5px 14px;border-radius:8px;font-size:12px;font-weight:500;cursor:pointer;background:#FCEBEB;border:0.5px solid #F09595;color:#791F1F}
+.empty{text-align:center;padding:3rem;color:#73726c}
+</style>
+</head>
+<body>
+<div class="admin-nav">
+  <span class="admin-title">⚙️ Адмін-панель</span>
+  <a href="#" class="active">Відгуки</a>
+  <a href="#">Брокери</a>
+  <a href="#">Заявки</a>
+  <a href="/index.html">На сайт →</a>
+</div>
+<div class="container">
+  <div class="topbar">
+    <div class="page-h">Модерація відгуків <span style="font-size:12px;font-weight:400;background:#FAEEDA;color:#633806;padding:2px 8px;border-radius:10px;margin-left:6px" id="pendBadge">3 на розгляді</span></div>
+    <div style="font-size:12px;color:#73726c">🕐 Оновлено щойно</div>
+  </div>
+  <div class="kpi-row">
+    <div class="kpi"><div class="kpi-val amber" id="kAll">5</div><div class="kpi-lbl">всього сьогодні</div></div>
+    <div class="kpi"><div class="kpi-val blue" id="kPend">3</div><div class="kpi-lbl">очікують</div></div>
+    <div class="kpi"><div class="kpi-val green" id="kPub">1</div><div class="kpi-lbl">опубліковано</div></div>
+    <div class="kpi"><div class="kpi-val red" id="kRej">1</div><div class="kpi-lbl">відхилено</div></div>
+  </div>
+  <div class="controls">
+    <button class="chip on" onclick="setF(this,'all')">Всі</button>
+    <button class="chip" onclick="setF(this,'pending')">Очікують</button>
+    <button class="chip" onclick="setF(this,'published')">Опубліковані</button>
+    <button class="chip" onclick="setF(this,'rejected')">Відхилені</button>
+    <div class="search-wrap"><span>🔍</span><input type="text" class="search" placeholder="Пошук..." oninput="doSearch(this.value)"></div>
+  </div>
+  <div class="rv-list" id="rvList"></div>
+</div>
+<script src="/assets/js/main.js"></script>
+<script>
+const reasons=['Спам або реклама','Образливий зміст','Фейковий відгук','Не стосується брокера','Інше'];
+const reviews=[
+  {id:1,ini:'ОВ',name:'Олексій Василенко',r:5,svc:'Розмитнення авто',txt:'Все швидко і чітко. Дмитро допоміг з розмитненням Toyota Camry зі США — жодних затримок.',broker:'Дмитро Крикун',date:'21 трав., 10:32',status:'pending',reason:''},
+  {id:2,ini:'МК',name:'Марія Коваленко',r:5,svc:'Оцінка авто',txt:'Швидко провела оцінку для банку. Документи бездоганні.',broker:'Дмитро Крикун',date:'21 трав., 09:14',status:'pending',reason:''},
+  {id:3,ini:'СП',name:'Сергій Петренко',r:1,svc:'Консультація',txt:'Купіть мій курс! Телеграм @spam_broker_ua відгук куплений',broker:'Ігор Савченко',date:'21 трав., 08:50',status:'pending',reason:''},
+  {id:4,ini:'ТМ',name:'Тарас Мельник',r:4,svc:'Митне оформлення',txt:'Загалом добре, але трохи довго відповідав.',broker:'Олена Бондар',date:'20 трав., 18:20',status:'published',reason:''},
+  {id:5,ini:'ІЛ',name:'Іванова Лариса',r:2,svc:'Розмитнення авто',txt:'Цей брокер — повний ідіот!!!',broker:'Роман Левченко',date:'20 трав., 15:05',status:'rejected',reason:'Образливий зміст'},
+];
+let filt='all',q='';
+function ss(n){let h='';for(let i=1;i<=5;i++)h+=`<span style="font-size:12px;color:${i<=n?'#BA7517':'rgba(0,0,0,.2)'}">★</span>`;return h;}
+function stBadge(s){const m={pending:'st-pending pending',published:'st-published published',rejected:'st-rejected rejected'};const l={pending:'Очікує',published:'Опубліковано',rejected:'Відхилено'};return`<span class="st-badge ${m[s]}">${l[s]}</span>`;}
+function calcStats(){document.getElementById('kAll').textContent=reviews.length;document.getElementById('kPend').textContent=reviews.filter(r=>r.status==='pending').length;document.getElementById('kPub').textContent=reviews.filter(r=>r.status==='published').length;document.getElementById('kRej').textContent=reviews.filter(r=>r.status==='rejected').length;document.getElementById('pendBadge').textContent=reviews.filter(r=>r.status==='pending').length+' на розгляді';}
+function render(){
+  const list=reviews.filter(r=>{const fOk=filt==='all'||r.status===filt;const qOk=!q||r.name.toLowerCase().includes(q)||r.txt.toLowerCase().includes(q)||r.broker.toLowerCase().includes(q);return fOk&&qOk;});
+  const el=document.getElementById('rvList');
+  if(!list.length){el.innerHTML=`<div class="empty">😔 Нічого не знайдено</div>`;return;}
+  el.innerHTML=list.map(r=>`
+    <div class="rv-card" id="card-${r.id}">
+      <div class="rv-head">
+        <div class="av">${r.ini}</div>
+        <div><div class="rv-name">${r.name}</div><div class="rv-date">${r.date}</div></div>
+        <div style="display:flex;gap:3px">${ss(r.r)}</div>
+        ${stBadge(r.status)}
+      </div>
+      <div class="rv-body">
+        <span class="svc-tag">${r.svc}</span>
+        <p class="rv-text">${r.txt}</p>
+        <div class="rv-broker">👤 Брокер: ${r.broker}</div>
+        ${r.status==='rejected'&&r.reason?`<div style="font-size:12px;color:#A32D2D;margin-top:6px">❌ Причина: ${r.reason}</div>`:''}
+      </div>
+      <div class="rv-foot">
+        ${r.status==='pending'?`<button class="act-btn btn-pub" onclick="publish(${r.id})">✅ Опублікувати</button><button class="act-btn btn-rej" onclick="openRej(${r.id})">❌ Відхилити</button>`:''}
+        ${r.status==='published'?`<button class="act-btn btn-undo" onclick="unpublish(${r.id})">↩ Скасувати</button>`:''}
+        ${r.status==='rejected'?`<button class="act-btn btn-pub" onclick="publish(${r.id})">🔄 Опублікувати</button>`:''}
+        <span style="margin-left:auto;font-size:11px;color:#9c9a92">ID: ${r.id}</span>
+      </div>
+      <div class="rej-form" id="rr-${r.id}">
+        <div style="font-size:12px;font-weight:500;color:#A32D2D;margin-bottom:4px">Причина відхилення</div>
+        <select id="rs-${r.id}"><option value="">Оберіть причину...</option>${reasons.map(x=>`<option>${x}</option>`).join('')}</select>
+        <textarea id="rn-${r.id}" placeholder="Додатковий коментар..."></textarea>
+        <div style="display:flex;gap:6px;margin-top:6px">
+          <button class="rej-confirm" onclick="confirmRej(${r.id})">❌ Підтвердити відхилення</button>
+          <button class="act-btn btn-undo" onclick="closeRej(${r.id})">Скасувати</button>
+        </div>
+      </div>
+    </div>`).join('');
+}
+function setF(el,f){document.querySelectorAll('.chip').forEach(c=>c.classList.remove('on'));el.classList.add('on');filt=f;render();}
+function doSearch(v){q=v.toLowerCase();render();}
+function publish(id){const r=reviews.find(x=>x.id===id);r.status='published';r.reason='';calcStats();render();showToast('Відгук опубліковано','success');}
+function unpublish(id){const r=reviews.find(x=>x.id===id);r.status='pending';calcStats();render();showToast('Повернено на модерацію','success');}
+function openRej(id){document.getElementById('rr-'+id).classList.add('open');document.getElementById('card-'+id).classList.add('rejecting');}
+function closeRej(id){document.getElementById('rr-'+id).classList.remove('open');document.getElementById('card-'+id).classList.remove('rejecting');}
+function confirmRej(id){const reason=document.getElementById('rs-'+id).value;if(!reason){document.getElementById('rs-'+id).style.borderColor='#A32D2D';return;}const r=reviews.find(x=>x.id===id);r.status='rejected';r.reason=reason;calcStats();render();showToast('Відгук відхилено','danger');}
+calcStats();render();
+</script>
+</body>
+</html>

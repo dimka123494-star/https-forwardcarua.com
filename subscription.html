@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Підписка — Кабінет брокера</title>
+<link rel="stylesheet" href="/assets/css/style.css">
+<style>
+.cab-nav{display:flex;gap:2px;border-bottom:0.5px solid rgba(0,0,0,.12);margin-bottom:1.25rem}
+.cnav{padding:8px 14px;font-size:13px;color:#73726c;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-0.5px;text-decoration:none;transition:color .12s}
+.cnav:hover{color:#1a1a18}
+.cnav.active{color:#BA7517;border-bottom-color:#BA7517;font-weight:500}
+.billing-toggle{display:flex;align-items:center;gap:10px;margin-bottom:1.25rem;font-size:13px;color:#73726c}
+.toggle-track{position:relative;width:36px;height:20px;background:rgba(0,0,0,.2);border-radius:10px;cursor:pointer;transition:background .2s;flex-shrink:0}
+.toggle-track.on{background:#BA7517}
+.toggle-knob{position:absolute;top:2px;left:2px;width:16px;height:16px;background:#fff;border-radius:50%;transition:transform .2s}
+.toggle-track.on .toggle-knob{transform:translateX(16px)}
+.save-badge{font-size:11px;padding:1px 7px;border-radius:8px;background:#E1F5EE;color:#085041;font-weight:500;display:none}
+.plans-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-bottom:1.25rem}
+.plan-card{border:0.5px solid rgba(0,0,0,.15);border-radius:12px;padding:1rem;cursor:pointer;transition:all .15s;position:relative;background:#fff;text-align:center}
+.plan-card:hover{border-color:rgba(0,0,0,.3)}
+.plan-card.featured{border-color:#EF9F27}
+.plan-card.sel{border:1.5px solid #EF9F27;background:#FAEEDA}
+.pop-badge{position:absolute;top:-10px;left:50%;transform:translateX(-50%);font-size:10px;padding:2px 10px;border-radius:10px;background:#EF9F27;color:#412402;font-weight:600;white-space:nowrap}
+.plan-emoji{font-size:22px;margin-bottom:6px}
+.plan-name{font-size:13px;font-weight:500;margin-bottom:4px}
+.plan-price{font-size:18px;font-weight:600}
+.plan-price small{font-size:11px;font-weight:400;color:#73726c}
+.plan-desc{font-size:11px;color:#73726c;margin-top:4px}
+.order-card{background:#fff;border:0.5px solid rgba(0,0,0,.12);border-radius:12px;padding:1.25rem;margin-bottom:1rem}
+.order-row{display:flex;justify-content:space-between;font-size:13px;padding:5px 0;border-bottom:0.5px solid rgba(0,0,0,.08)}
+.order-row:last-child{border:none}
+.order-lbl{color:#73726c}
+.order-val{font-weight:500}
+.promo-row{display:flex;gap:6px;margin:10px 0}
+.promo-row input{flex:1;font-size:13px}
+.promo-btn{padding:6px 14px;background:transparent;border:0.5px solid rgba(0,0,0,.2);color:#73726c;border-radius:8px;font-size:13px;cursor:pointer}
+.promo-btn:hover{background:#F5F4EF}
+.promo-ok{font-size:12px;color:#085041;display:none;margin-top:4px}
+.order-total{display:flex;justify-content:space-between;font-size:15px;font-weight:600;padding-top:10px;border-top:0.5px solid rgba(0,0,0,.12);margin-top:4px}
+.order-total-price{color:#BA7517}
+.wfp-card{background:#fff;border:0.5px solid rgba(0,0,0,.12);border-radius:12px;padding:1.25rem;margin-bottom:1rem}
+.wfp-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.wfp-logo{display:flex;align-items:center;gap:6px;font-size:12px;color:#73726c}
+.wfp-logo-box{background:#0066CC;color:#fff;font-size:10px;font-weight:600;padding:2px 8px;border-radius:4px}
+.pay-methods{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.pm{padding:7px 14px;border:0.5px solid rgba(0,0,0,.2);border-radius:8px;font-size:12px;cursor:pointer;color:#73726c;transition:all .12s}
+.pm:hover{background:#F5F4EF}
+.pm.sel{background:#FAEEDA;border-color:#EF9F27;color:#633806}
+.card-input{padding:9px 12px;border:0.5px solid rgba(0,0,0,.2);border-radius:8px;font-size:14px;font-family:monospace;background:#fff;width:100%;outline:none;transition:border-color .15s}
+.card-input:focus{border-color:#EF9F27}
+.card-input::placeholder{font-family:inherit;font-size:13px;color:#9c9a92}
+.cf-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:10px 0}
+.cf-lbl{font-size:12px;color:#73726c;margin-bottom:4px;display:block}
+.card-icons{display:flex;gap:4px;margin-top:6px}
+.ci{font-size:11px;padding:1px 6px;border-radius:3px;font-weight:600}
+.security-row{display:flex;align-items:center;gap:8px;font-size:11px;color:#9c9a92;margin-top:10px;flex-wrap:wrap}
+.pay-btn{width:100%;padding:12px;background:#1D9E75;border:0.5px solid #0F6E56;color:#E1F5EE;border-radius:8px;font-size:15px;font-weight:500;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;margin-top:6px;transition:background .15s}
+.pay-btn:hover{background:#0F6E56}
+.hist-item{display:flex;align-items:center;gap:12px;background:#fff;border:0.5px solid rgba(0,0,0,.12);border-radius:12px;padding:10px 14px;margin-bottom:8px}
+.hist-icon{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.hist-icon.ok{background:#E1F5EE}
+.hist-icon.fail{background:#FCEBEB}
+.hist-right{text-align:right;flex-shrink:0;margin-left:auto}
+.hist-amount{font-size:14px;font-weight:600}
+.hs-ok{font-size:11px;color:#1D9E75}
+.hs-fail{font-size:11px;color:#A32D2D}
+.success-screen{text-align:center;padding:2rem 1rem}
+.success-icon{width:60px;height:60px;border-radius:50%;background:#E1F5EE;display:flex;align-items:center;justify-content:center;margin:0 auto 1rem;font-size:28px}
+.receipt{background:#F5F4EF;border-radius:8px;padding:10px 14px;margin:14px 0;text-align:left}
+.receipt-row{display:flex;justify-content:space-between;font-size:12px;padding:4px 0;border-bottom:0.5px solid rgba(0,0,0,.08)}
+.receipt-row:last-child{border:none}
+.tabs{display:flex;gap:2px;border-bottom:0.5px solid rgba(0,0,0,.12);margin-bottom:1.25rem}
+.tab{padding:8px 16px;font-size:13px;color:#73726c;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-0.5px}
+.tab.active{color:#BA7517;border-bottom-color:#BA7517;font-weight:500}
+</style>
+</head>
+<body>
+<nav class="nav">
+  <a class="nav-logo" href="/index.html">Митний<span>Брокер</span></a>
+  <div class="nav-links"><a class="nav-link" href="/catalog.html">Каталог</a></div>
+  <a class="btn nav-cta" href="/broker/profile.html">Мій профіль</a>
+</nav>
+<div class="container" style="max-width:680px">
+  <div class="cab-nav">
+    <a class="cnav" href="/cabinet/dashboard.html">📊 Дашборд</a>
+    <a class="cnav" href="/cabinet/reviews.html">⭐ Відгуки</a>
+    <a class="cnav" href="/cabinet/analytics.html">📈 Аналітика</a>
+    <a class="cnav active" href="/cabinet/subscription.html">💳 Підписка</a>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" onclick="setTab(this,'plans')">Тарифи</div>
+    <div class="tab" onclick="setTab(this,'history')">Історія платежів</div>
+  </div>
+
+  <div id="plansTab">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:1rem">
+      <span style="font-size:13px;color:#73726c">Щомісячно</span>
+      <div class="toggle-track" id="billingToggle" onclick="toggleBilling()"><div class="toggle-knob"></div></div>
+      <span style="font-size:13px;color:#73726c">Щорічно</span>
+      <span class="save-badge" id="saveBadge">-20%</span>
+    </div>
+    <div class="plans-grid" id="plansGrid"></div>
+    <div id="orderSection" style="display:none">
+      <div class="order-card">
+        <div style="font-size:14px;font-weight:500;margin-bottom:12px">Деталі замовлення</div>
+        <div class="order-row"><span class="order-lbl">Тариф</span><span class="order-val" id="ordPlan">—</span></div>
+        <div class="order-row"><span class="order-lbl">Період</span><span class="order-val" id="ordPeriod">—</span></div>
+        <div class="order-row"><span class="order-lbl">Ціна</span><span class="order-val" id="ordPrice">—</span></div>
+        <div class="promo-row">
+          <input type="text" id="promoInput" placeholder="Промокод (NEW50)">
+          <button class="promo-btn" onclick="applyPromo()">Застосувати</button>
+        </div>
+        <div class="promo-ok" id="promoOk">✅ Знижка 50% застосована!</div>
+        <div class="order-total"><span>До сплати</span><span class="order-total-price" id="ordTotal">—</span></div>
+      </div>
+      <div class="wfp-card">
+        <div class="wfp-header">
+          <div style="font-size:14px;font-weight:500">Спосіб оплати</div>
+          <div class="wfp-logo"><span class="wfp-logo-box">WFP</span> WayForPay</div>
+        </div>
+        <div class="pay-methods">
+          <div class="pm sel" onclick="setPM(this,'card')">💳 Картка</div>
+          <div class="pm" onclick="setPM(this,'gpay')">🔵 Google Pay</div>
+          <div class="pm" onclick="setPM(this,'apple')">⬛ Apple Pay</div>
+        </div>
+        <div id="cardForm">
+          <div><label class="cf-lbl">Номер картки</label><input class="card-input" id="cardNum" maxlength="19" placeholder="0000 0000 0000 0000" oninput="fmtCard(this)"></div>
+          <div class="card-icons"><span class="ci" style="background:#1A1F71;color:#fff">VISA</span><span class="ci" style="background:#EB001B;color:#fff">MC</span></div>
+          <div class="cf-row">
+            <div><label class="cf-lbl">Термін дії</label><input class="card-input" maxlength="5" placeholder="MM/YY" oninput="fmtExp(this)"></div>
+            <div><label class="cf-lbl">CVV</label><input class="card-input" maxlength="3" placeholder="•••" type="password"></div>
+          </div>
+          <div><label class="cf-lbl">Ім'я на картці</label><input class="card-input" placeholder="ANDRIY KOVAL" style="text-transform:uppercase"></div>
+        </div>
+        <div id="gpayForm" style="display:none"><button style="width:100%;padding:11px;background:#fff;border:0.5px solid rgba(0,0,0,.2);border-radius:8px;font-size:14px;cursor:pointer" onclick="pay()">🔵 Google Pay</button></div>
+        <div id="appleForm" style="display:none"><button style="width:100%;padding:11px;background:#000;border:none;border-radius:8px;font-size:14px;color:#fff;cursor:pointer" onclick="pay()">⬛ Apple Pay</button></div>
+        <div class="security-row">🔒 SSL захищено · 🛡️ PCI DSS · 🔄 Автопоновлення</div>
+      </div>
+      <button class="pay-btn" id="payBtn" onclick="pay()">🔒 Оплатити <span id="payBtnAmt"></span></button>
+    </div>
+    <div id="successSection" style="display:none">
+      <div class="success-screen">
+        <div class="success-icon">✅</div>
+        <h2 style="font-size:17px;font-weight:600;margin-bottom:6px">Оплата успішна!</h2>
+        <p style="font-size:13px;color:#73726c">Підписку активовано. Наступне списання відбудеться автоматично.</p>
+        <div class="receipt">
+          <div class="receipt-row"><span style="color:#73726c">Тариф</span><span id="rcPlan" style="font-weight:500"></span></div>
+          <div class="receipt-row"><span style="color:#73726c">Сума</span><span id="rcAmt" style="font-weight:500;color:#BA7517"></span></div>
+          <div class="receipt-row"><span style="color:#73726c">Транзакція</span><span id="rcTx" style="font-family:monospace;font-size:11px"></span></div>
+          <div class="receipt-row"><span style="color:#73726c">Дата</span><span id="rcDate"></span></div>
+        </div>
+        <button class="btn btn-primary" onclick="reset()">← До тарифів</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="historyTab" style="display:none">
+    <div class="hist-item"><div class="hist-icon ok">✅</div><div><div style="font-size:13px;font-weight:500">Стандарт — травень 2025</div><div style="font-size:11px;color:#73726c;margin-top:2px">18 трав. 2025 · Visa ····4521</div></div><div class="hist-right"><div class="hist-amount">-299 ₴</div><div class="hs-ok">Успішно</div></div></div>
+    <div class="hist-item"><div class="hist-icon ok">✅</div><div><div style="font-size:13px;font-weight:500">Стандарт — квітень 2025</div><div style="font-size:11px;color:#73726c;margin-top:2px">18 квіт. 2025 · Visa ····4521</div></div><div class="hist-right"><div class="hist-amount">-299 ₴</div><div class="hs-ok">Успішно</div></div></div>
+    <div class="hist-item"><div class="hist-icon fail">❌</div><div><div style="font-size:13px;font-weight:500">Про — березень 2025</div><div style="font-size:11px;color:#73726c;margin-top:2px">18 бер. 2025 · MC ····8834</div></div><div class="hist-right"><div class="hist-amount">599 ₴</div><div class="hs-fail">Відхилено</div></div></div>
+  </div>
+</div>
+<footer class="footer">© 2025 МитнийБрокер</footer>
+<script src="/assets/js/main.js"></script>
+<script>
+const plans=[
+  {id:'free',emoji:'🆓',name:'Безкоштовний',mp:0,yp:0,desc:'До 5 заявок/міс',featured:false},
+  {id:'standard',emoji:'⚡',name:'Стандарт',mp:299,yp:239,desc:'До 30 заявок/міс',featured:true},
+  {id:'pro',emoji:'🏆',name:'Про',mp:599,yp:479,desc:'Необмежені заявки',featured:false},
+  {id:'premium',emoji:'💎',name:'Преміум',mp:999,yp:799,desc:'1-е місце в каталозі',featured:false},
+];
+let yearly=false,selPlan=null,selPM='card',promoApplied=false;
+function setTab(el,tab){document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));el.classList.add('active');document.getElementById('plansTab').style.display=tab==='plans'?'block':'none';document.getElementById('historyTab').style.display=tab==='history'?'block':'none';}
+function toggleBilling(){yearly=!yearly;document.getElementById('billingToggle').classList.toggle('on',yearly);document.getElementById('saveBadge').style.display=yearly?'inline':'none';promoApplied=false;document.getElementById('promoOk').style.display='none';renderPlans();if(selPlan)updOrder();}
+function renderPlans(){document.getElementById('plansGrid').innerHTML=plans.map(p=>{const price=yearly?p.yp:p.mp;return`<div class="plan-card${p.featured?' featured':''}${selPlan===p.id?' sel':''}" onclick="selectPlan('${p.id}')">${p.featured?`<div class="pop-badge">★ Популярний</div>`:''}<div class="plan-emoji">${p.emoji}</div><div class="plan-name">${p.name}</div><div class="plan-price">${price===0?'0 ₴':`${price} ₴`}<small>${price===0?'':`/міс`}</small></div><div class="plan-desc">${p.desc}</div></div>`;}).join('');}
+function selectPlan(id){selPlan=id;promoApplied=false;document.getElementById('promoOk').style.display='none';document.getElementById('promoInput').value='';renderPlans();const p=plans.find(x=>x.id===id);if(p.mp===0){document.getElementById('orderSection').style.display='none';return;}document.getElementById('orderSection').style.display='block';document.getElementById('successSection').style.display='none';updOrder();}
+function updOrder(){const p=plans.find(x=>x.id===selPlan);if(!p)return;const base=yearly?p.yp:p.mp,total=Math.round(base*(promoApplied?0.5:1));document.getElementById('ordPlan').textContent=p.name;document.getElementById('ordPeriod').textContent=yearly?'Щорічно':'Щомісячно';document.getElementById('ordPrice').textContent=base+' ₴ / міс';document.getElementById('ordTotal').textContent=total+' ₴';document.getElementById('payBtnAmt').textContent=total+' ₴';}
+function applyPromo(){if(document.getElementById('promoInput').value.trim().toUpperCase()==='NEW50'&&!promoApplied){promoApplied=true;document.getElementById('promoOk').style.display='block';updOrder();}}
+function setPM(el,pm){selPM=pm;document.querySelectorAll('.pm').forEach(p=>p.classList.remove('sel'));el.classList.add('sel');document.getElementById('cardForm').style.display=pm==='card'?'block':'none';document.getElementById('gpayForm').style.display=pm==='gpay'?'block':'none';document.getElementById('appleForm').style.display=pm==='apple'?'block':'none';}
+function fmtCard(el){let v=el.value.replace(/\D/g,'').slice(0,16);el.value=v.replace(/(.{4})/g,'$1 ').trim();}
+function fmtExp(el){let v=el.value.replace(/\D/g,'').slice(0,4);if(v.length>=2)v=v.slice(0,2)+'/'+v.slice(2);el.value=v;}
+function pay(){
+  const btn=document.getElementById('payBtn');
+  btn.textContent='⏳ Обробка...';btn.disabled=true;
+  setTimeout(()=>{
+    const p=plans.find(x=>x.id===selPlan),base=yearly?p.yp:p.mp,total=Math.round(base*(promoApplied?0.5:1));
+    const txId='WFP-'+Math.random().toString(36).slice(2,10).toUpperCase();
+    const now=new Date(),ms=['січ.','лют.','бер.','квіт.','трав.','черв.','лип.','серп.','вер.','жовт.','лист.','груд.'];
+    document.getElementById('rcPlan').textContent=p.name;
+    document.getElementById('rcAmt').textContent=total+' ₴';
+    document.getElementById('rcTx').textContent=txId;
+    document.getElementById('rcDate').textContent=now.getDate()+' '+ms[now.getMonth()]+' '+now.getFullYear();
+    document.getElementById('orderSection').style.display='none';
+    document.getElementById('successSection').style.display='block';
+    btn.textContent='🔒 Оплатити';btn.disabled=false;
+  },1800);
+}
+function reset(){selPlan=null;promoApplied=false;document.getElementById('orderSection').style.display='none';document.getElementById('successSection').style.display='none';renderPlans();}
+renderPlans();
+</script>
+</body>
+</html>

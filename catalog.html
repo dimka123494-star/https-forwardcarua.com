@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Каталог брокерів — МитнийБрокер</title>
+<link rel="stylesheet" href="/assets/css/style.css">
+<style>
+.hero-search{background:#fff;border:0.5px solid rgba(0,0,0,.12);border-radius:12px;padding:1.25rem;margin-bottom:1rem}
+.hero-title{font-size:20px;font-weight:600;margin-bottom:4px}
+.hero-sub{font-size:13px;color:#73726c;margin-bottom:14px}
+.search-row{display:flex;gap:8px;flex-wrap:wrap}
+.search-wrap{flex:1;min-width:160px;position:relative}
+.search-wrap input{padding-left:36px}
+.search-icon{position:absolute;left:11px;top:50%;transform:translateY(-50%);font-size:16px;color:#9c9a92;pointer-events:none}
+.toolbar{display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap}
+.result-count{flex:1;font-size:13px;color:#73726c}
+.result-count b{color:#1a1a18}
+.view-btns{display:flex;gap:2px}
+.vbtn{width:30px;height:30px;border:0.5px solid rgba(0,0,0,.2);background:transparent;border-radius:8px;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;color:#73726c}
+.vbtn.on{background:#FAEEDA;border-color:#EF9F27;color:#633806}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+.chip{padding:4px 11px;border-radius:16px;border:0.5px solid rgba(0,0,0,.2);background:transparent;font-size:12px;cursor:pointer;color:#73726c;transition:all .12s}
+.chip.on{background:#FAEEDA;border-color:#EF9F27;color:#633806}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
+.list-mode{display:flex;flex-direction:column;gap:8px}
+.broker-card{background:#fff;border:0.5px solid rgba(0,0,0,.12);border-radius:12px;padding:1rem 1.25rem;cursor:pointer;transition:border-color .15s}
+.broker-card:hover{border-color:rgba(0,0,0,.25)}
+.broker-card.featured{border:2px solid #EF9F27}
+.card-top{display:flex;align-items:flex-start;gap:10px;margin-bottom:10px}
+.av{width:44px;height:44px;border-radius:50%;background:#FAEEDA;color:#633806;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;flex-shrink:0;position:relative}
+.av-dot{position:absolute;bottom:0;right:-2px;width:14px;height:14px;border-radius:50%;background:#1D9E75;border:2px solid #fff;display:flex;align-items:center;justify-content:center;font-size:8px;color:#fff}
+.card-info{flex:1;min-width:0}
+.card-name{font-size:14px;font-weight:500;display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+.card-loc{font-size:12px;color:#73726c;margin-top:3px}
+.card-rating{text-align:right;flex-shrink:0}
+.rating-num{font-size:13px;font-weight:600;color:#BA7517}
+.rv-cnt{font-size:11px;color:#73726c}
+.svcs{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px}
+.svc-tag{font-size:11px;padding:2px 7px;border-radius:8px;background:#F5F4EF;color:#73726c}
+.card-footer{display:flex;align-items:center;justify-content:space-between;padding-top:10px;border-top:0.5px solid rgba(0,0,0,.08)}
+.price{font-size:12px;color:#BA7517;font-weight:500}
+.exp{font-size:11px;color:#9c9a92}
+.btn-sm{padding:5px 12px;font-size:12px;background:transparent;border:0.5px solid rgba(0,0,0,.2);color:#73726c;border-radius:8px;cursor:pointer;text-decoration:none;display:inline-block}
+.btn-sm:hover{background:#F5F4EF}
+.list-card{display:flex;align-items:center;gap:12px;background:#fff;border:0.5px solid rgba(0,0,0,.12);border-radius:12px;padding:10px 14px;cursor:pointer;transition:border-color .15s;text-decoration:none;color:inherit}
+.list-card:hover{border-color:rgba(0,0,0,.25)}
+.list-card.featured{border:2px solid #EF9F27}
+.list-info{flex:1;min-width:0}
+.list-name{font-size:14px;font-weight:500;display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+.list-meta{font-size:12px;color:#73726c;margin-top:2px}
+.list-right{text-align:right;flex-shrink:0}
+.empty{text-align:center;padding:3rem;color:#73726c;font-size:14px}
+.online-dot{width:7px;height:7px;border-radius:50%;background:#1D9E75;display:inline-block;margin-right:3px;vertical-align:middle}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <a class="nav-logo" href="/index.html">Митний<span>Брокер</span></a>
+  <div class="nav-links">
+    <a class="nav-link active" href="/catalog.html">Каталог</a>
+    <a class="nav-link" href="/request.html">Залишити заявку</a>
+  </div>
+  <a class="btn nav-cta" href="/cabinet/dashboard.html">Кабінет брокера</a>
+</nav>
+
+<div class="container">
+
+<div class="hero-search">
+  <div class="hero-title">Знайди митного брокера</div>
+  <div class="hero-sub">247 перевірених брокерів по всій Україні</div>
+  <div class="search-row">
+    <div class="search-wrap">
+      <span class="search-icon">🔍</span>
+      <input type="text" id="searchQ" placeholder="Ім'я, місто або послуга..." oninput="doRender()">
+    </div>
+    <select id="regionSel" style="min-width:140px" onchange="doRender()">
+      <option value="">Всі регіони</option>
+      <option>Київська</option><option>Одеська</option>
+      <option>Харківська</option><option>Дніпропетровська</option>
+      <option>Львівська</option>
+    </select>
+    <select id="svcSel" style="min-width:160px" onchange="doRender()">
+      <option value="">Всі послуги</option>
+      <option>Розмитнення авто</option><option>Оцінка авто</option>
+      <option>Договір КП</option><option>Митне оформлення</option>
+      <option>Консультація</option><option>Авто зі США</option>
+    </select>
+    <button class="btn btn-primary" onclick="doRender()">Знайти</button>
+  </div>
+</div>
+
+<div class="toolbar">
+  <div class="result-count" id="resCount"><b>8</b> брокерів знайдено</div>
+  <select id="sortSel" style="font-size:12px;padding:5px 8px;border-radius:8px;border:0.5px solid rgba(0,0,0,.2)" onchange="doRender()">
+    <option value="rating">За рейтингом</option>
+    <option value="reviews">За відгуками</option>
+    <option value="exp">За досвідом</option>
+  </select>
+  <div class="view-btns">
+    <button class="vbtn on" id="vGrid" onclick="setView('grid')" title="Сітка">▦</button>
+    <button class="vbtn" id="vList" onclick="setView('list')" title="Список">☰</button>
+  </div>
+</div>
+
+<div class="chips">
+  <button class="chip" onclick="toggleChip(this,'online')">🟢 Онлайн</button>
+  <button class="chip" onclick="toggleChip(this,'verified')">✅ Перевірені</button>
+  <button class="chip" onclick="toggleChip(this,'fast')">⚡ Швидко відповідають</button>
+  <button class="chip" onclick="toggleChip(this,'usa')">🇺🇸 Авто зі США</button>
+  <button class="chip" onclick="toggleChip(this,'top')">⭐ ТОП</button>
+</div>
+
+<div id="catalog"></div>
+
+</div>
+
+<footer class="footer">© 2025 МитнийБрокер · Каталог митних брокерів України</footer>
+
+<script src="/assets/js/main.js"></script>
+<script>
+const brokers=[
+  {id:1,ini:'АК',name:'Андрій Коваль',city:'Київ',region:'Київська',plan:'premium',rating:5.0,reviews:42,exp:12,online:true,verified:true,fast:true,usa:true,top:true,svcs:['Розмитнення авто','Авто зі США','Оцінка авто','Консультація'],price:'від 3 500 ₴'},
+  {id:2,ini:'ДК',name:'Дмитро Крикун',city:'Київ',region:'Київська',plan:'pro',rating:4.9,reviews:24,exp:7,online:true,verified:true,fast:true,usa:true,top:true,svcs:['Розмитнення авто','Авто зі США','Оцінка авто','Договір КП'],price:'від 3 000 ₴'},
+  {id:3,ini:'ОБ',name:'Олена Бондар',city:'Одеса',region:'Одеська',plan:'premium',rating:4.8,reviews:31,exp:10,online:true,verified:true,fast:true,usa:false,top:true,svcs:['Митне оформлення','Консультація','Розмитнення авто'],price:'від 2 500 ₴'},
+  {id:4,ini:'МП',name:'Марина Павленко',city:'Дніпро',region:'Дніпропетровська',plan:'pro',rating:4.7,reviews:18,exp:6,online:true,verified:true,fast:true,usa:false,top:true,svcs:['Оцінка авто','Консультація','Митне оформлення'],price:'від 800 ₴'},
+  {id:5,ini:'СМ',name:'Сергій Мороз',city:'Дніпро',region:'Дніпропетровська',plan:'pro',rating:4.8,reviews:22,exp:8,online:true,verified:true,fast:true,usa:true,top:false,svcs:['Розмитнення авто','Авто зі США','Договір КП'],price:'від 3 000 ₴'},
+  {id:6,ini:'ІС',name:'Ігор Савченко',city:'Харків',region:'Харківська',plan:'standard',rating:4.6,reviews:12,exp:4,online:false,verified:true,fast:false,usa:true,top:false,svcs:['Розмитнення авто','Авто зі США','Договір КП'],price:'від 2 800 ₴'},
+  {id:7,ini:'НВ',name:'Наталя Василенко',city:'Одеса',region:'Одеська',plan:'standard',rating:4.5,reviews:9,exp:5,online:false,verified:true,fast:false,usa:false,top:false,svcs:['Оцінка авто','Договір КП','Консультація'],price:'від 700 ₴'},
+  {id:8,ini:'РЛ',name:'Роман Левченко',city:'Львів',region:'Львівська',plan:'standard',rating:4.4,reviews:8,exp:3,online:false,verified:false,fast:true,usa:false,top:false,svcs:['Розмитнення авто','Договір КП'],price:'від 2 200 ₴'},
+];
+const planOrder={premium:0,pro:1,standard:2};
+const planLabel={premium:'💎 Преміум',pro:'🏆 Про',standard:'⚡ Стандарт'};
+let viewMode='grid', activeChips=new Set();
+
+function setView(v){
+  viewMode=v;
+  document.getElementById('vGrid').classList.toggle('on',v==='grid');
+  document.getElementById('vList').classList.toggle('on',v==='list');
+  doRender();
+}
+function toggleChip(el,k){el.classList.toggle('on');activeChips.has(k)?activeChips.delete(k):activeChips.add(k);doRender();}
+
+function filtered(){
+  const q=document.getElementById('searchQ').value.toLowerCase();
+  const reg=document.getElementById('regionSel').value;
+  const svc=document.getElementById('svcSel').value;
+  const sort=document.getElementById('sortSel').value;
+  let list=brokers.filter(b=>{
+    if(q&&!b.name.toLowerCase().includes(q)&&!b.city.toLowerCase().includes(q)&&!b.svcs.join(' ').toLowerCase().includes(q))return false;
+    if(reg&&b.region!==reg)return false;
+    if(svc&&!b.svcs.includes(svc))return false;
+    if(activeChips.has('online')&&!b.online)return false;
+    if(activeChips.has('verified')&&!b.verified)return false;
+    if(activeChips.has('fast')&&!b.fast)return false;
+    if(activeChips.has('usa')&&!b.usa)return false;
+    if(activeChips.has('top')&&!b.top)return false;
+    return true;
+  });
+  list.sort((a,b)=>{
+    const pd=planOrder[a.plan]-planOrder[b.plan];
+    if(pd!==0)return pd;
+    if(sort==='reviews')return b.reviews-a.reviews;
+    if(sort==='exp')return b.exp-a.exp;
+    return b.rating-a.rating;
+  });
+  return list;
+}
+
+function doRender(){
+  const list=filtered();
+  document.getElementById('resCount').innerHTML=`<b>${list.length}</b> брокерів знайдено`;
+  const el=document.getElementById('catalog');
+  if(!list.length){el.innerHTML=`<div class="empty">😔 Нічого не знайдено — спробуй змінити фільтри</div>`;return;}
+  if(viewMode==='grid'){
+    el.className='grid';
+    el.innerHTML=list.map(b=>`
+      <div class="broker-card${b.plan==='premium'||b.top?' featured':''}" onclick="location.href='/broker/profile.html?id=${b.id}'">
+        <div class="card-top">
+          <div class="av">${b.ini}${b.online?`<div class="av-dot">✓</div>`:''}</div>
+          <div class="card-info">
+            <div class="card-name">${b.name} <span class="badge badge-gold" style="font-size:10px">${planLabel[b.plan]}</span>${b.top?`<span class="badge badge-teal" style="font-size:10px">ТОП</span>`:''}</div>
+            <div class="card-loc">${b.online?'<span class="online-dot"></span>':''} ${b.city} · ${b.exp} р. досвіду</div>
+          </div>
+          <div class="card-rating">
+            <div class="rating-num">${b.rating.toFixed(1)}★</div>
+            <div class="rv-cnt">${b.reviews} відгуків</div>
+          </div>
+        </div>
+        <div class="svcs">${b.svcs.slice(0,3).map(s=>`<span class="svc-tag">${s}</span>`).join('')}${b.svcs.length>3?`<span class="svc-tag">+${b.svcs.length-3}</span>`:''}</div>
+        <div class="card-footer">
+          <div><div class="price">${b.price}</div></div>
+          <a class="btn-sm" href="/broker/profile.html?id=${b.id}">Профіль →</a>
+        </div>
+      </div>`).join('');
+  } else {
+    el.className='list-mode';
+    el.innerHTML=list.map(b=>`
+      <a class="list-card${b.plan==='premium'||b.top?' featured':''}" href="/broker/profile.html?id=${b.id}">
+        <div class="av" style="width:36px;height:36px;font-size:12px">${b.ini}${b.online?`<div class="av-dot">✓</div>`:''}</div>
+        <div class="list-info">
+          <div class="list-name">${b.name} <span class="badge badge-gold" style="font-size:10px">${planLabel[b.plan]}</span>${b.top?`<span class="badge badge-teal" style="font-size:10px">ТОП</span>`:''}</div>
+          <div class="list-meta">${b.online?'<span class="online-dot"></span>':''}${b.city} · ${b.exp} р. · ${b.price} · ${b.svcs.slice(0,2).join(', ')}</div>
+        </div>
+        <div class="list-right">
+          <div class="rating-num">${b.rating.toFixed(1)}★</div>
+          <div class="rv-cnt">${b.reviews} відгуків</div>
+        </div>
+      </a>`).join('');
+  }
+}
+doRender();
+</script>
+</body>
+</html>

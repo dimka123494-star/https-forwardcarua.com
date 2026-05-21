@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Залишити заявку — МитнийБрокер</title>
+<link rel="stylesheet" href="/assets/css/style.css">
+<style>
+.progress{display:flex;align-items:center;margin-bottom:1.25rem}
+.step-item{display:flex;align-items:center;flex:1}
+.snum{width:28px;height:28px;border-radius:50%;border:0.5px solid rgba(0,0,0,.2);background:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:500;color:#73726c;flex-shrink:0;transition:all .2s}
+.snum.active{background:#FAEEDA;border-color:#EF9F27;color:#633806}
+.snum.done{background:#E1F5EE;border-color:#5DCAA5;color:#085041}
+.sline{flex:1;height:0.5px;background:rgba(0,0,0,.12);transition:background .3s}
+.sline.done{background:#5DCAA5}
+.slabels{display:flex;justify-content:space-between;margin-top:4px;margin-bottom:1.25rem}
+.slabel{font-size:11px;color:#73726c}
+.slabel.active{color:#BA7517;font-weight:500}
+.slabel.done{color:#0F6E56}
+.svc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;margin-bottom:1rem}
+.svc-card{border:0.5px solid rgba(0,0,0,.2);border-radius:8px;padding:12px 10px;cursor:pointer;text-align:center;transition:all .15s;background:#fff}
+.svc-card:hover{background:#F5F4EF}
+.svc-card.sel{background:#FAEEDA;border-color:#EF9F27;border-width:1.5px}
+.svc-icon{font-size:24px;margin-bottom:6px}
+.svc-name{font-size:12px;font-weight:500}
+.svc-desc{font-size:11px;color:#73726c;margin-top:2px}
+.urg-row{display:flex;gap:8px;flex-wrap:wrap}
+.urg-btn{padding:6px 14px;border-radius:8px;border:0.5px solid rgba(0,0,0,.2);background:transparent;font-size:12px;cursor:pointer;color:#73726c;transition:all .12s}
+.urg-btn:hover{background:#F5F4EF}
+.urg-btn.sel{background:#FAEEDA;border-color:#EF9F27;color:#633806;font-weight:500}
+.broker-card{border:0.5px solid rgba(0,0,0,.12);border-radius:12px;padding:10px 14px;cursor:pointer;transition:all .15s;background:#fff;display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.broker-card:hover{border-color:rgba(0,0,0,.25)}
+.broker-card.sel{border:1.5px solid #EF9F27;background:#FAEEDA}
+.bav{width:36px;height:36px;border-radius:50%;background:#FAEEDA;color:#633806;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;flex-shrink:0}
+.broker-card.sel .bav{background:#EF9F27;color:#412402}
+.any-card{border:0.5px dashed rgba(0,0,0,.2);border-radius:12px;padding:10px 14px;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:10px;margin-bottom:8px;background:#fff}
+.any-card:hover{background:#F5F4EF}
+.any-card.sel{border:1.5px dashed #EF9F27;background:#FAEEDA}
+.sum-row{display:flex;justify-content:space-between;padding:5px 0;font-size:13px;border-bottom:0.5px solid rgba(0,0,0,.08)}
+.sum-row:last-child{border:none}
+.sum-lbl{color:#73726c}
+.sum-val{font-weight:500}
+.actions{display:flex;align-items:center;justify-content:space-between;margin-top:1rem;flex-wrap:wrap;gap:8px}
+.btn-back{padding:9px 16px;background:transparent;border:0.5px solid rgba(0,0,0,.2);color:#73726c;border-radius:8px;font-size:13px;cursor:pointer}
+.btn-next{padding:9px 22px;background:#FAEEDA;border:0.5px solid #EF9F27;color:#633806;border-radius:8px;font-size:14px;font-weight:500;cursor:pointer}
+.btn-next:hover{background:#FAC775}
+.btn-submit{padding:9px 22px;background:#1D9E75;border:0.5px solid #0F6E56;color:#E1F5EE;border-radius:8px;font-size:14px;font-weight:500;cursor:pointer}
+.btn-submit:hover{background:#0F6E56}
+.form-lbl{font-size:12px;color:#73726c;margin-bottom:4px;display:block}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.form-group{margin-bottom:10px}
+.err-msg{font-size:11px;color:#A32D2D;margin-top:3px;display:none}
+.success{text-align:center;padding:2rem 1rem}
+.success-icon{width:60px;height:60px;border-radius:50%;background:#E1F5EE;display:flex;align-items:center;justify-content:center;margin:0 auto 1rem;font-size:28px}
+.next-steps{display:flex;flex-direction:column;gap:8px;margin:1rem auto;max-width:300px;text-align:left}
+.nst{display:flex;align-items:center;gap:10px;font-size:13px;color:#73726c}
+.nst-n{width:22px;height:22px;border-radius:50%;background:#E1F5EE;color:#085041;font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+@media(max-width:600px){.form-row{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<nav class="nav">
+  <a class="nav-logo" href="/index.html">Митний<span>Брокер</span></a>
+  <div class="nav-links">
+    <a class="nav-link" href="/catalog.html">Каталог</a>
+    <a class="nav-link active" href="/request.html">Залишити заявку</a>
+  </div>
+  <a class="btn nav-cta" href="/cabinet/dashboard.html">Кабінет</a>
+</nav>
+<div class="container" style="max-width:680px">
+  <div id="app"></div>
+</div>
+<footer class="footer">© 2025 МитнийБрокер</footer>
+<script src="/assets/js/main.js"></script>
+<script>
+const svcs=[
+  {id:'car',icon:'🚗',name:'Розмитнення авто',desc:'Авто з-за кордону'},
+  {id:'usa',icon:'🇺🇸',name:'Авто зі США',desc:'Аукціони Copart/IAAI'},
+  {id:'eval',icon:'📄',name:'Оцінка авто',desc:'Для банку або продажу'},
+  {id:'contract',icon:'✍️',name:'Договір КП',desc:'Купівля-продаж'},
+  {id:'customs',icon:'🏛️',name:'Митне оформлення',desc:'Вантажі та товари'},
+  {id:'consult',icon:'💬',name:'Консультація',desc:'Питання та поради'},
+];
+const urgencies=['Терміново (сьогодні)','Найближчі 2-3 дні','Цього тижня','Не поспішаю'];
+const brokers=[
+  {ini:'АК',name:'Андрій Коваль',city:'Київ',rating:5.0,reviews:42},
+  {ini:'ДК',name:'Дмитро Крикун',city:'Київ',rating:4.9,reviews:24},
+  {ini:'ОБ',name:'Олена Бондар',city:'Одеса',rating:4.8,reviews:31},
+  {ini:'МП',name:'Марина Павленко',city:'Дніпро',rating:4.7,reviews:18},
+];
+let step=1,data={svc:null,urgency:null,details:{},contact:{},broker:'any'};
+
+function prog(){
+  const labels=['Послуга','Деталі','Брокер','Контакти'];
+  let bars='';
+  for(let i=1;i<=4;i++){
+    const cls=i<step?'done':i===step?'active':'';
+    bars+=`<div class="step-item"><div class="snum ${cls}">${i<step?'✓':i}</div>${i<4?`<div class="sline ${i<step?'done':''}"></div>`:''}</div>`;
+  }
+  const lbls=labels.map((l,i)=>`<span class="slabel ${i+1===step?'active':i+1<step?'done':''}">${l}</span>`).join('');
+  return`<div class="progress">${bars}</div><div class="slabels">${lbls}</div>`;
+}
+
+function render(){
+  const el=document.getElementById('app');
+  if(step===1)el.innerHTML=`${prog()}
+    <div class="card">
+      <div style="font-size:15px;font-weight:500;margin-bottom:4px">Яка послуга потрібна?</div>
+      <div style="font-size:13px;color:#73726c;margin-bottom:14px">Оберіть послугу</div>
+      <div class="svc-grid">${svcs.map(s=>`<div class="svc-card${data.svc===s.id?' sel':''}" onclick="selSvc('${s.id}')"><div class="svc-icon">${s.icon}</div><div class="svc-name">${s.name}</div><div class="svc-desc">${s.desc}</div></div>`).join('')}</div>
+      <div id="svcErr" class="err-msg" style="display:none">Оберіть послугу</div>
+    </div>
+    <div class="actions"><span></span><button class="btn-next" onclick="next1()">Далі →</button></div>`;
+  else if(step===2){
+    const isAuto=['car','usa','eval'].includes(data.svc);
+    el.innerHTML=`${prog()}
+    <div class="card">
+      <div style="font-size:15px;font-weight:500;margin-bottom:4px">Деталі запиту</div>
+      <div style="font-size:13px;color:#73726c;margin-bottom:14px">Розкажіть більше</div>
+      ${isAuto?`<div class="form-row"><div><label class="form-lbl">Марка *</label><input type="text" id="fMake" value="${data.details.make||''}" placeholder="Toyota, BMW..."></div><div><label class="form-lbl">Модель</label><input type="text" id="fModel" value="${data.details.model||''}" placeholder="Camry..."></div></div>
+      <div class="form-row"><div><label class="form-lbl">Рік</label><input type="text" id="fYear" value="${data.details.year||''}" placeholder="2019"></div><div><label class="form-lbl">Країна</label><select id="fCountry"><option value="">Оберіть...</option>${['США','Німеччина','Польща','Литва','ОАЕ','Японія','Інша'].map(c=>`<option${data.details.country===c?' selected':''}>${c}</option>`).join('')}</select></div></div>`:''}
+      <div class="form-group"><label class="form-lbl">Коментар</label><textarea id="fComment" placeholder="Додаткова інформація...">${data.details.comment||''}</textarea></div>
+      <div class="form-group"><label class="form-lbl">Терміновість</label><div class="urg-row">${urgencies.map(u=>`<button class="urg-btn${data.urgency===u?' sel':''}" onclick="selUrg(this,'${u}')">${u}</button>`).join('')}</div></div>
+    </div>
+    <div class="actions"><button class="btn-back" onclick="goStep(1)">← Назад</button><button class="btn-next" onclick="next2()">Далі →</button></div>`;
+  } else if(step===3){
+    el.innerHTML=`${prog()}
+    <div class="card">
+      <div style="font-size:15px;font-weight:500;margin-bottom:4px">Оберіть брокера</div>
+      <div style="font-size:13px;color:#73726c;margin-bottom:14px">Або надішліть заявку всім</div>
+      <div class="any-card${data.broker==='any'?' sel':''}" onclick="selBroker('any',this)">
+        <div style="width:36px;height:36px;border-radius:50%;background:#F5F4EF;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">👥</div>
+        <div><div style="font-size:13px;font-weight:500">Будь-який вільний брокер</div><div style="font-size:11px;color:#73726c;margin-top:2px">Хто відповість першим</div></div>
+      </div>
+      ${brokers.map(b=>`<div class="broker-card${data.broker===b.name?' sel':''}" onclick="selBroker('${b.name}',this)"><div class="bav">${b.ini}</div><div style="flex:1"><div style="font-size:13px;font-weight:500">${b.name}</div><div style="font-size:11px;color:#73726c;margin-top:2px">${b.city} · ${b.reviews} відгуків</div></div><div style="font-size:13px;font-weight:500;color:#BA7517">${b.rating.toFixed(1)}★</div></div>`).join('')}
+    </div>
+    <div class="actions"><button class="btn-back" onclick="goStep(2)">← Назад</button><button class="btn-next" onclick="goStep(4)">Далі →</button></div>`;
+  } else if(step===4){
+    const svcName=svcs.find(s=>s.id===data.svc)?.name||'—';
+    el.innerHTML=`${prog()}
+    <div class="card" style="margin-bottom:10px">
+      <div style="font-size:15px;font-weight:500;margin-bottom:14px">Ваші контакти</div>
+      <div class="form-row">
+        <div><label class="form-lbl">Ім'я *</label><input type="text" id="cName" value="${data.contact.name||''}" placeholder="Андрій"><div class="err-msg" id="cNameErr">Введіть ім'я</div></div>
+        <div><label class="form-lbl">Телефон *</label><input type="tel" id="cPhone" value="${data.contact.phone||''}" placeholder="+380 50 123 45 67"><div class="err-msg" id="cPhoneErr">Введіть телефон</div></div>
+      </div>
+      <div class="form-row">
+        <div><label class="form-lbl">Telegram</label><input type="text" id="cTg" value="${data.contact.tg||''}" placeholder="@username"></div>
+        <div><label class="form-lbl">Email</label><input type="email" id="cEmail" value="${data.contact.email||''}" placeholder="you@gmail.com"></div>
+      </div>
+    </div>
+    <div class="card">
+      <div style="font-size:14px;font-weight:500;margin-bottom:10px">Підсумок заявки</div>
+      <div style="background:#F5F4EF;border-radius:8px;padding:10px 14px">
+        <div class="sum-row"><span class="sum-lbl">Послуга</span><span class="sum-val">${svcName}</span></div>
+        ${data.details.make?`<div class="sum-row"><span class="sum-lbl">Авто</span><span class="sum-val">${data.details.make}${data.details.model?' '+data.details.model:''}${data.details.year?' '+data.details.year:''}</span></div>`:''}
+        ${data.urgency?`<div class="sum-row"><span class="sum-lbl">Терміновість</span><span class="sum-val">${data.urgency}</span></div>`:''}
+        <div class="sum-row"><span class="sum-lbl">Брокер</span><span class="sum-val">${data.broker==='any'?'Перший вільний':data.broker}</span></div>
+      </div>
+    </div>
+    <div class="actions"><button class="btn-back" onclick="goStep(3)">← Назад</button><button class="btn-submit" onclick="submit()">📨 Надіслати заявку</button></div>`;
+  } else {
+    el.innerHTML=`<div class="success">
+      <div class="success-icon">✅</div>
+      <h2 style="font-size:18px;font-weight:600;margin-bottom:6px">Заявку надіслано!</h2>
+      <p style="font-size:14px;color:#73726c;margin-bottom:1rem">Брокер зв'яжеться з вами найближчим часом.</p>
+      <div class="next-steps">
+        <div class="nst"><div class="nst-n">1</div>Брокер розгляне деталі</div>
+        <div class="nst"><div class="nst-n">2</div>Зв'яжеться по телефону або Telegram</div>
+        <div class="nst"><div class="nst-n">3</div>Узгодить ціну та терміни</div>
+      </div>
+      <a class="btn btn-primary" href="/catalog.html">← До каталогу</a>
+    </div>`;
+  }
+}
+
+function goStep(s){step=s;render();}
+function selSvc(id){data.svc=id;document.querySelectorAll('.svc-card').forEach(c=>c.classList.toggle('sel',c.getAttribute('onclick').includes(`'${id}'`)));}
+function selUrg(el,u){data.urgency=u;document.querySelectorAll('.urg-btn').forEach(b=>b.classList.remove('sel'));el.classList.add('sel');}
+function selBroker(name,el){data.broker=name;document.querySelectorAll('.broker-card,.any-card').forEach(c=>c.classList.remove('sel'));el.classList.add('sel');}
+function next1(){if(!data.svc){document.getElementById('svcErr').style.display='block';return;}goStep(2);}
+function next2(){data.details={make:document.getElementById('fMake')?.value.trim()||'',model:document.getElementById('fModel')?.value.trim()||'',year:document.getElementById('fYear')?.value.trim()||'',country:document.getElementById('fCountry')?.value||'',comment:document.getElementById('fComment')?.value.trim()||''};goStep(3);}
+function submit(){
+  const name=document.getElementById('cName').value.trim(),phone=document.getElementById('cPhone').value.trim();
+  let ok=true;
+  if(!name){document.getElementById('cName').style.borderColor='#A32D2D';document.getElementById('cNameErr').style.display='block';ok=false;}
+  if(!phone){document.getElementById('cPhone').style.borderColor='#A32D2D';document.getElementById('cPhoneErr').style.display='block';ok=false;}
+  if(!ok)return;
+  data.contact={name,phone,tg:document.getElementById('cTg').value.trim(),email:document.getElementById('cEmail').value.trim()};
+  step=5;render();
+}
+render();
+</script>
+</body>
+</html>

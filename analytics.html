@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Аналітика — Кабінет брокера</title>
+<link rel="stylesheet" href="/assets/css/style.css">
+<style>
+.cab-nav{display:flex;gap:2px;border-bottom:0.5px solid rgba(0,0,0,.12);margin-bottom:1.25rem}
+.cnav{padding:8px 14px;font-size:13px;color:#73726c;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-0.5px;text-decoration:none;transition:color .12s}
+.cnav:hover{color:#1a1a18}
+.cnav.active{color:#BA7517;border-bottom-color:#BA7517;font-weight:500}
+.topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;flex-wrap:wrap;gap:8px}
+.page-h{font-size:16px;font-weight:600}
+.period-tabs{display:flex;gap:2px;background:#F5F4EF;border-radius:8px;padding:2px}
+.ptab{padding:5px 12px;font-size:12px;border-radius:6px;cursor:pointer;color:#73726c;transition:all .15s;border:none;background:transparent}
+.ptab.on{background:#fff;color:#1a1a18;font-weight:500;border:0.5px solid rgba(0,0,0,.12)}
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:1rem}
+.kpi{background:#F5F4EF;border-radius:8px;padding:12px}
+.kpi-lbl{font-size:12px;color:#73726c;margin-bottom:4px}
+.kpi-val{font-size:22px;font-weight:600}
+.delta{font-size:11px;margin-top:3px}
+.delta.up{color:#1D9E75}
+.delta.down{color:#A32D2D}
+.chart-card{background:#fff;border:0.5px solid rgba(0,0,0,.12);border-radius:12px;padding:1rem 1.25rem;margin-bottom:10px}
+.chart-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:6px}
+.chart-title{font-size:13px;font-weight:500}
+.legend{display:flex;gap:10px}
+.leg{display:flex;align-items:center;gap:4px;font-size:11px;color:#73726c}
+.leg-dot{width:8px;height:8px;border-radius:50%}
+.two-col{display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr);gap:10px;margin-bottom:10px}
+.funnel-row{margin-bottom:8px}
+.funnel-lbl{display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px}
+.funnel-lbl span:first-child{color:#73726c}
+.funnel-lbl span:last-child{font-weight:500}
+.bar-track{height:8px;background:#F5F4EF;border-radius:4px;overflow:hidden}
+.bar-fill{height:100%;border-radius:4px;transition:width .6s ease}
+.svc-row{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.svc-name{font-size:12px;color:#73726c;min-width:140px;flex-shrink:0}
+.svc-track{flex:1;height:6px;background:#F5F4EF;border-radius:3px;overflow:hidden}
+.svc-fill{height:100%;border-radius:3px;background:#BA7517}
+.svc-cnt{font-size:12px;font-weight:500;min-width:20px;text-align:right}
+.tips-list{display:flex;flex-direction:column;gap:8px}
+.tip-item{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;background:#F5F4EF;border-radius:8px}
+.tip-icon{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.tip-icon.amber{background:#FAEEDA}
+.tip-icon.teal{background:#E1F5EE}
+.tip-icon.blue{background:#E6F1FB}
+.tip-text{font-size:12px;line-height:1.5}
+@media(max-width:600px){.kpi-grid{grid-template-columns:1fr 1fr}.two-col{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<nav class="nav">
+  <a class="nav-logo" href="/index.html">Митний<span>Брокер</span></a>
+  <div class="nav-links"><a class="nav-link" href="/catalog.html">Каталог</a></div>
+  <a class="btn nav-cta" href="/broker/profile.html">Мій профіль</a>
+</nav>
+<div class="container">
+  <div class="cab-nav">
+    <a class="cnav" href="/cabinet/dashboard.html">📊 Дашборд</a>
+    <a class="cnav" href="/cabinet/reviews.html">⭐ Відгуки</a>
+    <a class="cnav active" href="/cabinet/analytics.html">📈 Аналітика</a>
+    <a class="cnav" href="/cabinet/subscription.html">💳 Підписка</a>
+  </div>
+  <div class="topbar">
+    <div class="page-h">Аналітика</div>
+    <div class="period-tabs">
+      <button class="ptab on" onclick="setPeriod(this,'7')">7 днів</button>
+      <button class="ptab" onclick="setPeriod(this,'30')">30 днів</button>
+      <button class="ptab" onclick="setPeriod(this,'90')">90 днів</button>
+    </div>
+  </div>
+  <div class="kpi-grid">
+    <div class="kpi"><div class="kpi-lbl">👁 Перегляди</div><div class="kpi-val" id="kV">248</div><div class="delta up" id="dV">↑ +18% vs попер.</div></div>
+    <div class="kpi"><div class="kpi-lbl">📥 Заявки</div><div class="kpi-val" id="kL">12</div><div class="delta up" id="dL">↑ +3 vs попер.</div></div>
+    <div class="kpi"><div class="kpi-lbl">% Конверсія</div><div class="kpi-val" id="kC">4.8%</div><div class="delta down" id="dC">↓ -0.3% vs попер.</div></div>
+    <div class="kpi"><div class="kpi-lbl">⭐ Рейтинг</div><div class="kpi-val" id="kR">4.9★</div><div class="delta up" id="dR">↑ +2 відгуки</div></div>
+  </div>
+  <div class="chart-card">
+    <div class="chart-head">
+      <div class="chart-title">Перегляди та заявки</div>
+      <div class="legend"><div class="leg"><div class="leg-dot" style="background:#BA7517"></div>Перегляди</div><div class="leg"><div class="leg-dot" style="background:#1D9E75"></div>Заявки</div></div>
+    </div>
+    <canvas id="mainChart" height="160"></canvas>
+  </div>
+  <div class="two-col">
+    <div class="chart-card" style="margin-bottom:0">
+      <div class="chart-head"><div class="chart-title">Воронка конверсії</div></div>
+      <div id="funnelEl"></div>
+    </div>
+    <div class="chart-card" style="margin-bottom:0">
+      <div class="chart-head"><div class="chart-title">Послуги</div></div>
+      <div id="svcEl"></div>
+    </div>
+  </div>
+  <div class="chart-card" style="margin-top:10px">
+    <div class="chart-head"><div class="chart-title">💡 Рекомендації</div></div>
+    <div class="tips-list">
+      <div class="tip-item"><div class="tip-icon amber">⭐</div><div class="tip-text"><strong>Відповідайте на відгуки</strong> — 2 відгуки без відповіді. Брокери з відповідями отримують на 40% більше заявок.</div></div>
+      <div class="tip-item"><div class="tip-icon teal">🕐</div><div class="tip-text"><strong>Пікові години</strong> — найбільше переглядів вівторок і п'ятниця з 10:00 до 14:00. Будьте онлайн у цей час.</div></div>
+      <div class="tip-item"><div class="tip-icon blue">📈</div><div class="tip-text"><strong>Підніміться до тарифу Про</strong> — брокери з Про отримують в 3-5 разів більше переглядів завдяки підняттю в пошуку.</div></div>
+    </div>
+  </div>
+</div>
+<footer class="footer">© 2025 МитнийБрокер</footer>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script src="/assets/js/main.js"></script>
+<script>
+const ds={'7':{labels:['Пн','Вт','Ср','Чт','Пт','Сб','Нд'],views:[28,35,42,38,51,34,20],leads:[1,2,2,1,3,2,1],kpi:{v:248,l:12,c:'4.8%',r:'4.9★'},dV:'+18%',dL:'+3',dC:'-0.3%',dR:'+2 відгуки',upV:true,upL:true,upC:false,upR:true},'30':{labels:['1','5','10','15','20','25','30'],views:[110,145,130,160,190,175,140],leads:[5,7,6,8,10,9,7],kpi:{v:1050,l:52,c:'5.0%',r:'4.9★'},dV:'+22%',dL:'+11',dC:'+0.2%',dR:'+8 відгуків',upV:true,upL:true,upC:true,upR:true},'90':{labels:['Січ','Лют','Бер'],views:[890,1100,1050],leads:[38,55,52],kpi:{v:3040,l:145,c:'4.8%',r:'4.9★'},dV:'+31%',dL:'+28',dC:'+0.5%',dR:'+24 відгуки',upV:true,upL:true,upC:true,upR:true}};
+const funnel=[{label:'Переглянули профіль',val:248,color:'#BA7517'},{label:'Натиснули "Заявка"',val:48,color:'#EF9F27'},{label:'Заповнили форму',val:18,color:'#FAC775'},{label:'Надіслали заявку',val:12,color:'#1D9E75'}];
+const svcs=[{name:'Розмитнення авто',cnt:6},{name:'Оцінка авто',cnt:3},{name:'Договір КП',cnt:2},{name:'Консультація',cnt:1}];
+let chart=null;
+function setPeriod(el,p){
+  document.querySelectorAll('.ptab').forEach(t=>t.classList.remove('on'));el.classList.add('on');
+  const d=ds[p];
+  document.getElementById('kV').textContent=d.kpi.v.toLocaleString();
+  document.getElementById('kL').textContent=d.kpi.l;
+  document.getElementById('kC').textContent=d.kpi.c;
+  document.getElementById('kR').textContent=d.kpi.r;
+  ['V','L','C','R'].forEach(k=>{const el2=document.getElementById('d'+k);el2.className='delta '+(d['up'+k]?'up':'down');el2.textContent=(d['up'+k]?'↑ ':'↓ ')+d['d'+k]+' vs попер.';});
+  updateChart(d);
+}
+function updateChart(d){
+  if(chart)chart.destroy();
+  const ctx=document.getElementById('mainChart').getContext('2d');
+  chart=new Chart(ctx,{type:'bar',data:{labels:d.labels,datasets:[{label:'Перегляди',data:d.views,backgroundColor:'#FAEEDA',borderColor:'#BA7517',borderWidth:1,borderRadius:4,yAxisID:'y'},{label:'Заявки',data:d.leads,type:'line',borderColor:'#1D9E75',backgroundColor:'rgba(29,158,117,.1)',borderWidth:2,pointRadius:3,pointBackgroundColor:'#1D9E75',tension:0.3,fill:true,yAxisID:'y1'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{color:'rgba(0,0,0,.05)'},ticks:{font:{size:11},color:'#73726c'}},y:{grid:{color:'rgba(0,0,0,.05)'},ticks:{font:{size:11},color:'#73726c'}},y1:{position:'right',grid:{drawOnChartArea:false},ticks:{font:{size:11},color:'#1D9E75'}}}}});
+}
+function renderFunnel(){const max=funnel[0].val;document.getElementById('funnelEl').innerHTML=funnel.map(f=>`<div class="funnel-row"><div class="funnel-lbl"><span>${f.label}</span><span>${f.val}</span></div><div class="bar-track"><div class="bar-fill" style="width:${Math.round(f.val/max*100)}%;background:${f.color}"></div></div></div>`).join('');}
+function renderSvcs(){const max=svcs[0].cnt;document.getElementById('svcEl').innerHTML=svcs.map(s=>`<div class="svc-row"><div class="svc-name">${s.name}</div><div class="svc-track"><div class="svc-fill" style="width:${Math.round(s.cnt/max*100)}%"></div></div><div class="svc-cnt">${s.cnt}</div></div>`).join('');}
+renderFunnel();renderSvcs();
+setTimeout(()=>updateChart(ds['7']),100);
+</script>
+</body>
+</html>

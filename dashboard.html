@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Дашборд — Кабінет брокера</title>
+<link rel="stylesheet" href="/assets/css/style.css">
+<style>
+.cab-nav{display:flex;gap:2px;border-bottom:0.5px solid rgba(0,0,0,.12);margin-bottom:1.25rem}
+.cnav{padding:8px 14px;font-size:13px;color:#73726c;border-bottom:2px solid transparent;margin-bottom:-0.5px;text-decoration:none;transition:color .12s;display:flex;align-items:center;gap:5px}
+.cnav:hover{color:#1a1a18}
+.cnav.active{color:#BA7517;border-bottom-color:#BA7517;font-weight:500}
+.notif{background:#FAEEDA;color:#633806;font-size:10px;padding:1px 6px;border-radius:8px;font-weight:600}
+.broker-hero{display:flex;align-items:center;gap:14px;background:#fff;border:0.5px solid rgba(0,0,0,.12);border-radius:12px;padding:1.25rem;margin-bottom:1rem}
+.av{width:56px;height:56px;border-radius:50%;background:#FAEEDA;color:#633806;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:600;flex-shrink:0}
+.broker-info .name{font-size:17px;font-weight:600}
+.broker-info .meta{font-size:13px;color:#73726c;margin-top:3px}
+.upsell{background:#FAEEDA;border:0.5px solid #EF9F27;border-radius:12px;padding:12px 16px;margin-bottom:1rem;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.upsell-text{font-size:13px;color:#633806}
+.upsell-text strong{font-weight:600}
+.stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:1rem}
+.stat{background:#F5F4EF;border-radius:8px;padding:10px 12px}
+.stat-val{font-size:22px;font-weight:600}
+.stat-val.gold{color:#BA7517}
+.stat-lbl{font-size:12px;color:#73726c;margin-top:2px}
+.section-title{font-size:14px;font-weight:500;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between}
+.section-title a{font-size:12px;font-weight:400;color:#BA7517;text-decoration:none}
+.req-list{display:flex;flex-direction:column;gap:8px;margin-bottom:1rem}
+.req-item{background:#fff;border:0.5px solid rgba(0,0,0,.12);border-radius:12px;padding:10px 14px;display:flex;align-items:center;gap:10px}
+.req-item.new-req{border-color:#EF9F27}
+.req-av{width:32px;height:32px;border-radius:50%;background:#E6F1FB;color:#185FA5;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex-shrink:0}
+.req-info{flex:1;min-width:0}
+.req-name{font-size:13px;font-weight:500}
+.req-meta{font-size:11px;color:#73726c;margin-top:2px}
+.req-time{font-size:11px;color:#9c9a92;flex-shrink:0}
+.req-actions{display:flex;gap:6px;margin-top:6px}
+.btn-accept{padding:4px 12px;background:#E1F5EE;border:0.5px solid #5DCAA5;color:#085041;border-radius:6px;font-size:11px;cursor:pointer;font-weight:500}
+.btn-decline{padding:4px 12px;background:transparent;border:0.5px solid rgba(0,0,0,.2);color:#73726c;border-radius:6px;font-size:11px;cursor:pointer}
+.new-pill{font-size:10px;padding:1px 7px;border-radius:8px;background:#FAEEDA;color:#633806;font-weight:600;margin-left:6px}
+.quick-links{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px}
+.ql{background:#fff;border:0.5px solid rgba(0,0,0,.12);border-radius:12px;padding:12px;text-align:center;text-decoration:none;color:inherit;transition:border-color .15s}
+.ql:hover{border-color:rgba(0,0,0,.25)}
+.ql-icon{font-size:24px;margin-bottom:6px}
+.ql-name{font-size:13px;font-weight:500}
+.ql-sub{font-size:11px;color:#73726c;margin-top:2px}
+</style>
+</head>
+<body>
+<nav class="nav">
+  <a class="nav-logo" href="/index.html">Митний<span>Брокер</span></a>
+  <div class="nav-links"><a class="nav-link" href="/catalog.html">Каталог</a></div>
+  <a class="btn nav-cta" href="/broker/profile.html">Мій профіль →</a>
+</nav>
+<div class="container">
+  <div class="cab-nav">
+    <a class="cnav active" href="/cabinet/dashboard.html">📊 Дашборд</a>
+    <a class="cnav" href="/cabinet/reviews.html">⭐ Відгуки <span class="notif">2</span></a>
+    <a class="cnav" href="/cabinet/analytics.html">📈 Аналітика</a>
+    <a class="cnav" href="/cabinet/subscription.html">💳 Підписка</a>
+  </div>
+
+  <div class="broker-hero">
+    <div class="av">ДК</div>
+    <div class="broker-info">
+      <div class="name">Дмитро Крикун</div>
+      <div class="meta">⚡ Тариф Стандарт · 🟢 Онлайн · 📍 Київ</div>
+      <div class="meta" style="margin-top:4px">18 з 30 заявок використано цього місяця</div>
+    </div>
+  </div>
+
+  <div class="upsell">
+    <div class="upsell-text">🔥 <strong>Підвищте до Про</strong> — отримайте в 5 разів більше заявок з підняттям у пошуку</div>
+    <a class="btn btn-primary" href="/cabinet/subscription.html" style="white-space:nowrap;font-size:13px">Підвищити →</a>
+  </div>
+
+  <div class="stats-grid">
+    <div class="stat"><div class="stat-val">248</div><div class="stat-lbl">👁 переглядів</div></div>
+    <div class="stat"><div class="stat-val">12</div><div class="stat-lbl">📥 заявок</div></div>
+    <div class="stat"><div class="stat-val gold">4.9★</div><div class="stat-lbl">⭐ рейтинг</div></div>
+  </div>
+
+  <div class="section-title">Останні заявки <a href="#">Всі заявки →</a></div>
+  <div class="req-list">
+    <div class="req-item new-req">
+      <div class="req-av">ОВ</div>
+      <div class="req-info">
+        <div class="req-name">Олексій Василенко <span class="new-pill">Новий</span></div>
+        <div class="req-meta">🚗 Розмитнення Toyota Camry 2019 зі США · Терміново</div>
+        <div class="req-actions">
+          <button class="btn-accept" onclick="this.closest('.req-item').style.borderColor='#5DCAA5';this.textContent='✓ Прийнято';this.disabled=true">Відповісти</button>
+          <button class="btn-decline" onclick="this.closest('.req-item').style.opacity='.4'">Відхилити</button>
+        </div>
+      </div>
+      <div class="req-time">2 хв тому</div>
+    </div>
+    <div class="req-item new-req">
+      <div class="req-av">МК</div>
+      <div class="req-info">
+        <div class="req-name">Марія Коваленко <span class="new-pill">Новий</span></div>
+        <div class="req-meta">📄 Оцінка BMW X5 для банку (автокредит)</div>
+        <div class="req-actions">
+          <button class="btn-accept" onclick="this.closest('.req-item').style.borderColor='#5DCAA5';this.textContent='✓ Прийнято';this.disabled=true">Відповісти</button>
+          <button class="btn-decline" onclick="this.closest('.req-item').style.opacity='.4'">Відхилити</button>
+        </div>
+      </div>
+      <div class="req-time">1 год тому</div>
+    </div>
+    <div class="req-item">
+      <div class="req-av">ТМ</div>
+      <div class="req-info">
+        <div class="req-name">Тарас Мельник</div>
+        <div class="req-meta">💬 Консультація — розмитнення Tesla Model 3</div>
+      </div>
+      <div class="req-time">Вчора</div>
+    </div>
+  </div>
+
+  <div class="section-title">Швидкі дії</div>
+  <div class="quick-links">
+    <a class="ql" href="/cabinet/reviews.html"><div class="ql-icon">⭐</div><div class="ql-name">Відгуки</div><div class="ql-sub">2 без відповіді</div></a>
+    <a class="ql" href="/cabinet/analytics.html"><div class="ql-icon">📈</div><div class="ql-name">Аналітика</div><div class="ql-sub">Переглянути статистику</div></a>
+    <a class="ql" href="/broker/profile.html"><div class="ql-icon">👤</div><div class="ql-name">Мій профіль</div><div class="ql-sub">Редагувати</div></a>
+    <a class="ql" href="/cabinet/subscription.html"><div class="ql-icon">💳</div><div class="ql-name">Підписка</div><div class="ql-sub">Стандарт · 12 днів</div></a>
+  </div>
+</div>
+<footer class="footer">© 2025 МитнийБрокер</footer>
+<script src="/assets/js/main.js"></script>
+</body>
+</html>
