@@ -1,0 +1,345 @@
+/* =============================================
+   mobile.css — мобільна адаптація МитнийБрокер
+   Підключи ПІСЛЯ style.css на кожній сторінці:
+   <link rel="stylesheet" href="/assets/css/mobile.css">
+   ============================================= */
+
+/* ---- БАЗОВІ МОБІЛЬНІ НАЛАШТУВАННЯ ---- */
+@media (max-width: 768px) {
+
+  /* Контейнер */
+  .container {
+    padding: 1rem 0.875rem;
+  }
+
+  /* ---- НАВІГАЦІЯ ---- */
+  .nav {
+    padding: 0 1rem;
+    height: 52px;
+    gap: 0.75rem;
+  }
+  .nav-links {
+    display: none; /*ховаємо лінки, залишаємо лого і CTA */
+  }
+  .nav-logo {
+    font-size: 14px;
+  }
+  .nav-cta {
+    padding: 5px 12px;
+    font-size: 12px;
+  }
+
+  /* Бургер-меню */
+  .nav-burger {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    cursor: pointer;
+    padding: 4px;
+    margin-left: auto;
+    margin-right: 8px;
+  }
+  .nav-burger span {
+    display: block;
+    width: 20px;
+    height: 2px;
+    background: var(--text, #1a1a18);
+    border-radius: 2px;
+    transition: all 0.2s;
+  }
+  .nav-burger.open span:nth-child(1) { transform: translateY(6px) rotate(45deg); }
+  .nav-burger.open span:nth-child(2) { opacity: 0; }
+  .nav-burger.open span:nth-child(3) { transform: translateY(-6px) rotate(-45deg); }
+
+  /* Мобільне меню */
+  .nav-mobile-menu {
+    display: none;
+    position: fixed;
+    top: 52px;
+    left: 0;
+    right: 0;
+    background: #fff;
+    border-bottom: 0.5px solid rgba(0,0,0,.12);
+    padding: 1rem;
+    z-index: 99;
+    flex-direction: column;
+    gap: 4px;
+    box-shadow: 0 4px 16px rgba(0,0,0,.08);
+  }
+  .nav-mobile-menu.open { display: flex; }
+  .nav-mobile-menu a {
+    padding: 10px 12px;
+    border-radius: 8px;
+    font-size: 14px;
+    color: #1a1a18;
+    text-decoration: none;
+    transition: background 0.12s;
+  }
+  .nav-mobile-menu a:hover { background: #F5F4EF; }
+  .nav-mobile-menu a.active { color: #BA7517; font-weight: 500; }
+  .nav-mobile-menu .nav-divider {
+    height: 0.5px;
+    background: rgba(0,0,0,.08);
+    margin: 4px 0;
+  }
+
+  /* ---- ГОЛОВНА СТОРІНКА ---- */
+  .hero-title { font-size: 22px !important; }
+  .hero-sub { font-size: 13px !important; }
+
+  /* Пошук */
+  .search-row {
+    flex-direction: column !important;
+    gap: 8px !important;
+  }
+  .search-row select,
+  .search-row input,
+  .search-row .search-wrap {
+    width: 100% !important;
+    min-width: unset !important;
+  }
+  .search-row .btn,
+  .search-row button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* ---- КАТАЛОГ ---- */
+  .grid {
+    grid-template-columns: 1fr !important;
+  }
+  .toolbar {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .chips {
+    gap: 5px;
+  }
+  .chip {
+    font-size: 11px;
+    padding: 4px 9px;
+  }
+
+  /* Картка брокера */
+  .broker-card { padding: 0.875rem 1rem; }
+  .card-top { gap: 8px; }
+  .av { width: 38px !important; height: 38px !important; font-size: 12px !important; }
+
+  /* ---- ПРОФІЛЬ БРОКЕРА ---- */
+  .hero {
+    grid-template-columns: auto 1fr !important;
+    gap: 10px !important;
+  }
+  .hero-cta {
+    display: none !important; /* показуємо внизу */
+  }
+  .hero-cta-mobile {
+    display: flex !important;
+    gap: 8px;
+    margin-top: 12px;
+    flex-wrap: wrap;
+  }
+  .hero-cta-mobile .btn {
+    flex: 1;
+    min-width: 120px;
+    justify-content: center;
+    font-size: 13px;
+  }
+
+  .stats-row {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+  .two-col {
+    grid-template-columns: 1fr !important;
+    gap: 8px !important;
+  }
+
+  /* Рейтинг-блок */
+  .rating-block {
+    grid-template-columns: auto 1fr !important;
+    gap: 12px !important;
+  }
+  .big-score { font-size: 36px !important; }
+
+  /* ---- ФОРМА ЗАЯВКИ ---- */
+  .form-row {
+    grid-template-columns: 1fr !important;
+    gap: 8px !important;
+  }
+  .svc-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 6px !important;
+  }
+  .svc-card { padding: 10px 8px !important; }
+  .svc-icon { font-size: 20px !important; }
+  .urg-row { gap: 6px !important; }
+  .urg-btn { font-size: 11px !important; padding: 5px 10px !important; }
+  .actions {
+    flex-direction: column-reverse;
+    gap: 8px !important;
+  }
+  .actions .btn-next,
+  .actions .btn-submit,
+  .actions .btn-back {
+    width: 100%;
+    justify-content: center;
+  }
+  .broker-card-select { padding: 10px 12px !important; }
+
+  /* ---- КАБІНЕТ ---- */
+  .cab-nav {
+    gap: 0;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .cab-nav::-webkit-scrollbar { display: none; }
+  .cnav {
+    white-space: nowrap;
+    padding: 8px 12px !important;
+    font-size: 12px !important;
+  }
+
+  .kpi-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 6px !important;
+  }
+  .kpi-val { font-size: 18px !important; }
+
+  .stats-grid {
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 6px !important;
+  }
+  .stat-val { font-size: 18px !important; }
+
+  /* Дашборд герой */
+  .broker-hero {
+    flex-wrap: wrap;
+    gap: 10px !important;
+  }
+
+  /* ---- АНАЛІТИКА ---- */
+  .two-col.analytics {
+    grid-template-columns: 1fr !important;
+  }
+  canvas { max-height: 180px; }
+
+  /* ---- ТАРИФИ / ОПЛАТА ---- */
+  .plans-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px !important;
+  }
+  .plan-card { padding: 0.875rem 0.75rem !important; }
+  .plan-price { font-size: 16px !important; }
+  .cf-row {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px !important;
+  }
+  .pay-methods { gap: 6px !important; }
+  .pm { padding: 6px 10px !important; font-size: 11px !important; }
+
+  /* ---- АДМІН ---- */
+  .kpi-row {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 6px !important;
+  }
+  .rv-head { flex-wrap: wrap; gap: 6px !important; }
+  .rv-foot { flex-wrap: wrap; gap: 6px !important; }
+  .act-btn { font-size: 11px !important; padding: 4px 10px !important; }
+
+  /* ---- ЗАГАЛЬНІ ---- */
+  .card { padding: 1rem !important; }
+  .card-title { font-size: 14px !important; }
+
+  /* Кнопки */
+  .btn { font-size: 13px !important; padding: 8px 14px !important; }
+
+  /* Таблиці */
+  table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+  /* Приховати зайве на мобільному */
+  .hide-mobile { display: none !important; }
+  .show-mobile { display: block !important; }
+}
+
+/* ---- ПЛАНШЕТ ---- */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .container { padding: 1.25rem; }
+  .grid { grid-template-columns: repeat(2, 1fr) !important; }
+  .stats-row { grid-template-columns: repeat(4, 1fr); }
+  .kpi-grid { grid-template-columns: repeat(4, 1fr); }
+}
+
+/* ---- МОБІЛЬНА НИЖНЯ НАВІГАЦІЯ ---- */
+.mobile-bottom-nav {
+  display: none;
+}
+@media (max-width: 768px) {
+  .mobile-bottom-nav {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: #fff;
+    border-top: 0.5px solid rgba(0,0,0,.12);
+    z-index: 100;
+    padding: 6px 0 max(6px, env(safe-area-inset-bottom));
+  }
+  .mobile-bottom-nav a {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    text-decoration: none;
+    color: #73726c;
+    font-size: 10px;
+    padding: 4px 0;
+    transition: color 0.12s;
+  }
+  .mobile-bottom-nav a.active { color: #BA7517; }
+  .mobile-bottom-nav a span.icon { font-size: 20px; line-height: 1; }
+  .mobile-bottom-nav a .badge {
+    position: absolute;
+    top: 4px;
+    right: calc(50% - 18px);
+    width: 16px;
+    height: 16px;
+    background: #BA7517;
+    color: #fff;
+    border-radius: 50%;
+    font-size: 9px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+  }
+  .mobile-bottom-nav a { position: relative; }
+
+  /* Відступ знизу щоб контент не перекривався */
+  body { padding-bottom: 64px; }
+}
+
+/* ---- SAFE AREA для iPhone ---- */
+@supports (padding: max(0px)) {
+  .nav { padding-left: max(1rem, env(safe-area-inset-left)); padding-right: max(1rem, env(safe-area-inset-right)); }
+  .container { padding-left: max(0.875rem, env(safe-area-inset-left)); padding-right: max(0.875rem, env(safe-area-inset-right)); }
+}
+
+/* ---- TOUCH ПОКРАЩЕННЯ ---- */
+@media (hover: none) {
+  .broker-card:hover,
+  .plan-card:hover,
+  .ql:hover { border-color: rgba(0,0,0,.12) !important; }
+
+  /* Збільшуємо зони кліку */
+  .chip { min-height: 32px; }
+  .btn { min-height: 40px; }
+  .nav-link { min-height: 44px; display: flex; align-items: center; }
+  input, select, textarea { font-size: 16px !important; } /* запобігає зуму на iOS */
+}
+
+/* ---- АНІМАЦІЯ СКРОЛУ ---- */
+html { scroll-behavior: smooth; }
+* { -webkit-tap-highlight-color: transparent; }

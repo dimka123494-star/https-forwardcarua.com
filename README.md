@@ -1,93 +1,76 @@
-# МитнийБрокер × Supabase — Готова інтеграція
+# Мобільна адаптація — Інструкція
 
-Ключі вже вставлені. Зроби 3 кроки:
+## Що додати на КОЖНУ HTML сторінку
 
----
-
-## Крок 1 — Виконай SQL схему
-
-1. Supabase → **SQL Editor**
-2. Вставити весь текст з `schema.sql`
-3. Натиснути **Run**
-
----
-
-## Крок 2 — Завантаж JS файли на сайт
-
-Скопіюй `assets/js/` у GitHub репозиторій поруч з існуючими файлами.
-
----
-
-## Крок 3 — Підключи на кожній сторінці
-
-Додай у `<head>` кожного HTML **перед** іншими скриптами:
+### 1. У `<head>` — після style.css
 
 ```html
-<script src="/assets/js/supabase.js"></script>
-<script src="/assets/js/auth.js"></script>
-<script src="/assets/js/db.js"></script>
+<!-- Мобільні стилі -->
+<link rel="stylesheet" href="/assets/css/mobile.css">
+
+<!-- PWA meta теги (для iOS/Android) -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="МитнийБрокер">
+<meta name="theme-color" content="#FAEEDA">
+<link rel="apple-touch-icon" href="/assets/img/icon-192.png">
 ```
 
----
+### 2. Перед `</body>` — мобільний скрипт
 
-## Використання в коді
-
-### Реєстрація брокера
-```js
-// Кнопка "Зареєструватись"
-<button onclick="submitRegistration()">Зареєструватись</button>
-```
-
-### Вхід
-```js
-<button onclick="submitLogin()">Увійти</button>
-// + поля з id="loginEmail" і id="loginPassword"
-```
-
-### Захист кабінету (на початку cabinet/*.html)
 ```html
-<script>
-window.addEventListener('supabase-ready', async () => {
-  const user = await requireAuth();
-  if (!user) return;
-  const dash = await loadDashboard();
-  // рендер даних
-});
-</script>
-```
-
-### Каталог брокерів з БД
-```js
-const brokers = await loadBrokers({ region: 'Київська', sort: 'rating' });
-```
-
-### Зберегти заявку клієнта
-```js
-await saveRequest(data); // data — об'єкт з формою request.html
-```
-
-### Завантажити відгуки
-```js
-const reviews = await loadReviews(brokerId, { filter: '5', sort: 'newest' });
-```
-
-### Залишити відгук
-```js
-await submitReview({ brokerId, authorName, rating, service, body });
-```
-
-### Відповідь брокера на відгук
-```js
-await replyToReview(reviewId, brokerId, 'Дякуємо за відгук!');
+<script src="/assets/js/mobile.js"></script>
 ```
 
 ---
 
-## Файли
+## Що додається автоматично
 
-| Файл | Призначення |
-|---|---|
-| `schema.sql` | Таблиці + тригери + RLS |
-| `assets/js/supabase.js` | Підключення (ключі вже є) |
-| `assets/js/auth.js` | Реєстрація, вхід, захист |
-| `assets/js/db.js` | Всі функції БД в одному файлі |
+`mobile.js` автоматично додає на кожну сторінку:
+
+- **Бургер-меню** (☰) замість горизонтальних посилань
+- **Нижню навігацію** (як в додатках) — з іконками і підписами
+- **Мобільні CTA кнопки** під шапкою профілю брокера
+
+---
+
+## Виправлення для конкретних сторінок
+
+### index.html — форма реєстрації
+
+```html
+<!-- Кнопка "Зареєструватись" має data-scroll-to -->
+<button data-scroll-to="#registration-form">Зареєструватись як брокер</button>
+```
+
+### catalog.html — пошук
+
+Вже адаптовано через CSS — `.search-row` стає вертикальним на мобільному.
+
+### broker/profile.html — кнопки CTA
+
+Вже адаптовано — `.hero-cta` ховається, `.hero-cta-mobile` показується під шапкою.
+
+### request.html — форма заявки
+
+Вже адаптовано — `.form-row` стає одноколонковим, `.actions` — вертикальним.
+
+### cabinet/*.html — кабінет
+
+Горизонтальний скрол у `.cab-nav`, нижня навігація з іконками кабінету.
+
+---
+
+## Швидка перевірка на мобільному
+
+1. Chrome DevTools → F12 → Toggle Device Toolbar (Ctrl+Shift+M)
+2. Вибери "iPhone 14" або "Samsung Galaxy S21"
+3. Перевір всі сторінки
+
+Ключові точки перевірки:
+- [ ] Навігація відкривається бургером
+- [ ] Форми не вимагають горизонтального скролу
+- [ ] Кнопки не менше 44px висотою
+- [ ] Текст не менше 14px (без зуму на iOS)
+- [ ] Нижня навігація не перекриває контент
+- [ ] Safe area на iPhone з чубчиком (notch)
