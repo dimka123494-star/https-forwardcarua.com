@@ -1,0 +1,1209 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="google-site-verification" content="t1sLPqO3Q_8OKKsgMwkEEl0sRYBbYNIB7VxLTPcCYdc" />
+<meta name="description" content="Каталог перевірених митних брокерів України. Розмитнення авто, оцінка, договір купівлі-продажу. Знайдіть брокера за регіоном.">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0d0e14;--surface:#13141d;--surface2:#1a1c28;--border:rgba(255,255,255,0.07);
+  --blue:#4B8EF1;--blue-glow:rgba(75,142,241,0.15);--green:#2DD98F;--amber:#F5A623;
+  --purple:#A855F7;--text:#f0f1f5;--muted:rgba(240,241,245,0.45);--r:14px;
+}
+html{scroll-behavior:smooth}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+nav{position:fixed;top:0;left:0;right:0;z-index:200;display:flex;align-items:center;justify-content:space-between;padding:0 2rem;height:68px;background:rgba(13,14,20,0.9);backdrop-filter:blur(20px);border-bottom:0.5px solid var(--border)}
+.nav-brand{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:var(--text);letter-spacing:-0.5px;cursor:pointer}
+.nav-brand span{color:var(--blue)}
+.nav-tabs{display:flex;gap:4px;background:var(--surface);border:0.5px solid var(--border);border-radius:10px;padding:4px}
+.nav-tab{padding:7px 18px;border-radius:7px;font-size:13px;font-weight:500;cursor:pointer;color:var(--muted);transition:all 0.2s;border:none;background:none}
+.nav-tab.active{background:var(--blue);color:#fff}
+.nav-tab:hover:not(.active){color:var(--text)}
+.nav-actions{display:flex;gap:10px;align-items:center}
+.btn-ghost-sm{background:transparent;border:0.5px solid var(--border);color:var(--text);padding:8px 16px;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer;transition:all 0.2s}
+.btn-ghost-sm:hover{border-color:var(--blue);color:var(--blue)}
+.btn-blue{background:var(--blue);color:#fff;border:none;padding:8px 18px;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer;transition:opacity 0.2s;display:inline-flex;align-items:center;gap:6px}
+.btn-blue:hover{opacity:0.88}
+.page{display:none;padding-top:68px;min-height:100vh}
+.page.active{display:block}
+.hero{padding:6rem 2rem 3rem;text-align:center;position:relative;overflow:hidden}
+.hero-glow{position:absolute;top:0;left:50%;transform:translateX(-50%);width:800px;height:400px;background:radial-gradient(ellipse,rgba(75,142,241,0.12) 0%,transparent 70%);pointer-events:none}
+.hero-badge{display:inline-flex;align-items:center;gap:8px;background:var(--surface);border:0.5px solid var(--border);border-radius:20px;padding:6px 14px;font-size:12px;color:var(--muted);margin-bottom:2rem;letter-spacing:1px;text-transform:uppercase}
+.hero-badge span{width:6px;height:6px;border-radius:50%;background:var(--green);display:inline-block;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+h1.hero-title{font-family:'Syne',sans-serif;font-size:clamp(36px,7vw,76px);line-height:1;font-weight:800;margin-bottom:1.5rem;letter-spacing:-2px}
+h1.hero-title span{color:var(--blue)}
+.hero-sub{font-size:16px;color:var(--muted);max-width:480px;margin:0 auto 2.5rem;line-height:1.7}
+.search-bar{max-width:620px;margin:0 auto 1.25rem;display:flex;gap:10px;background:var(--surface);border:0.5px solid var(--border);border-radius:12px;padding:8px 8px 8px 16px;align-items:center}
+.search-bar i{font-size:18px;color:var(--muted)}
+.search-bar input{flex:1;background:none;border:none;outline:none;font-family:'DM Sans',sans-serif;font-size:15px;color:var(--text)}
+.search-bar input::placeholder{color:var(--muted)}
+.search-btn{background:var(--blue);color:#fff;border:none;padding:10px 22px;border-radius:9px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;cursor:pointer}
+.filter-chips{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:3rem}
+.chip{background:var(--surface);border:0.5px solid var(--border);border-radius:20px;padding:6px 14px;font-size:13px;color:var(--muted);cursor:pointer;transition:all 0.2s}
+.chip:hover,.chip.active{background:var(--blue-glow);border-color:var(--blue);color:var(--blue)}
+.stats-row{display:flex;gap:2px;justify-content:center;margin-bottom:3rem;flex-wrap:wrap}
+.stat-pill{background:var(--surface);border:0.5px solid var(--border);padding:12px 24px;text-align:center}
+.stat-pill:first-child{border-radius:10px 0 0 10px}
+.stat-pill:last-child{border-radius:0 10px 10px 0}
+.stat-num{font-family:'Syne',sans-serif;font-size:24px;font-weight:800;color:var(--blue)}
+.stat-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px}
+.section{padding:2rem}
+.section-header{max-width:1100px;margin:0 auto 1.5rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
+.section-title{font-family:'Syne',sans-serif;font-size:22px;font-weight:800}
+.sort-select{background:var(--surface);border:0.5px solid var(--border);color:var(--text);padding:7px 12px;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer;outline:none}
+.brokers-grid{max-width:1100px;margin:0 auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px}
+.broker-card{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--r);padding:1.5rem;cursor:pointer;transition:all 0.2s;position:relative;overflow:hidden}
+.broker-card.top-card{border-color:rgba(245,166,35,0.4);background:linear-gradient(135deg,rgba(245,166,35,0.05),var(--surface))}
+.broker-card.pro-card{border-color:rgba(75,142,241,0.4);background:linear-gradient(135deg,rgba(75,142,241,0.05),var(--surface))}
+.broker-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--blue),var(--green));transform:scaleX(0);transform-origin:left;transition:transform 0.3s}
+.broker-card:hover{transform:translateY(-2px)}
+.broker-card:hover::before{transform:scaleX(1)}
+.broker-top{display:flex;align-items:flex-start;gap:12px;margin-bottom:1rem}
+.broker-avatar{width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-size:18px;font-weight:800;flex-shrink:0}
+.broker-name{font-size:16px;font-weight:500;margin-bottom:2px}
+.broker-region{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:4px}
+.plan-badge{display:inline-flex;align-items:center;gap:3px;border-radius:6px;padding:3px 8px;font-size:11px;font-weight:600;margin-left:auto;flex-shrink:0}
+.plan-free{background:rgba(255,255,255,0.05);color:var(--muted)}
+.plan-standard{background:rgba(75,142,241,0.15);color:var(--blue)}
+.plan-pro{background:rgba(245,166,35,0.15);color:var(--amber)}
+.plan-premium{background:rgba(168,85,247,0.15);color:var(--purple)}
+.broker-services{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:1rem}
+.service-tag{background:var(--surface2);border:0.5px solid var(--border);border-radius:6px;padding:4px 10px;font-size:12px;color:var(--muted)}
+.broker-bottom{display:flex;align-items:center;justify-content:space-between}
+.broker-rating{display:flex;align-items:center;gap:6px;font-size:14px}
+.stars{color:var(--amber);letter-spacing:-2px}
+.reviews-count{font-size:12px;color:var(--muted)}
+.contact-btn{background:var(--blue-glow);border:0.5px solid var(--blue);color:var(--blue);padding:7px 14px;border-radius:8px;font-size:13px;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all 0.2s}
+.contact-btn:hover{background:var(--blue);color:#fff}
+.top-label{position:absolute;top:12px;right:12px;background:linear-gradient(135deg,var(--amber),#F1654B);color:#fff;border-radius:6px;padding:3px 8px;font-size:11px;font-weight:700}
+.pricing-wrap{max-width:1000px;margin:0 auto;padding:4rem 2rem}
+.pricing-header{text-align:center;margin-bottom:3rem}
+.pricing-header h2{font-family:'Syne',sans-serif;font-size:clamp(32px,5vw,56px);font-weight:800;margin-bottom:1rem;letter-spacing:-1px}
+.pricing-header p{color:var(--muted);font-size:16px;max-width:480px;margin:0 auto}
+.pricing-toggle{display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:3rem}
+.toggle-label{font-size:14px;color:var(--muted)}
+.toggle-label.active{color:var(--text)}
+.toggle{width:44px;height:24px;background:var(--surface);border:0.5px solid var(--border);border-radius:12px;cursor:pointer;position:relative;transition:background 0.2s}
+.toggle.on{background:var(--blue)}
+.toggle-dot{width:18px;height:18px;background:#fff;border-radius:50%;position:absolute;top:3px;left:3px;transition:left 0.2s}
+.toggle.on .toggle-dot{left:23px}
+.save-badge{background:rgba(45,217,143,0.15);color:var(--green);border-radius:6px;padding:3px 10px;font-size:12px;font-weight:500}
+.plans-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-bottom:3rem}
+.plan-card{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--r);padding:1.75rem;position:relative;transition:transform 0.2s}
+.plan-card:hover{transform:translateY(-4px)}
+.plan-card.featured{border-color:var(--amber);background:linear-gradient(135deg,rgba(245,166,35,0.07),var(--surface))}
+.plan-card.popular{border-color:var(--blue)}
+.popular-label{position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:var(--blue);color:#fff;border-radius:20px;padding:4px 14px;font-size:12px;font-weight:600;white-space:nowrap}
+.featured-label{position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:linear-gradient(90deg,var(--amber),#F1654B);color:#fff;border-radius:20px;padding:4px 14px;font-size:12px;font-weight:600;white-space:nowrap}
+.plan-icon{font-size:28px;margin-bottom:1rem}
+.plan-name{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;margin-bottom:0.5rem}
+.plan-desc{font-size:13px;color:var(--muted);margin-bottom:1.5rem;line-height:1.5}
+.plan-price{margin-bottom:1.5rem}
+.plan-price .amount{font-family:'Syne',sans-serif;font-size:42px;font-weight:800;line-height:1}
+.plan-price .currency{font-size:18px;color:var(--muted);vertical-align:top;margin-top:8px;display:inline-block}
+.plan-price .period{font-size:13px;color:var(--muted)}
+.plan-price .old-price{font-size:14px;color:var(--muted);text-decoration:line-through;margin-bottom:2px}
+.plan-features{list-style:none;margin-bottom:1.75rem;display:flex;flex-direction:column;gap:8px}
+.plan-features li{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)}
+.plan-features li.included{color:var(--text)}
+.plan-features li i{font-size:14px;flex-shrink:0}
+.plan-features li.included i{color:var(--green)}
+.plan-features li:not(.included) i{color:rgba(255,255,255,0.2)}
+.plan-btn{width:100%;padding:12px;border-radius:9px;font-family:'Syne',sans-serif;font-size:15px;font-weight:700;cursor:pointer;border:none;transition:all 0.2s}
+.plan-btn-outline{background:transparent;border:0.5px solid var(--border);color:var(--muted)}
+.plan-btn-outline:hover{border-color:var(--blue);color:var(--blue)}
+.plan-btn-blue{background:var(--blue);color:#fff}
+.plan-btn-blue:hover{opacity:0.88}
+.plan-btn-gold{background:linear-gradient(135deg,var(--amber),#F1654B);color:#fff}
+.plan-btn-gold:hover{opacity:0.88}
+.plan-btn-purple{background:linear-gradient(135deg,var(--purple),#4B8EF1);color:#fff}
+.plan-btn-purple:hover{opacity:0.88}
+.compare-section{margin-bottom:3rem}
+.compare-title{font-family:'Syne',sans-serif;font-size:24px;font-weight:800;margin-bottom:1.5rem;text-align:center}
+.compare-table{width:100%;border-collapse:collapse}
+.compare-table th{background:var(--surface);padding:14px 16px;font-size:12px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);text-align:left;border-bottom:0.5px solid var(--border)}
+.compare-table th:not(:first-child){text-align:center}
+.compare-table td{padding:12px 16px;border-bottom:0.5px solid var(--border);font-size:14px}
+.compare-table td:not(:first-child){text-align:center}
+.compare-table tr:hover td{background:rgba(255,255,255,0.02)}
+.check-yes{color:var(--green)}
+.check-no{color:rgba(255,255,255,0.15)}
+.faq-pricing{margin-bottom:3rem}
+.faq-pricing-title{font-family:'Syne',sans-serif;font-size:24px;font-weight:800;margin-bottom:1.5rem;text-align:center}
+.faq-item{background:var(--surface);border:0.5px solid var(--border);border-radius:10px;margin-bottom:8px;overflow:hidden}
+.faq-q{padding:1rem 1.25rem;cursor:pointer;display:flex;justify-content:space-between;align-items:center;font-size:15px;font-weight:500}
+.faq-q i{color:var(--muted);transition:transform 0.2s}
+.faq-a{padding:0 1.25rem 1rem;font-size:14px;color:var(--muted);line-height:1.6;display:none}
+.faq-item.open .faq-a{display:block}
+.faq-item.open .faq-q i{transform:rotate(180deg)}
+.cta-pricing{background:linear-gradient(135deg,rgba(75,142,241,0.15),rgba(45,217,143,0.08));border:0.5px solid rgba(75,142,241,0.2);border-radius:20px;padding:3rem;text-align:center}
+.cta-pricing h3{font-family:'Syne',sans-serif;font-size:32px;font-weight:800;margin-bottom:0.75rem}
+.cta-pricing p{color:var(--muted);margin-bottom:2rem}
+.cta-btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:300;backdrop-filter:blur(6px)}
+.modal-overlay.open{display:flex;align-items:center;justify-content:center;padding:1rem}
+.modal{background:var(--surface);border:0.5px solid var(--border);border-radius:20px;width:100%;max-width:500px;max-height:90vh;overflow-y:auto;padding:2rem;position:relative}
+.modal-close{position:absolute;top:1rem;right:1rem;background:var(--surface2);border:none;color:var(--muted);width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px}
+.modal-title{font-family:'Syne',sans-serif;font-size:24px;font-weight:800;margin-bottom:0.5rem}
+.modal-sub{font-size:14px;color:var(--muted);margin-bottom:1.5rem}
+.selected-plan{background:var(--surface2);border-radius:12px;padding:1.25rem;margin-bottom:1.5rem;display:flex;align-items:center;justify-content:space-between}
+.selected-plan-name{font-weight:500}
+.selected-plan-price{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:var(--blue)}
+.payment-methods{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:1.5rem}
+.pay-method{background:var(--surface2);border:0.5px solid var(--border);border-radius:10px;padding:14px;cursor:pointer;text-align:center;transition:all 0.2s}
+.pay-method:hover,.pay-method.selected{border-color:var(--blue);background:var(--blue-glow)}
+.pay-method-icon{font-size:24px;margin-bottom:4px}
+.pay-method-name{font-size:13px;font-weight:500}
+.pay-method-desc{font-size:11px;color:var(--muted)}
+.form-group{margin-bottom:1rem}
+.form-label{display:block;font-size:12px;font-weight:500;color:var(--muted);margin-bottom:5px;text-transform:uppercase;letter-spacing:0.5px}
+.form-input{width:100%;background:var(--surface2);border:0.5px solid var(--border);color:var(--text);padding:11px 13px;border-radius:9px;font-family:'DM Sans',sans-serif;font-size:14px;outline:none;transition:border-color 0.2s}
+.form-input:focus{border-color:var(--blue)}
+.form-input::placeholder{color:var(--muted)}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.pay-btn{width:100%;background:linear-gradient(135deg,var(--blue),var(--green));color:#fff;border:none;padding:14px;border-radius:10px;font-family:'Syne',sans-serif;font-size:16px;font-weight:700;cursor:pointer;transition:opacity 0.2s;margin-top:0.5rem;display:flex;align-items:center;justify-content:center;gap:8px}
+.pay-btn:hover{opacity:0.9}
+.secure-note{text-align:center;font-size:12px;color:var(--muted);margin-top:0.75rem;display:flex;align-items:center;justify-content:center;gap:6px}
+.bmodal{background:var(--surface);border:0.5px solid var(--border);border-radius:20px;width:100%;max-width:600px;max-height:88vh;overflow-y:auto;padding:2rem;position:relative}
+.modal-broker-header{display:flex;gap:16px;align-items:flex-start;margin-bottom:1.5rem}
+.modal-avatar{width:72px;height:72px;border-radius:16px;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-size:28px;font-weight:800;flex-shrink:0}
+.modal-name{font-family:'Syne',sans-serif;font-size:24px;font-weight:800;margin-bottom:4px}
+.modal-meta{display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:13px}
+.modal-section{margin-bottom:1.5rem}
+.modal-section-title{font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:0.75rem}
+.modal-services{display:flex;flex-wrap:wrap;gap:8px}
+.modal-service{background:var(--surface2);border:0.5px solid var(--border);border-radius:8px;padding:6px 12px;font-size:13px;display:flex;align-items:center;gap:6px}
+.modal-price-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.price-item{background:var(--surface2);border-radius:10px;padding:1rem}
+.price-label{font-size:12px;color:var(--muted);margin-bottom:4px}
+.price-val{font-size:20px;font-weight:500}
+.contact-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.contact-item{display:flex;align-items:center;gap:10px;background:var(--surface2);border-radius:10px;padding:12px;text-decoration:none;color:var(--text);border:0.5px solid transparent;transition:border-color 0.2s}
+.contact-item:hover{border-color:var(--blue)}
+.contact-item i{font-size:20px;color:var(--blue)}
+.contact-item-text .label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px}
+.contact-item-text .val{font-size:14px;font-weight:500}
+.request-form{background:var(--surface2);border-radius:12px;padding:1.25rem}
+.request-form textarea{width:100%;background:var(--surface);border:0.5px solid var(--border);color:var(--text);padding:10px 12px;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:14px;resize:none;outline:none;min-height:80px;margin-bottom:10px}
+.request-form textarea:focus{border-color:var(--blue)}
+.request-btn{width:100%;background:var(--blue);color:#fff;border:none;padding:12px;border-radius:9px;font-family:'Syne',sans-serif;font-size:15px;font-weight:700;cursor:pointer}
+.register-wrap{max-width:540px;margin:0 auto;padding:3rem 2rem}
+.register-header{text-align:center;margin-bottom:2.5rem}
+.register-header h2{font-family:'Syne',sans-serif;font-size:36px;font-weight:800;margin-bottom:0.5rem}
+.register-header p{color:var(--muted);font-size:15px}
+.form-steps{display:flex;gap:0;margin-bottom:2.5rem;background:var(--surface);border-radius:10px;padding:4px}
+.form-step{flex:1;text-align:center;padding:10px;border-radius:7px;font-size:12px;font-weight:500;color:var(--muted);transition:all 0.2s}
+.form-step.active{background:var(--blue);color:#fff}
+.form-step.done{color:var(--green)}
+.services-check{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.service-check{display:flex;align-items:center;gap:8px;background:var(--surface);border:0.5px solid var(--border);border-radius:9px;padding:10px 12px;cursor:pointer;transition:all 0.2s}
+.service-check.checked{background:var(--blue-glow);border-color:var(--blue)}
+.service-check-icon{font-size:16px;color:var(--blue)}
+.form-btn{width:100%;background:var(--blue);color:#fff;border:none;padding:14px;border-radius:10px;font-family:'Syne',sans-serif;font-size:16px;font-weight:700;cursor:pointer;transition:opacity 0.2s;margin-top:0.5rem}
+.form-btn:hover{opacity:0.88}
+.form-btn:disabled{opacity:0.5;cursor:not-allowed}
+.form-btn-outline{background:var(--surface);color:var(--text);border:0.5px solid var(--border)}
+.form-divider{text-align:center;color:var(--muted);font-size:13px;margin:1rem 0;position:relative}
+.form-divider::before,.form-divider::after{content:'';position:absolute;top:50%;width:42%;height:0.5px;background:var(--border)}
+.form-divider::before{left:0}.form-divider::after{right:0}
+.reg-msg{margin-top:10px;padding:10px 14px;border-radius:8px;font-size:13px;display:none;text-align:center}
+.reg-msg.ok{background:rgba(45,217,143,0.15);color:var(--green);border:0.5px solid rgba(45,217,143,0.3)}
+.reg-msg.err{background:rgba(241,101,75,0.15);color:#F1654B;border:0.5px solid rgba(241,101,75,0.3)}
+.cabinet-layout{max-width:1000px;margin:0 auto;padding:3rem 2rem;display:grid;grid-template-columns:220px 1fr;gap:20px}
+.cabinet-profile-card{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--r);padding:1.25rem;text-align:center;margin-bottom:10px}
+.cabinet-avatar{width:56px;height:56px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-size:20px;font-weight:800;margin:0 auto 0.75rem;background:linear-gradient(135deg,#4B8EF1,#2DD98F)}
+.cabinet-name{font-weight:500;font-size:15px;margin-bottom:4px}
+.cabinet-plan{display:inline-flex;align-items:center;gap:4px;background:rgba(75,142,241,0.15);color:var(--blue);border-radius:6px;padding:3px 10px;font-size:12px;font-weight:500}
+.cabinet-menu{display:flex;flex-direction:column;gap:3px}
+.cabinet-menu-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:9px;font-size:14px;color:var(--muted);cursor:pointer;transition:all 0.2s;border:none;background:none;width:100%;text-align:left}
+.cabinet-menu-item.active,.cabinet-menu-item:hover{background:var(--surface);color:var(--text)}
+.cabinet-menu-item.active{color:var(--blue)}
+.cabinet-section{display:none}
+.cabinet-section.active{display:block}
+.cabinet-section-title{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;margin-bottom:1.5rem}
+.stats-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:1.5rem}
+.stats-card{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--r);padding:1.25rem}
+.stats-card-icon{font-size:18px;color:var(--blue);margin-bottom:0.5rem}
+.stats-card-val{font-family:'Syne',sans-serif;font-size:30px;font-weight:800;line-height:1;margin-bottom:3px}
+.stats-card-label{font-size:12px;color:var(--muted)}
+.requests-list{display:flex;flex-direction:column;gap:8px}
+.request-item{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--r);padding:1.25rem;display:flex;align-items:center;gap:12px}
+.request-status{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.request-status.new{background:var(--blue)}.request-status.done{background:var(--green)}.request-status.pending{background:var(--amber)}
+.request-body{flex:1}
+.request-client{font-weight:500;font-size:14px;margin-bottom:2px}
+.request-desc{font-size:13px;color:var(--muted)}
+.request-time{font-size:12px;color:var(--muted)}
+.plan-upgrade-banner{background:linear-gradient(135deg,rgba(245,166,35,0.12),rgba(241,101,75,0.08));border:0.5px solid rgba(245,166,35,0.3);border-radius:var(--r);padding:1.5rem;margin-bottom:1.5rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap}
+.upgrade-text h4{font-weight:600;margin-bottom:3px}
+.upgrade-text p{font-size:13px;color:var(--muted)}
+.edit-btn{background:var(--surface2);border:0.5px solid var(--border);color:var(--muted);padding:6px 12px;border-radius:7px;font-size:12px;cursor:pointer}
+.edit-btn:hover{color:var(--text)}
+.service-edit-card{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--r);padding:1.25rem;margin-bottom:10px;display:flex;align-items:center;gap:12px}
+.service-edit-icon{width:42px;height:42px;background:var(--blue-glow);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;color:var(--blue);flex-shrink:0}
+.service-edit-body{flex:1}
+.service-edit-name{font-weight:500;margin-bottom:2px;font-size:14px}
+.service-edit-price{font-size:13px;color:var(--muted)}
+.toast{position:fixed;bottom:2rem;right:2rem;background:var(--surface);border:0.5px solid var(--green);border-radius:10px;padding:12px 18px;font-size:14px;color:var(--green);z-index:999;display:flex;align-items:center;gap:8px;transform:translateY(100px);opacity:0;transition:all 0.3s;max-width:300px}
+.toast.show{transform:translateY(0);opacity:1}
+.toast.err-toast{border-color:#F1654B;color:#F1654B}
+@media(max-width:768px){
+  .nav-tabs{display:none}
+  .brokers-grid,.plans-grid{grid-template-columns:1fr}
+  .cabinet-layout{grid-template-columns:1fr}
+  .stats-cards{grid-template-columns:1fr 1fr}
+  .payment-methods,.contact-grid,.modal-price-grid{grid-template-columns:1fr}
+  .form-row{grid-template-columns:1fr}
+  .compare-table{font-size:12px}
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-brand" onclick="showPage('home')">Митний<span>Брокер</span></div>
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="showPage('home')">Каталог</button>
+    <button class="nav-tab" onclick="showPage('pricing')">Тарифи</button>
+    <button class="nav-tab" onclick="switchAuthTab('register');showPage('register')">Реєстрація</button>
+    <button class="nav-tab" id="cabinetTab" onclick="goToCabinet()">Кабінет</button>
+  </div>
+  <div class="nav-actions">
+    <button class="btn-ghost-sm" id="loginBtn" onclick="switchAuthTab('login');showPage('register')">Увійти</button>
+    <button class="btn-blue" onclick="showPage('pricing')"><i class="ti ti-bolt"></i>Підвищити план</button>
+  </div>
+</nav>
+
+<!-- HOME -->
+<div class="page active" id="page-home">
+  <div class="hero">
+    <div class="hero-glow"></div>
+    <div class="hero-badge"><span></span> <span id="onlineCount">247</span> брокерів онлайн</div>
+    <h1 class="hero-title">Знайди митного<br><span>брокера</span> за хвилину</h1>
+    <p class="hero-sub">Каталог перевірених митних брокерів України. Порівнюйте ціни, читайте відгуки, залишайте заявки онлайн.</p>
+    <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-bottom:2rem">
+      <button onclick="showPage('register')" style="background:var(--blue);color:#fff;border:none;padding:14px 28px;border-radius:10px;font-family:'Syne',sans-serif;font-size:16px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:8px">
+        <i class="ti ti-user-plus"></i>Зареєструватись як брокер
+      </button>
+      <button onclick="showPage('pricing')" style="background:transparent;color:var(--text);border:0.5px solid rgba(255,255,255,0.2);padding:14px 28px;border-radius:10px;font-family:'DM Sans',sans-serif;font-size:15px;cursor:pointer;display:inline-flex;align-items:center;gap:8px">
+        <i class="ti ti-bolt"></i>Переглянути тарифи
+      </button>
+    </div>
+    <div class="search-bar">
+      <i class="ti ti-search"></i>
+      <input type="text" id="search-input" placeholder="Місто, послуга або ім'я брокера..." oninput="filterBrokers()">
+      <button class="search-btn" onclick="filterBrokers()">Знайти</button>
+    </div>
+    <div class="filter-chips">
+      <div class="chip active" onclick="filterByService(this,'all')">Всі послуги</div>
+      <div class="chip" onclick="filterByService(this,'Розмитнення авто')">Розмитнення авто</div>
+      <div class="chip" onclick="filterByService(this,'Оцінка авто')">Оцінка авто</div>
+      <div class="chip" onclick="filterByService(this,'Договір купівлі-продажу')">Договір КП</div>
+      <div class="chip" onclick="filterByService(this,'Митне оформлення')">Митне оформлення</div>
+      <div class="chip" onclick="filterByService(this,'Консультація')">Консультація</div>
+    </div>
+    <div class="stats-row">
+      <div class="stat-pill"><div class="stat-num" id="statBrokers">—</div><div class="stat-label">Брокерів</div></div>
+      <div class="stat-pill"><div class="stat-num" id="statRequests">—</div><div class="stat-label">Заявок</div></div>
+      <div class="stat-pill"><div class="stat-num">4.8 ★</div><div class="stat-label">Рейтинг</div></div>
+      <div class="stat-pill"><div class="stat-num">24/7</div><div class="stat-label">Підтримка</div></div>
+    </div>
+  </div>
+  <div class="section">
+    <div class="section-header">
+      <div class="section-title">Брокери <span id="broker-count" style="font-size:14px;color:var(--muted);font-family:'DM Sans';font-weight:400"></span></div>
+      <select class="sort-select" onchange="sortBrokers(this.value)">
+        <option value="plan">За тарифом</option>
+        <option value="rating">За рейтингом</option>
+        <option value="price">За ціною</option>
+        <option value="reviews">За відгуками</option>
+      </select>
+    </div>
+    <div class="brokers-grid" id="brokers-grid">
+      <div style="color:var(--muted);text-align:center;padding:3rem;grid-column:1/-1">⏳ Завантаження брокерів...</div>
+    </div>
+  </div>
+</div>
+
+<!-- PRICING -->
+<div class="page" id="page-pricing">
+  <div class="pricing-wrap">
+    <div class="pricing-header">
+      <h2>Прості та прозорі <span style="color:var(--blue)">тарифи</span></h2>
+      <p>Почніть безкоштовно. Розширте можливості коли будете готові.</p>
+    </div>
+    <div class="pricing-toggle">
+      <span class="toggle-label active" id="toggle-monthly">Щомісячно</span>
+      <div class="toggle" id="billing-toggle" onclick="toggleBilling()"><div class="toggle-dot"></div></div>
+      <span class="toggle-label" id="toggle-yearly">Щорічно</span>
+      <span class="save-badge">-20%</span>
+    </div>
+    <div class="plans-grid">
+      <div class="plan-card">
+        <div class="plan-icon">🆓</div><div class="plan-name">Безкоштовний</div>
+        <div class="plan-desc">Ідеально для старту. Розмістіть профіль і отримайте перших клієнтів.</div>
+        <div class="plan-price"><div class="amount">0 <span class="currency">грн</span></div><div class="period">назавжди</div></div>
+        <ul class="plan-features">
+          <li class="included"><i class="ti ti-check"></i>Профіль брокера</li>
+          <li class="included"><i class="ti ti-check"></i>Відображення у своєму регіоні</li>
+          <li class="included"><i class="ti ti-check"></i>До 5 заявок на місяць</li>
+          <li class="included"><i class="ti ti-check"></i>3 послуги в профілі</li>
+          <li><i class="ti ti-x"></i>Інші регіони</li>
+          <li><i class="ti ti-x"></i>Підняття в пошуку</li>
+          <li><i class="ti ti-x"></i>Статистика переглядів</li>
+        </ul>
+        <button class="plan-btn plan-btn-outline" onclick="showPage('register')">Зареєструватись</button>
+      </div>
+      <div class="plan-card popular">
+        <div class="popular-label">★ Популярний</div>
+        <div class="plan-icon">⚡</div><div class="plan-name">Стандарт</div>
+        <div class="plan-desc">Для активних брокерів. Вся Україна і більше заявок.</div>
+        <div class="plan-price">
+          <div id="standard-old-price" class="old-price" style="display:none"></div>
+          <div class="amount" id="standard-price">299 <span class="currency">грн</span></div>
+          <div class="period" id="standard-period">/місяць</div>
+        </div>
+        <ul class="plan-features">
+          <li class="included"><i class="ti ti-check"></i>Профіль брокера</li>
+          <li class="included"><i class="ti ti-check"></i>Вся Україна</li>
+          <li class="included"><i class="ti ti-check"></i>До 30 заявок на місяць</li>
+          <li class="included"><i class="ti ti-check"></i>10 послуг в профілі</li>
+          <li class="included"><i class="ti ti-check"></i>Статистика переглядів</li>
+          <li><i class="ti ti-x"></i>Підняття в пошуку</li>
+          <li><i class="ti ti-x"></i>Значок ТОП</li>
+        </ul>
+        <button class="plan-btn plan-btn-blue" onclick="openPayment('Стандарт','299')">Обрати план</button>
+      </div>
+      <div class="plan-card featured">
+        <div class="featured-label">🔥 Найкраще</div>
+        <div class="plan-icon">🏆</div><div class="plan-name">Про</div>
+        <div class="plan-desc">Максимальна видимість. Топ позиції та значок перевіреного брокера.</div>
+        <div class="plan-price">
+          <div id="pro-old-price" class="old-price" style="display:none"></div>
+          <div class="amount" id="pro-price">599 <span class="currency">грн</span></div>
+          <div class="period" id="pro-period">/місяць</div>
+        </div>
+        <ul class="plan-features">
+          <li class="included"><i class="ti ti-check"></i>Все з плану Стандарт</li>
+          <li class="included"><i class="ti ti-check"></i>Необмежені заявки</li>
+          <li class="included"><i class="ti ti-check"></i>Підняття в пошуку</li>
+          <li class="included"><i class="ti ti-check"></i>Значок ТОП ⭐</li>
+          <li class="included"><i class="ti ti-check"></i>Пріоритетна підтримка</li>
+          <li class="included"><i class="ti ti-check"></i>Розширена аналітика</li>
+          <li><i class="ti ti-x"></i>Реклама на головній</li>
+        </ul>
+        <button class="plan-btn plan-btn-gold" onclick="openPayment('Про','599')">Обрати план</button>
+      </div>
+      <div class="plan-card">
+        <div class="plan-icon">💎</div><div class="plan-name">Преміум</div>
+        <div class="plan-desc">Перше місце в каталозі та реклама на головній сторінці.</div>
+        <div class="plan-price">
+          <div id="premium-old-price" class="old-price" style="display:none"></div>
+          <div class="amount" id="premium-price">999 <span class="currency">грн</span></div>
+          <div class="period" id="premium-period">/місяць</div>
+        </div>
+        <ul class="plan-features">
+          <li class="included"><i class="ti ti-check"></i>Все з плану Про</li>
+          <li class="included"><i class="ti ti-check"></i>1-е місце в каталозі</li>
+          <li class="included"><i class="ti ti-check"></i>Реклама на головній</li>
+          <li class="included"><i class="ti ti-check"></i>Банер у результатах пошуку</li>
+          <li class="included"><i class="ti ti-check"></i>Персональний менеджер</li>
+          <li class="included"><i class="ti ti-check"></i>Необмежені послуги</li>
+          <li class="included"><i class="ti ti-check"></i>API інтеграція</li>
+        </ul>
+        <button class="plan-btn plan-btn-purple" onclick="openPayment('Преміум','999')">Обрати план</button>
+      </div>
+    </div>
+    <div class="compare-section">
+      <div class="compare-title">Порівняння тарифів</div>
+      <div style="overflow-x:auto">
+      <table class="compare-table">
+        <thead><tr><th>Функція</th><th>Безкоштовний</th><th style="color:var(--blue)">Стандарт</th><th style="color:var(--amber)">Про</th><th style="color:var(--purple)">Преміум</th></tr></thead>
+        <tbody>
+          <tr><td>Регіон</td><td>1 регіон</td><td>Вся Україна</td><td>Вся Україна</td><td>Вся Україна</td></tr>
+          <tr><td>Заявок на місяць</td><td>5</td><td>30</td><td>Необмежено</td><td>Необмежено</td></tr>
+          <tr><td>Послуг в профілі</td><td>3</td><td>10</td><td>20</td><td>Необмежено</td></tr>
+          <tr><td>Статистика</td><td><i class="ti ti-x check-no"></i></td><td><i class="ti ti-check check-yes"></i></td><td><i class="ti ti-check check-yes"></i></td><td><i class="ti ti-check check-yes"></i></td></tr>
+          <tr><td>Підняття в пошуку</td><td><i class="ti ti-x check-no"></i></td><td><i class="ti ti-x check-no"></i></td><td><i class="ti ti-check check-yes"></i></td><td><i class="ti ti-check check-yes"></i></td></tr>
+          <tr><td>Значок ТОП</td><td><i class="ti ti-x check-no"></i></td><td><i class="ti ti-x check-no"></i></td><td><i class="ti ti-check check-yes"></i></td><td><i class="ti ti-check check-yes"></i></td></tr>
+          <tr><td>Реклама на головній</td><td><i class="ti ti-x check-no"></i></td><td><i class="ti ti-x check-no"></i></td><td><i class="ti ti-x check-no"></i></td><td><i class="ti ti-check check-yes"></i></td></tr>
+          <tr><td>Персональний менеджер</td><td><i class="ti ti-x check-no"></i></td><td><i class="ti ti-x check-no"></i></td><td><i class="ti ti-x check-no"></i></td><td><i class="ti ti-check check-yes"></i></td></tr>
+        </tbody>
+      </table>
+      </div>
+    </div>
+    <div class="faq-pricing">
+      <div class="faq-pricing-title">Часті запитання</div>
+      <div class="faq-item" onclick="toggleFaq(this)"><div class="faq-q">Чи можна скасувати підписку в будь-який час? <i class="ti ti-chevron-down"></i></div><div class="faq-a">Так, ви можете скасувати підписку в будь-який момент через особистий кабінет. Доступ до платних функцій зберігається до кінця оплаченого періоду.</div></div>
+      <div class="faq-item" onclick="toggleFaq(this)"><div class="faq-q">Як відбувається оплата? <i class="ti ti-chevron-down"></i></div><div class="faq-a">Ми приймаємо оплату через WayForPay (картки Visa/Mastercard), а також через Google Pay та Apple Pay. Всі транзакції захищені SSL-шифруванням.</div></div>
+      <div class="faq-item" onclick="toggleFaq(this)"><div class="faq-q">Чи є знижки для нових брокерів? <i class="ti ti-chevron-down"></i></div><div class="faq-a">Так! Нові брокери отримують перший місяць зі знижкою 50% при виборі тарифів Стандарт або Про. Використайте промокод NEW50 при оплаті.</div></div>
+      <div class="faq-item" onclick="toggleFaq(this)"><div class="faq-q">Як підняття в пошуку впливає на кількість заявок? <i class="ti ti-chevron-down"></i></div><div class="faq-a">Брокери з тарифом Про та Преміум відображаються вище в результатах пошуку і отримують в середньому в 3-5 разів більше переглядів та заявок порівняно з безкоштовним тарифом.</div></div>
+    </div>
+    <div class="cta-pricing">
+      <h3>Почніть безкоштовно сьогодні</h3>
+      <p>Зареєструйтесь і отримайте перших клієнтів вже завтра</p>
+      <div class="cta-btns">
+        <button class="btn-blue" style="padding:13px 28px;font-size:15px" onclick="showPage('register')"><i class="ti ti-user-plus"></i>Зареєструватись безкоштовно</button>
+        <button class="btn-ghost-sm" style="padding:13px 28px;font-size:15px" onclick="openPayment('Про','599')"><i class="ti ti-bolt"></i>Спробувати Про</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- REGISTER / LOGIN -->
+<div class="page" id="page-register">
+  <div class="register-wrap">
+
+    <!-- ВКЛАДКИ -->
+    <div style="display:flex;background:var(--surface);border:0.5px solid var(--border);border-radius:12px;padding:4px;margin-bottom:2rem">
+      <button id="tab-login-btn" onclick="switchAuthTab('login')" style="flex:1;padding:10px;border-radius:9px;border:none;font-family:'Syne',sans-serif;font-size:15px;font-weight:700;cursor:pointer;transition:all 0.2s;background:var(--blue);color:#fff">Вхід</button>
+      <button id="tab-register-btn" onclick="switchAuthTab('register')" style="flex:1;padding:10px;border-radius:9px;border:none;font-family:'Syne',sans-serif;font-size:15px;font-weight:700;cursor:pointer;transition:all 0.2s;background:transparent;color:var(--muted)">Реєстрація</button>
+    </div>
+
+    <!-- ВХІД -->
+    <div id="tab-login">
+      <div class="register-header" style="margin-bottom:1.5rem">
+        <h2>Увійти в кабінет</h2>
+        <p>Введіть email і пароль від вашого акаунту</p>
+      </div>
+      <div class="form-group"><label class="form-label">Email</label><input type="email" class="form-input" id="login-email" placeholder="broker@email.com"></div>
+      <div class="form-group"><label class="form-label">Пароль</label><input type="password" class="form-input" id="login-password" placeholder="••••••••"></div>
+      <div class="reg-msg" id="login-msg"></div>
+      <button class="form-btn" onclick="loginBroker()"><i class="ti ti-login"></i> Увійти в кабінет</button>
+      <div style="text-align:center;margin-top:1.25rem;font-size:14px;color:var(--muted)">
+        Ще немає акаунту? <span onclick="switchAuthTab('register')" style="color:var(--blue);cursor:pointer;font-weight:500">Зареєструватись</span>
+      </div>
+    </div>
+
+    <!-- РЕЄСТРАЦІЯ -->
+    <div id="tab-register" style="display:none">
+      <div class="register-header" style="margin-bottom:1.5rem">
+        <h2>Реєстрація брокера</h2>
+        <p>Розмістіть послуги і отримуйте клієнтів онлайн</p>
+      </div>
+      <div class="form-steps">
+        <div class="form-step active" id="step-1-tab">1. Профіль</div>
+        <div class="form-step" id="step-2-tab">2. Послуги</div>
+        <div class="form-step" id="step-3-tab">3. Контакти</div>
+      </div>
+
+      <!-- Крок 1 -->
+      <div id="reg-step-1">
+        <div class="form-group"><label class="form-label">Ім'я або назва компанії *</label><input type="text" class="form-input" id="reg-name" placeholder="Іван Петренко або ТОВ МитБрок"></div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Місто</label><input type="text" class="form-input" id="reg-city" placeholder="Київ"></div>
+          <div class="form-group"><label class="form-label">Регіон</label>
+            <select class="form-input" id="reg-region"><option value="">Оберіть</option><option>Київська</option><option>Одеська</option><option>Харківська</option><option>Дніпропетровська</option><option>Львівська</option></select>
+          </div>
+        </div>
+        <div class="form-group"><label class="form-label">Досвід (років)</label><input type="number" class="form-input" id="reg-exp" placeholder="5" min="0"></div>
+        <div class="form-group"><label class="form-label">Про себе</label><textarea class="form-input" id="reg-about" rows="3" placeholder="Коротко про досвід та спеціалізацію..." style="resize:none"></textarea></div>
+        <button class="form-btn" onclick="nextStep(2)">Далі →</button>
+      </div>
+
+      <!-- Крок 2 -->
+      <div id="reg-step-2" style="display:none">
+        <div class="form-group"><label class="form-label">Ваші послуги</label>
+          <div class="services-check">
+            <div class="service-check" onclick="toggleService(this)" data-svc="Розмитнення авто"><i class="ti ti-shield-check service-check-icon"></i><span>Розмитнення авто</span></div>
+            <div class="service-check" onclick="toggleService(this)" data-svc="Оцінка авто"><i class="ti ti-chart-bar service-check-icon"></i><span>Оцінка авто</span></div>
+            <div class="service-check" onclick="toggleService(this)" data-svc="Договір купівлі-продажу"><i class="ti ti-file-description service-check-icon"></i><span>Договір КП</span></div>
+            <div class="service-check" onclick="toggleService(this)" data-svc="Митне оформлення"><i class="ti ti-building-bank service-check-icon"></i><span>Митне оформлення</span></div>
+            <div class="service-check" onclick="toggleService(this)" data-svc="Консультація"><i class="ti ti-message-circle service-check-icon"></i><span>Консультація</span></div>
+            <div class="service-check" onclick="toggleService(this)" data-svc="Авто зі США"><i class="ti ti-world service-check-icon"></i><span>Авто зі США</span></div>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Ціна від (грн)</label><input type="number" class="form-input" id="reg-price-from" placeholder="500"></div>
+          <div class="form-group"><label class="form-label">Ціна до (грн)</label><input type="number" class="form-input" id="reg-price-to" placeholder="5000"></div>
+        </div>
+        <button class="form-btn" onclick="nextStep(3)">Далі →</button>
+      </div>
+
+      <!-- Крок 3 -->
+      <div id="reg-step-3" style="display:none">
+        <div class="form-group"><label class="form-label">Телефон</label><input type="tel" class="form-input" id="reg-phone" placeholder="+380 98 123 45 67"></div>
+        <div class="form-group"><label class="form-label">Telegram</label><input type="text" class="form-input" id="reg-telegram" placeholder="@username"></div>
+        <div class="form-group"><label class="form-label">Email *</label><input type="email" class="form-input" id="reg-email" placeholder="broker@email.com"></div>
+        <div class="form-group"><label class="form-label">Пароль * (мінімум 6 символів)</label><input type="password" class="form-input" id="reg-password" placeholder="••••••••"></div>
+        <div class="reg-msg" id="reg-msg"></div>
+        <button class="form-btn" id="reg-submit-btn" onclick="registerBroker()">✓ Зареєструватись безкоштовно</button>
+        <div style="text-align:center;margin-top:1.25rem;font-size:14px;color:var(--muted)">
+          Вже є акаунт? <span onclick="switchAuthTab('login')" style="color:var(--blue);cursor:pointer;font-weight:500">Увійти</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- CABINET -->
+<div class="page" id="page-cabinet">
+  <div class="cabinet-layout">
+    <div>
+      <div class="cabinet-profile-card">
+        <div class="cabinet-avatar" id="cab-initials">ДК</div>
+        <div class="cabinet-name" id="cab-name">Завантаження...</div>
+        <div style="margin-top:6px"><span class="cabinet-plan" id="cab-plan"><i class="ti ti-bolt" style="font-size:11px"></i> Безкоштовний</span></div>
+      </div>
+      <div class="cabinet-menu">
+        <button class="cabinet-menu-item active" onclick="showCabinetSection('dashboard',this)"><i class="ti ti-layout-dashboard"></i>Дашборд</button>
+        <button class="cabinet-menu-item" onclick="showCabinetSection('requests',this)"><i class="ti ti-inbox"></i>Заявки <span id="req-badge" style="background:var(--blue);color:#fff;border-radius:5px;padding:1px 7px;font-size:11px;margin-left:auto;display:none">0</span></button>
+        <button class="cabinet-menu-item" onclick="showCabinetSection('services',this)"><i class="ti ti-list-check"></i>Мої послуги</button>
+        <button class="cabinet-menu-item" onclick="showCabinetSection('billing',this)"><i class="ti ti-credit-card"></i>Підписка</button>
+        <button class="cabinet-menu-item" onclick="showCabinetSection('profile',this)"><i class="ti ti-user"></i>Профіль</button>
+        <button class="cabinet-menu-item" onclick="showPage('home')" style="margin-top:0.5rem"><i class="ti ti-arrow-left"></i>До каталогу</button>
+        <button class="cabinet-menu-item" onclick="logoutBroker()" style="color:#F1654B"><i class="ti ti-logout"></i>Вийти</button>
+      </div>
+    </div>
+    <div>
+      <div class="cabinet-section active" id="cab-dashboard">
+        <div class="cabinet-section-title">Дашборд</div>
+        <div class="plan-upgrade-banner" id="upgrade-banner">
+          <div class="upgrade-text"><h4>🔥 Підвищте до тарифу Про</h4><p>Отримайте в 5 разів більше заявок з підняттям у пошуку</p></div>
+          <button class="btn-blue" onclick="openPayment('Про','599')"><i class="ti ti-bolt"></i>Підвищити</button>
+        </div>
+        <div class="stats-cards">
+          <div class="stats-card"><div class="stats-card-icon"><i class="ti ti-eye"></i></div><div class="stats-card-val" id="stat-views" style="color:var(--blue)">0</div><div class="stats-card-label">Переглядів</div></div>
+          <div class="stats-card"><div class="stats-card-icon"><i class="ti ti-inbox"></i></div><div class="stats-card-val" id="stat-requests" style="color:var(--green)">0</div><div class="stats-card-label">Заявок</div></div>
+          <div class="stats-card"><div class="stats-card-icon"><i class="ti ti-star"></i></div><div class="stats-card-val" id="stat-rating" style="color:var(--amber)">—</div><div class="stats-card-label">Рейтинг</div></div>
+        </div>
+        <div style="background:var(--surface);border:0.5px solid var(--border);border-radius:var(--r);padding:1.25rem">
+          <div style="font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:1rem">Останні заявки</div>
+          <div class="requests-list" id="dash-requests">
+            <div style="color:var(--muted);font-size:14px">Заявок ще немає</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="cabinet-section" id="cab-requests">
+        <div class="cabinet-section-title">Заявки</div>
+        <div class="requests-list" id="all-requests">
+          <div style="color:var(--muted);font-size:14px">Завантаження...</div>
+        </div>
+      </div>
+
+      <div class="cabinet-section" id="cab-services">
+        <div class="cabinet-section-title">Мої послуги</div>
+        <div id="services-list">
+          <div style="color:var(--muted);font-size:14px">Завантаження...</div>
+        </div>
+        <button class="btn-blue" style="margin-top:1rem" onclick="showToast('Функція в розробці')"><i class="ti ti-plus"></i> Додати послугу</button>
+      </div>
+
+      <div class="cabinet-section" id="cab-billing">
+        <div class="cabinet-section-title">Підписка та оплата</div>
+        <div style="background:var(--surface);border:0.5px solid var(--border);border-radius:var(--r);padding:1.5rem;margin-bottom:1.25rem">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+            <div><div style="font-size:13px;color:var(--muted);margin-bottom:3px">Поточний план</div><div id="billing-plan-name" style="font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:var(--blue)">⚡ Безкоштовний</div></div>
+          </div>
+        </div>
+        <div style="font-size:14px;font-weight:500;margin-bottom:12px">Оновити план</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:1.5rem">
+          <div style="background:var(--surface);border:0.5px solid rgba(75,142,241,0.3);border-radius:10px;padding:1rem;text-align:center;cursor:pointer" onclick="openPayment('Стандарт','299')"><div style="font-size:18px;margin-bottom:4px">⚡</div><div style="font-size:13px;font-weight:600;color:var(--blue)">Стандарт</div><div style="font-size:12px;color:var(--muted)">299 грн/міс</div></div>
+          <div style="background:var(--surface);border:0.5px solid rgba(245,166,35,0.3);border-radius:10px;padding:1rem;text-align:center;cursor:pointer" onclick="openPayment('Про','599')"><div style="font-size:18px;margin-bottom:4px">🏆</div><div style="font-size:13px;font-weight:600;color:var(--amber)">Про</div><div style="font-size:12px;color:var(--muted)">599 грн/міс</div></div>
+          <div style="background:var(--surface);border:0.5px solid rgba(168,85,247,0.3);border-radius:10px;padding:1rem;text-align:center;cursor:pointer" onclick="openPayment('Преміум','999')"><div style="font-size:18px;margin-bottom:4px">💎</div><div style="font-size:13px;font-weight:600;color:var(--purple)">Преміум</div><div style="font-size:12px;color:var(--muted)">999 грн/міс</div></div>
+        </div>
+        <div id="payment-history"><div style="font-size:14px;font-weight:500;margin-bottom:12px">Історія платежів</div><div style="color:var(--muted);font-size:14px">Платежів ще немає</div></div>
+      </div>
+
+      <div class="cabinet-section" id="cab-profile">
+        <div class="cabinet-section-title">Профіль</div>
+        <div class="form-group"><label class="form-label">Ім'я</label><input class="form-input" id="prof-name"></div>
+        <div class="form-group"><label class="form-label">Телефон</label><input class="form-input" id="prof-phone"></div>
+        <div class="form-group"><label class="form-label">Telegram</label><input class="form-input" id="prof-telegram"></div>
+        <div class="form-group"><label class="form-label">Місто</label><input class="form-input" id="prof-city"></div>
+        <div class="form-group"><label class="form-label">Про себе</label><textarea class="form-input" id="prof-about" rows="3" style="resize:none"></textarea></div>
+        <button class="form-btn" style="max-width:200px" onclick="saveProfile()">Зберегти</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PAYMENT MODAL -->
+<div class="modal-overlay" id="payment-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="closePayment()"><i class="ti ti-x"></i></button>
+    <div class="modal-title">Оформлення підписки</div>
+    <div class="modal-sub">Безпечна оплата через WayForPay</div>
+    <div class="selected-plan">
+      <div><div class="selected-plan-name" id="pay-plan-name">Про план</div><div style="font-size:12px;color:var(--muted)">Підписка на 1 місяць</div></div>
+      <div class="selected-plan-price"><span id="pay-plan-price">599</span> грн</div>
+    </div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.5px">Спосіб оплати</div>
+    <div class="payment-methods">
+      <div class="pay-method selected" onclick="selectMethod(this)"><div class="pay-method-icon">💳</div><div class="pay-method-name">Картка</div><div class="pay-method-desc">Visa / Mastercard</div></div>
+      <div class="pay-method" onclick="selectMethod(this)"><div class="pay-method-icon">📱</div><div class="pay-method-name">Google / Apple Pay</div><div class="pay-method-desc">Швидка оплата</div></div>
+    </div>
+    <div class="form-group"><label class="form-label">Номер картки</label><input type="text" class="form-input" placeholder="0000 0000 0000 0000" maxlength="19" oninput="formatCard(this)"></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Термін дії</label><input type="text" class="form-input" placeholder="MM/YY" maxlength="5"></div>
+      <div class="form-group"><label class="form-label">CVV</label><input type="text" class="form-input" placeholder="•••" maxlength="3"></div>
+    </div>
+    <div class="form-group"><label class="form-label">Ім'я на картці</label><input type="text" class="form-input" placeholder="DMYTRO KRYKUN"></div>
+    <div class="form-group" style="display:flex;align-items:center;gap:8px">
+      <input type="text" class="form-input" placeholder="Промокод (NEW50)" style="flex:1" id="promo-input">
+      <button class="edit-btn" style="white-space:nowrap;padding:11px 16px" onclick="applyPromo()">Застосувати</button>
+    </div>
+    <button class="pay-btn" onclick="processPayment()"><i class="ti ti-lock"></i>Оплатити через Wayforpay <span id="pay-btn-amount">599</span> грн</button>
+    <div class="secure-note"><i class="ti ti-shield-check" style="color:var(--green)"></i>Захищено SSL · Wayforpay · PCI DSS</div>
+  </div>
+</div>
+
+<!-- BROKER MODAL -->
+<div class="modal-overlay" id="broker-modal">
+  <div class="bmodal">
+    <button class="modal-close" onclick="closeModal('broker-modal')"><i class="ti ti-x"></i></button>
+    <div id="modal-content"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"><i class="ti ti-check"></i><span id="toast-text"></span></div>
+
+<!-- SUPABASE -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script>
+// =============================================
+// SUPABASE
+// =============================================
+const sb = supabase.createClient(
+  'https://ecdfpqhbaqjqurzedunh.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVjZGZwcWhiYXFqcXVyemVkdW5oIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyNzU3NTIsImV4cCI6MjA5NDg1MTc1Mn0.t0ry-slbPVwVHmF1KLzWX6EDonWBMC2Uu3KUobH8oFY'
+);
+
+let currentUser = null;
+let currentBroker = null;
+let allBrokers = [];
+let filteredBrokers = [];
+let activeServiceFilter = 'all';
+
+// =============================================
+// НАВІГАЦІЯ
+// =============================================
+function showPage(page) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('page-'+page).classList.add('active');
+  const tabs = {home:0,pricing:1,register:2,cabinet:3};
+  if(tabs[page]!==undefined) document.querySelectorAll('.nav-tab')[tabs[page]]?.classList.add('active');
+  window.scrollTo(0,0);
+}
+
+async function goToCabinet() {
+  const {data:{user}} = await sb.auth.getUser();
+  if(user) { showPage('cabinet'); loadCabinetData(); }
+  else { showPage('register'); }
+}
+
+// =============================================
+// РЕЄСТРАЦІЯ
+// =============================================
+async function registerBroker() {
+  const name     = document.getElementById('reg-name').value.trim();
+  const city     = document.getElementById('reg-city').value.trim();
+  const region   = document.getElementById('reg-region').value;
+  const exp      = document.getElementById('reg-exp').value;
+  const about    = document.getElementById('reg-about').value.trim();
+  const phone    = document.getElementById('reg-phone').value.trim();
+  const telegram = document.getElementById('reg-telegram').value.trim();
+  const email    = document.getElementById('reg-email').value.trim();
+  const password = document.getElementById('reg-password').value;
+
+  if(!name) { showRegMsg('❌ Введіть імʼя або назву компанії','err'); return; }
+  if(!email) { showRegMsg('❌ Введіть email','err'); return; }
+  if(password.length < 6) { showRegMsg('❌ Пароль мінімум 6 символів','err'); return; }
+
+  const btn = document.getElementById('reg-submit-btn');
+  btn.disabled = true; btn.textContent = '⏳ Реєстрація...';
+
+  try {
+    const {data:authData, error:authErr} = await sb.auth.signUp({email, password});
+    if(authErr) throw authErr;
+
+    const {data:broker, error:brokerErr} = await sb.from('brokers').insert({
+      user_id: authData.user.id,
+      name, city, region, phone, telegram, email,
+      experience: Number(exp)||0,
+      about: about||null,
+      plan: 'free', is_active: true
+    }).select().single();
+    if(brokerErr) throw brokerErr;
+
+    // Послуги
+    const svcs = Array.from(document.querySelectorAll('.service-check.checked')).map(el=>({
+      broker_id: broker.id,
+      name: el.dataset.svc,
+      price_from: Number(document.getElementById('reg-price-from').value)||null,
+      price_to: Number(document.getElementById('reg-price-to').value)||null
+    }));
+    if(svcs.length > 0) await sb.from('broker_services').insert(svcs);
+
+    showRegMsg('✅ Реєстрація успішна! Переходимо в кабінет...','ok');
+    currentUser = authData.user;
+    setTimeout(async ()=>{ await loadCabinetData(); showPage('cabinet'); }, 1500);
+
+  } catch(err) {
+    console.error(err);
+    let msg = err.message||'Помилка реєстрації';
+    if(msg.includes('already registered')) msg = 'Цей email вже зареєстрований. Увійдіть нижче.';
+    if(msg.includes('Password')) msg = 'Пароль мінімум 6 символів';
+    showRegMsg('❌ '+msg,'err');
+    btn.disabled=false; btn.textContent='✓ Зареєструватись безкоштовно';
+  }
+}
+
+// =============================================
+// ВХІД
+// =============================================
+async function loginBroker() {
+  const email    = document.getElementById('login-email').value.trim();
+  const password = document.getElementById('login-password').value;
+  if(!email||!password) { showLoginMsg('❌ Введіть email і пароль','err'); return; }
+  try {
+    const {error} = await sb.auth.signInWithPassword({email, password});
+    if(error) throw error;
+    await loadCabinetData();
+    showPage('cabinet');
+  } catch(err) {
+    let msg = err.message||'Помилка входу';
+    if(msg.includes('Invalid login')) msg = 'Невірний email або пароль';
+    showLoginMsg('❌ '+msg,'err');
+  }
+}
+
+// =============================================
+// ВИХІД
+// =============================================
+async function logoutBroker() {
+  await sb.auth.signOut();
+  currentUser=null; currentBroker=null;
+  showToast('Ви вийшли з кабінету');
+  showPage('home');
+  updateNavAuth(false);
+}
+
+// =============================================
+// КАБІНЕТ — ЗАВАНТАЖЕННЯ ДАНИХ
+// =============================================
+async function loadCabinetData() {
+  const {data:{user}} = await sb.auth.getUser();
+  if(!user) { showPage('register'); return; }
+  currentUser = user;
+
+  const {data:broker} = await sb.from('brokers')
+    .select('*, broker_services(*)')
+    .eq('user_id', user.id)
+    .single();
+
+  if(!broker) { showPage('register'); return; }
+  currentBroker = broker;
+
+  // Шапка
+  const ini = (broker.name||'?').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+  document.getElementById('cab-initials').textContent = ini;
+  document.getElementById('cab-name').textContent = broker.name||'Брокер';
+  document.getElementById('cab-plan').innerHTML = `<i class="ti ti-bolt" style="font-size:11px"></i> ${planLabel(broker.plan)}`;
+  document.getElementById('billing-plan-name').textContent = planEmoji(broker.plan)+' '+planLabel(broker.plan);
+
+  // Профіль форма
+  document.getElementById('prof-name').value = broker.name||'';
+  document.getElementById('prof-phone').value = broker.phone||'';
+  document.getElementById('prof-telegram').value = broker.telegram||'';
+  document.getElementById('prof-city').value = broker.city||'';
+  document.getElementById('prof-about').value = broker.about||'';
+
+  // Статистика
+  document.getElementById('stat-views').textContent = broker.views_count||0;
+  document.getElementById('stat-rating').textContent = broker.rating_avg ? broker.rating_avg+'★' : '—';
+
+  // Послуги в кабінеті
+  const svcList = document.getElementById('services-list');
+  if(broker.broker_services?.length) {
+    svcList.innerHTML = broker.broker_services.map(s=>`
+      <div class="service-edit-card">
+        <div class="service-edit-icon"><i class="ti ti-shield-check"></i></div>
+        <div class="service-edit-body">
+          <div class="service-edit-name">${s.name}</div>
+          <div class="service-edit-price">${s.price_from?'від '+s.price_from+' грн':''}</div>
+        </div>
+      </div>`).join('');
+  } else {
+    svcList.innerHTML = '<div style="color:var(--muted);font-size:14px">Послуг ще немає. Додайте через редагування профілю.</div>';
+  }
+
+  // Заявки
+  const {data:requests} = await sb.from('requests')
+    .select('*').eq('broker_id', broker.id)
+    .order('created_at', {ascending:false}).limit(20);
+
+  const reqs = requests||[];
+  document.getElementById('stat-requests').textContent = reqs.length;
+
+  const newReqs = reqs.filter(r=>r.status==='new');
+  if(newReqs.length>0) {
+    const badge = document.getElementById('req-badge');
+    badge.textContent = newReqs.length; badge.style.display='inline';
+  }
+
+  // Дашборд — останні заявки
+  const dashEl = document.getElementById('dash-requests');
+  if(reqs.length===0) {
+    dashEl.innerHTML = '<div style="color:var(--muted);font-size:14px">Заявок ще немає. Клієнти побачать вас в каталозі.</div>';
+  } else {
+    dashEl.innerHTML = reqs.slice(0,3).map(r=>`
+      <div class="request-item">
+        <div class="request-status ${r.status==='new'?'new':r.status==='done'?'done':'pending'}"></div>
+        <div class="request-body">
+          <div class="request-client">${r.client_name}</div>
+          <div class="request-desc">${r.service}${r.car_make?' — '+r.car_make+' '+(r.car_model||''):''}</div>
+        </div>
+        <div class="request-time">${timeAgo(r.created_at)}</div>
+      </div>`).join('');
+  }
+
+  // Всі заявки
+  const allEl = document.getElementById('all-requests');
+  if(reqs.length===0) {
+    allEl.innerHTML = '<div style="color:var(--muted);font-size:14px">Заявок ще немає.</div>';
+  } else {
+    allEl.innerHTML = reqs.map(r=>`
+      <div class="request-item" style="flex-direction:column;align-items:flex-start;gap:10px">
+        <div style="display:flex;align-items:center;gap:10px;width:100%">
+          <div class="request-status ${r.status==='new'?'new':r.status==='done'?'done':'pending'}"></div>
+          <div class="request-body">
+            <div class="request-client">${r.client_name} ${r.status==='new'?'<span style="background:var(--blue);color:#fff;border-radius:4px;padding:1px 6px;font-size:11px;margin-left:4px">Новий</span>':''}</div>
+            <div class="request-desc">${r.service}${r.car_make?' — '+r.car_make+' '+(r.car_model||''):''}</div>
+            <div class="request-desc" style="margin-top:2px">📞 ${r.client_phone}${r.client_telegram?' · '+r.client_telegram:''}</div>
+          </div>
+          <div class="request-time">${timeAgo(r.created_at)}</div>
+        </div>
+        ${r.status==='new'?`<div style="display:flex;gap:8px;padding-left:20px">
+          <button class="btn-blue" style="font-size:12px;padding:6px 14px" onclick="updateReqStatus('${r.id}','done',this)">✓ Прийняти</button>
+          <button class="edit-btn" onclick="updateReqStatus('${r.id}','declined',this)">Відхилити</button>
+        </div>`:''}
+      </div>`).join('');
+  }
+
+  updateNavAuth(true);
+}
+
+async function updateReqStatus(id, status, btn) {
+  await sb.from('requests').update({status}).eq('id',id);
+  showToast(status==='done'?'✅ Заявку прийнято':'Заявку відхилено');
+  btn.closest('[style*="flex-direction"]').querySelector('div:last-child')?.remove();
+}
+
+async function saveProfile() {
+  if(!currentBroker) return;
+  const updates = {
+    name:document.getElementById('prof-name').value.trim(),
+    phone:document.getElementById('prof-phone').value.trim(),
+    telegram:document.getElementById('prof-telegram').value.trim(),
+    city:document.getElementById('prof-city').value.trim(),
+    about:document.getElementById('prof-about').value.trim()
+  };
+  const {error} = await sb.from('brokers').update(updates).eq('id',currentBroker.id);
+  if(error) showToast('❌ Помилка збереження',true);
+  else { showToast('✅ Профіль збережено!'); await loadCabinetData(); }
+}
+
+// =============================================
+// КАТАЛОГ БРОКЕРІВ
+// =============================================
+async function loadCatalog() {
+  try {
+    const {data, error} = await sb.from('brokers')
+      .select('*, broker_services(name, price_from)')
+      .eq('is_active', true)
+      .order('plan', {ascending:false});
+
+    if(error) throw error;
+
+    // Рахуємо статистику
+    const {count:bc} = await sb.from('brokers').select('*',{count:'exact',head:true}).eq('is_active',true);
+    const {count:rc} = await sb.from('requests').select('*',{count:'exact',head:true});
+    document.getElementById('statBrokers').textContent = (bc||0)+'+';
+    document.getElementById('statRequests').textContent = (rc||0)+'+';
+    document.getElementById('onlineCount').textContent = bc||0;
+
+    allBrokers = data||[];
+    filteredBrokers = [...allBrokers];
+    renderBrokers(filteredBrokers);
+
+  } catch(err) {
+    console.error(err);
+    // Fallback на демо-дані якщо помилка
+    allBrokers = demoBrokers;
+    filteredBrokers = [...demoBrokers];
+    renderBrokers(filteredBrokers);
+  }
+}
+
+function renderBrokers(list) {
+  const grid = document.getElementById('brokers-grid');
+  const count = document.getElementById('broker-count');
+  count.textContent = '('+list.length+')';
+  if(!list.length) { grid.innerHTML='<div style="color:var(--muted);text-align:center;padding:3rem;grid-column:1/-1">Брокерів не знайдено 😔</div>'; return; }
+  grid.innerHTML = list.map(b=>{
+    const plan = b.plan||'free';
+    const isTop = plan==='premium';
+    const isPro = plan==='pro';
+    const ini = (b.name||'?').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+    const colors = {premium:'linear-gradient(135deg,#F5A623,#F1654B)',pro:'linear-gradient(135deg,#4B8EF1,#2DD98F)',standard:'linear-gradient(135deg,#2DD98F,#4B8EF1)',free:'linear-gradient(135deg,#888,#555)'};
+    const svcs = b.broker_services||[];
+    return `
+    <div class="broker-card ${isTop?'top-card':''} ${isPro?'pro-card':''}" onclick="openBrokerModal(${JSON.stringify(b).replace(/"/g,'&quot;')})">
+      ${isTop?'<div class="top-label">💎 ТОП</div>':''}
+      <div class="broker-top">
+        <div class="broker-avatar" style="background:${colors[plan]||colors.free}">${ini}</div>
+        <div style="flex:1">
+          <div class="broker-name">${b.name||'Брокер'}</div>
+          <div class="broker-region"><i class="ti ti-map-pin" style="font-size:11px"></i>${b.city||''}</div>
+        </div>
+        <div class="plan-badge plan-${plan}">${planEmoji(plan)} ${planLabel(plan)}</div>
+      </div>
+      ${svcs.length?`<div class="broker-services">${svcs.slice(0,3).map(s=>`<div class="service-tag">${s.name}</div>`).join('')}${svcs.length>3?`<div class="service-tag">+${svcs.length-3}</div>`:''}</div>`:''}
+      <div class="broker-bottom">
+        <div class="broker-rating"><span class="stars">${'★'.repeat(Math.round(b.rating_avg||0))}</span><strong>${b.rating_avg||'—'}</strong><span class="reviews-count">(${b.rating_count||0})</span></div>
+        <button class="contact-btn" onclick="event.stopPropagation()">Зв'язатись</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function openBrokerModal(b) {
+  if(typeof b==='string') b=JSON.parse(b);
+  const ini=(b.name||'?').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+  const colors={premium:'linear-gradient(135deg,#F5A623,#F1654B)',pro:'linear-gradient(135deg,#4B8EF1,#2DD98F)',standard:'linear-gradient(135deg,#2DD98F,#4B8EF1)',free:'linear-gradient(135deg,#888,#555)'};
+  const svcs=b.broker_services||[];
+  document.getElementById('modal-content').innerHTML=`
+    <div class="modal-broker-header">
+      <div class="modal-avatar" style="background:${colors[b.plan]||colors.free}">${ini}</div>
+      <div><div class="modal-name">${b.name}</div>
+        <div class="modal-meta"><span style="color:var(--muted)"><i class="ti ti-map-pin" style="font-size:12px"></i> ${b.city||''}</span><span class="plan-badge plan-${b.plan}">${planEmoji(b.plan)} ${planLabel(b.plan)}</span>${b.rating_avg?`<span style="color:var(--amber)">★ ${b.rating_avg} (${b.rating_count||0})</span>`:''}</div>
+      </div>
+    </div>
+    ${b.about?`<div class="modal-section"><div class="modal-section-title">Про брокера</div><p style="font-size:14px;color:var(--muted);line-height:1.6">${b.about}</p></div>`:''}
+    ${svcs.length?`<div class="modal-section"><div class="modal-section-title">Послуги</div><div class="modal-services">${svcs.map(s=>`<div class="modal-service"><i class="ti ti-check" style="color:var(--blue)"></i>${s.name}${s.price_from?' — від '+s.price_from+' грн':''}</div>`).join('')}</div></div>`:''}
+    <div class="modal-section"><div class="modal-section-title">Зв'язок</div>
+      <div class="contact-grid">
+        ${b.phone?`<a href="tel:${b.phone}" class="contact-item"><i class="ti ti-phone"></i><div class="contact-item-text"><div class="label">Телефон</div><div class="val">${b.phone}</div></div></a>`:''}
+        ${b.telegram?`<a href="https://t.me/${b.telegram.replace('@','')}" class="contact-item" target="_blank"><i class="ti ti-brand-telegram"></i><div class="contact-item-text"><div class="label">Telegram</div><div class="val">${b.telegram}</div></div></a>`:''}
+      </div>
+    </div>
+    <div class="modal-section"><div class="modal-section-title">Залишити заявку</div>
+      <div class="request-form">
+        <textarea id="req-comment" placeholder="Опишіть що вам потрібно..."></textarea>
+        <input class="form-input" id="req-name" placeholder="Ваше ім'я *" style="margin-bottom:8px">
+        <input class="form-input" id="req-phone" placeholder="Ваш телефон *" style="margin-bottom:8px">
+        <button class="request-btn" onclick="sendRequest('${b.id}','${b.name}')">Надіслати заявку</button>
+      </div>
+    </div>`;
+  document.getElementById('broker-modal').classList.add('open');
+}
+
+async function sendRequest(brokerId, brokerName) {
+  const name = document.getElementById('req-name').value.trim();
+  const phone = document.getElementById('req-phone').value.trim();
+  const comment = document.getElementById('req-comment').value.trim();
+  if(!name||!phone) { showToast('❌ Введіть імʼя і телефон',true); return; }
+  const {error} = await sb.from('requests').insert({
+    broker_id: brokerId,
+    service: 'Загальний запит',
+    client_name: name,
+    client_phone: phone,
+    comment: comment||null,
+    status: 'new'
+  });
+  if(error) { showToast('❌ Помилка відправки',true); return; }
+  showToast('✅ Заявку надіслано! Брокер зв\'яжеться з вами.');
+  closeModal('broker-modal');
+}
+
+function filterBrokers() {
+  const q = document.getElementById('search-input').value.toLowerCase();
+  let list = allBrokers.filter(b=>{
+    const svcs = (b.broker_services||[]).map(s=>s.name);
+    const matchSearch = !q || (b.name||'').toLowerCase().includes(q) || (b.city||'').toLowerCase().includes(q) || svcs.some(s=>s.toLowerCase().includes(q));
+    const matchService = activeServiceFilter==='all' || svcs.includes(activeServiceFilter);
+    return matchSearch && matchService;
+  });
+  filteredBrokers = list;
+  renderBrokers(list);
+}
+
+function filterByService(el, service) {
+  document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active');
+  activeServiceFilter = service;
+  filterBrokers();
+}
+
+function sortBrokers(by) {
+  const order={premium:0,pro:1,standard:2,free:3};
+  const list=[...filteredBrokers];
+  if(by==='plan') list.sort((a,b)=>(order[a.plan]||3)-(order[b.plan]||3));
+  if(by==='rating') list.sort((a,b)=>(b.rating_avg||0)-(a.rating_avg||0));
+  if(by==='price') list.sort((a,b)=>{const ap=a.broker_services?.[0]?.price_from||99999,bp=b.broker_services?.[0]?.price_from||99999;return ap-bp;});
+  if(by==='reviews') list.sort((a,b)=>(b.rating_count||0)-(a.rating_count||0));
+  renderBrokers(list);
+}
+
+// =============================================
+// PAYMENT
+// =============================================
+function openPayment(planName, price) {
+  document.getElementById('pay-plan-name').textContent=planName+' план';
+  document.getElementById('pay-plan-price').textContent=price;
+  document.getElementById('pay-btn-amount').textContent=price;
+  document.getElementById('payment-modal').classList.add('open');
+}
+function closePayment(){document.getElementById('payment-modal').classList.remove('open')}
+function selectMethod(el){document.querySelectorAll('.pay-method').forEach(m=>m.classList.remove('selected'));el.classList.add('selected')}
+function formatCard(el){let v=el.value.replace(/\D/g,'').substring(0,16);el.value=v.replace(/(\d{4})(?=\d)/g,'$1 ')}
+function applyPromo(){if(document.getElementById('promo-input').value.toUpperCase()==='NEW50'){showToast('🎉 Промокод застосовано! -50%')}else{showToast('❌ Невірний промокод',true)}}
+function processPayment(){showToast('✅ Оплата успішна! Підписку активовано.');closePayment();if(currentBroker){showPage('cabinet');loadCabinetData()}}
+
+// =============================================
+// BILLING TOGGLE
+// =============================================
+let isYearly=false;
+const prices={standard:{m:299,y:239},pro:{m:599,y:479},premium:{m:999,y:799}};
+function toggleBilling(){
+  isYearly=!isYearly;
+  document.getElementById('billing-toggle').classList.toggle('on',isYearly);
+  document.getElementById('toggle-monthly').classList.toggle('active',!isYearly);
+  document.getElementById('toggle-yearly').classList.toggle('active',isYearly);
+  ['standard','pro','premium'].forEach(p=>{
+    const price=isYearly?prices[p].y:prices[p].m;
+    document.getElementById(p+'-price').innerHTML=`${price} <span class="currency">грн</span>`;
+    document.getElementById(p+'-period').textContent=isYearly?'/місяць (при оплаті за рік)':'/місяць';
+    const oldEl=document.getElementById(p+'-old-price');
+    if(isYearly){oldEl.textContent=prices[p].m+' грн';oldEl.style.display='block';}else{oldEl.style.display='none';}
+  });
+}
+
+// =============================================
+// HELPERS
+// =============================================
+function planEmoji(p){return{premium:'💎',pro:'⭐',standard:'⚡',free:'🆓'}[p]||'🆓'}
+function planLabel(p){return{premium:'Преміум',pro:'Про',standard:'Стандарт',free:'Безкоштовний'}[p]||'Безкоштовний'}
+
+function timeAgo(iso) {
+  const diff=(Date.now()-new Date(iso))/1000;
+  if(diff<60) return 'щойно';
+  if(diff<3600) return Math.floor(diff/60)+' хв тому';
+  if(diff<86400) return Math.floor(diff/3600)+' год тому';
+  return Math.floor(diff/86400)+' дн тому';
+}
+
+function showToast(msg, isErr=false) {
+  const t=document.getElementById('toast');
+  document.getElementById('toast-text').textContent=msg;
+  t.className='toast'+(isErr?' err-toast':'')+' show';
+  setTimeout(()=>t.classList.remove('show'),3000);
+}
+function showRegMsg(msg,type){const el=document.getElementById('reg-msg');el.textContent=msg;el.className='reg-msg '+type;el.style.display='block';setTimeout(()=>el.style.display='none',5000)}
+function showLoginMsg(msg,type){const el=document.getElementById('login-msg');el.textContent=msg;el.className='reg-msg '+type;el.style.display='block';setTimeout(()=>el.style.display='none',5000)}
+
+function toggleFaq(el){el.classList.toggle('open')}
+function closeModal(id){document.getElementById(id).classList.remove('open')}
+document.querySelectorAll('.modal-overlay').forEach(o=>o.addEventListener('click',function(e){if(e.target===this)this.classList.remove('open')}));
+
+// =============================================
+// ПЕРЕМИКАННЯ ВКЛАДОК ВХІД / РЕЄСТРАЦІЯ
+// =============================================
+function switchAuthTab(tab) {
+  const isLogin = tab === 'login';
+  document.getElementById('tab-login').style.display = isLogin ? 'block' : 'none';
+  document.getElementById('tab-register').style.display = isLogin ? 'none' : 'block';
+  document.getElementById('tab-login-btn').style.background = isLogin ? 'var(--blue)' : 'transparent';
+  document.getElementById('tab-login-btn').style.color = isLogin ? '#fff' : 'var(--muted)';
+  document.getElementById('tab-register-btn').style.background = isLogin ? 'transparent' : 'var(--blue)';
+  document.getElementById('tab-register-btn').style.color = isLogin ? 'var(--muted)' : '#fff';
+}
+
+// =============================================
+// ЗБЕРЕЖЕННЯ ПРОФІЛЮ
+// =============================================
+async function saveProfile() {
+  if(!currentBroker) return;
+  const name     = document.getElementById('prof-name').value.trim();
+  const phone    = document.getElementById('prof-phone').value.trim();
+  const telegram = document.getElementById('prof-telegram').value.trim();
+  const city     = document.getElementById('prof-city').value.trim();
+  const about    = document.getElementById('prof-about').value.trim();
+  try {
+    const {error} = await sb.from('brokers').update({name, phone, telegram, city, about})
+      .eq('id', currentBroker.id);
+    if(error) throw error;
+    currentBroker = {...currentBroker, name, phone, telegram, city, about};
+    const ini = name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+    document.getElementById('cab-initials').textContent = ini;
+    document.getElementById('cab-name').textContent = name;
+    showToast('✅ Профіль збережено!');
+  } catch(err) {
+    showToast('❌ Помилка збереження: '+err.message, true);
+  }
+}
+
+function nextStep(n) {
+  for(let i=1;i<=3;i++){
+    document.getElementById('reg-step-'+i).style.display=i===n?'block':'none';
+    const tab=document.getElementById('step-'+i+'-tab');
+    tab.classList.remove('active','done');
+    if(i<n)tab.classList.add('done');
+    if(i===n)tab.classList.add('active');
+  }
+}
+function toggleService(el){el.classList.toggle('checked')}
+
+function showCabinetSection(name,btn){
+  document.querySelectorAll('.cabinet-section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.cabinet-menu-item').forEach(b=>b.classList.remove('active'));
+  document.getElementById('cab-'+name).classList.add('active');
+  btn.classList.add('active');
+}
+
+function updateNavAuth(isLoggedIn) {
+  const btn = document.getElementById('loginBtn');
+  if(isLoggedIn) {
+    btn.textContent='👤 Кабінет';
+    btn.onclick=()=>{ showPage('cabinet'); loadCabinetData(); };
+  } else {
+    btn.textContent='Увійти';
+    btn.onclick=()=>{ switchAuthTab('login'); showPage('register'); };
+  }
+}
+
+// Демо-дані якщо Supabase порожній
+const demoBrokers=[
+  {id:'demo1',name:'Дмитро Крикун',city:'Київ',region:'Київська',plan:'pro',rating_avg:4.9,rating_count:24,phone:'+380981722342',telegram:'@Dimakrykun95',about:'Офіційний митний брокер з 7-річним досвідом. Авто зі США та Європи.',broker_services:[{name:'Розмитнення авто',price_from:3000},{name:'Авто зі США',price_from:2500},{name:'Оцінка авто',price_from:800}]},
+  {id:'demo2',name:'Олена Бондар',city:'Одеса',region:'Одеська',plan:'standard',rating_avg:4.8,rating_count:31,phone:'+380671234567',telegram:'@olena_broker',about:'Митний брокер в Одесі. Досвід з морськими контейнерами та авто.',broker_services:[{name:'Митне оформлення',price_from:2000},{name:'Консультація',price_from:500}]},
+];
+
+// =============================================
+// ІНІЦІАЛІЗАЦІЯ
+// =============================================
+window.addEventListener('DOMContentLoaded', async ()=>{
+  // Завантажити каталог
+  await loadCatalog();
+
+  // Перевірити авторизацію
+  const {data:{user}} = await sb.auth.getUser();
+  if(user) { currentUser=user; updateNavAuth(true); }
+
+  // Слухати зміни авторизації
+  sb.auth.onAuthStateChange((event, session)=>{
+    if(event==='SIGNED_IN') { currentUser=session.user; updateNavAuth(true); }
+    if(event==='SIGNED_OUT') { currentUser=null; updateNavAuth(false); }
+  });
+});
+</script>
+</body>
+</html>
