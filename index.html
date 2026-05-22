@@ -1266,8 +1266,8 @@ function updateNavAuth(isLoggedIn) {
   const regBtn = document.getElementById('registerBtn');
   if(isLoggedIn) {
     btn.textContent='👤 Кабінет';
-    btn.onclick=()=>{ showPage('cabinet'); loadCabinetData(); };
-    if(regBtn){ regBtn.innerHTML='<i class="ti ti-layout-dashboard"></i> Мій кабінет'; regBtn.onclick=()=>{ showPage('cabinet'); loadCabinetData(); }; }
+    btn.onclick=()=>{ sessionStorage.setItem('lastPage','cabinet'); showPage('cabinet'); loadCabinetData(); };
+    if(regBtn){ regBtn.innerHTML='<i class="ti ti-layout-dashboard"></i> Мій кабінет'; regBtn.onclick=()=>{ sessionStorage.setItem('lastPage','cabinet'); showPage('cabinet'); loadCabinetData(); }; }
   } else {
     btn.textContent='Увійти';
     btn.onclick=()=>{ switchAuthTab('login'); showPage('register'); };
@@ -1290,12 +1290,21 @@ window.addEventListener('DOMContentLoaded', async ()=>{
 
   // Перевірити авторизацію
   const {data:{user}} = await sb.auth.getUser();
-  if(user) { currentUser=user; updateNavAuth(true); }
+  if(user) {
+    currentUser = user;
+    updateNavAuth(true);
+    // Якщо користувач був у кабінеті до перезавантаження — повернути
+    const lastPage = sessionStorage.getItem('lastPage');
+    if(lastPage === 'cabinet') {
+      await loadCabinetData();
+      showPage('cabinet');
+    }
+  }
 
   // Слухати зміни авторизації
   sb.auth.onAuthStateChange((event, session)=>{
     if(event==='SIGNED_IN') { currentUser=session.user; updateNavAuth(true); }
-    if(event==='SIGNED_OUT') { currentUser=null; updateNavAuth(false); }
+    if(event==='SIGNED_OUT') { currentUser=null; currentBroker=null; updateNavAuth(false); sessionStorage.removeItem('lastPage'); }
   });
 });
 </script>
