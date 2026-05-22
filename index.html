@@ -554,7 +554,20 @@ h1.hero-title span{color:var(--blue)}
       <!-- Крок 3 -->
       <div id="reg-step-3" style="display:none">
         <div class="form-group"><label class="form-label">Телефон</label><input type="tel" class="form-input" id="reg-phone" placeholder="+380 98 123 45 67"></div>
-        <div class="form-group"><label class="form-label">Telegram</label><input type="text" class="form-input" id="reg-telegram" placeholder="@username"></div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label"><i class="ti ti-brand-telegram" style="color:#29B6F6"></i> Telegram</label><input type="text" class="form-input" id="reg-telegram" placeholder="@username"></div>
+          <div class="form-group"><label class="form-label"><i class="ti ti-brand-whatsapp" style="color:#25D366"></i> WhatsApp</label><input type="text" class="form-input" id="reg-whatsapp" placeholder="+380..."></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label"><i class="ti ti-brand-viber" style="color:#7360F2"></i> Viber</label><input type="text" class="form-input" id="reg-viber" placeholder="+380..."></div>
+          <div class="form-group"><label class="form-label"><i class="ti ti-brand-instagram" style="color:#E1306C"></i> Instagram</label><input type="text" class="form-input" id="reg-instagram" placeholder="@username"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label"><i class="ti ti-brand-facebook" style="color:#1877F2"></i> Facebook</label><input type="text" class="form-input" id="reg-facebook" placeholder="facebook.com/..."></div>
+          <div class="form-group"><label class="form-label"><i class="ti ti-brand-tiktok" style="color:#ff0050"></i> TikTok</label><input type="text" class="form-input" id="reg-tiktok" placeholder="@username"></div>
+        </div>
+        <div class="form-group"><label class="form-label"><i class="ti ti-brand-youtube" style="color:#FF0000"></i> YouTube</label><input type="text" class="form-input" id="reg-youtube" placeholder="youtube.com/..."></div>
+        <div style="height:1px;background:var(--border);margin:1rem 0"></div>
         <div class="form-group"><label class="form-label">Email *</label><input type="email" class="form-input" id="reg-email" placeholder="broker@email.com"></div>
         <div class="form-group"><label class="form-label">Пароль * (мінімум 6 символів)</label><input type="password" class="form-input" id="reg-password" placeholder="••••••••"></div>
         <div class="reg-msg" id="reg-msg"></div>
@@ -640,12 +653,30 @@ h1.hero-title span{color:var(--blue)}
 
       <div class="cabinet-section" id="cab-profile">
         <div class="cabinet-section-title">Профіль</div>
-        <div class="form-group"><label class="form-label">Ім'я</label><input class="form-input" id="prof-name"></div>
-        <div class="form-group"><label class="form-label">Телефон</label><input class="form-input" id="prof-phone"></div>
-        <div class="form-group"><label class="form-label">Telegram</label><input class="form-input" id="prof-telegram"></div>
-        <div class="form-group"><label class="form-label">Місто</label><input class="form-input" id="prof-city"></div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Ім'я</label><input class="form-input" id="prof-name"></div>
+          <div class="form-group"><label class="form-label">Місто</label><input class="form-input" id="prof-city"></div>
+        </div>
         <div class="form-group"><label class="form-label">Про себе</label><textarea class="form-input" id="prof-about" rows="3" style="resize:none"></textarea></div>
-        <button class="form-btn" style="max-width:200px" onclick="saveProfile()">Зберегти</button>
+        <div style="font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin:1.25rem 0 0.75rem">Контакти</div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Телефон</label><input class="form-input" id="prof-phone" placeholder="+380..."></div>
+          <div class="form-group"><label class="form-label"><i class="ti ti-brand-telegram" style="color:#29B6F6"></i> Telegram</label><input class="form-input" id="prof-telegram" placeholder="@username"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label"><i class="ti ti-brand-whatsapp" style="color:#25D366"></i> WhatsApp</label><input class="form-input" id="prof-whatsapp" placeholder="+380..."></div>
+          <div class="form-group"><label class="form-label"><i class="ti ti-brand-viber" style="color:#7360F2"></i> Viber</label><input class="form-input" id="prof-viber" placeholder="+380..."></div>
+        </div>
+        <div style="font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin:1.25rem 0 0.75rem">Соціальні мережі</div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label"><i class="ti ti-brand-instagram" style="color:#E1306C"></i> Instagram</label><input class="form-input" id="prof-instagram" placeholder="@username"></div>
+          <div class="form-group"><label class="form-label"><i class="ti ti-brand-facebook" style="color:#1877F2"></i> Facebook</label><input class="form-input" id="prof-facebook" placeholder="facebook.com/..."></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label"><i class="ti ti-brand-tiktok" style="color:#ff0050"></i> TikTok</label><input class="form-input" id="prof-tiktok" placeholder="@username"></div>
+          <div class="form-group"><label class="form-label"><i class="ti ti-brand-youtube" style="color:#FF0000"></i> YouTube</label><input class="form-input" id="prof-youtube" placeholder="youtube.com/..."></div>
+        </div>
+        <button class="form-btn" style="max-width:200px;margin-top:0.5rem" onclick="saveProfile()">Зберегти</button>
       </div>
     </div>
   </div>
@@ -730,15 +761,21 @@ async function goToCabinet() {
 // РЕЄСТРАЦІЯ
 // =============================================
 async function registerBroker() {
-  const name     = document.getElementById('reg-name').value.trim();
-  const city     = document.getElementById('reg-city').value.trim();
-  const region   = document.getElementById('reg-region').value;
-  const exp      = document.getElementById('reg-exp').value;
-  const about    = document.getElementById('reg-about').value.trim();
-  const phone    = document.getElementById('reg-phone').value.trim();
-  const telegram = document.getElementById('reg-telegram').value.trim();
-  const email    = document.getElementById('reg-email').value.trim();
-  const password = document.getElementById('reg-password').value;
+  const name      = document.getElementById('reg-name').value.trim();
+  const city      = document.getElementById('reg-city').value.trim();
+  const region    = document.getElementById('reg-region').value;
+  const exp       = document.getElementById('reg-exp').value;
+  const about     = document.getElementById('reg-about').value.trim();
+  const phone     = document.getElementById('reg-phone').value.trim();
+  const telegram  = document.getElementById('reg-telegram').value.trim();
+  const whatsapp  = document.getElementById('reg-whatsapp').value.trim();
+  const viber     = document.getElementById('reg-viber').value.trim();
+  const instagram = document.getElementById('reg-instagram').value.trim();
+  const facebook  = document.getElementById('reg-facebook').value.trim();
+  const tiktok    = document.getElementById('reg-tiktok').value.trim();
+  const youtube   = document.getElementById('reg-youtube').value.trim();
+  const email     = document.getElementById('reg-email').value.trim();
+  const password  = document.getElementById('reg-password').value;
 
   if(!name) { showRegMsg('❌ Введіть імʼя або назву компанії','err'); return; }
   if(!email) { showRegMsg('❌ Введіть email','err'); return; }
@@ -754,6 +791,12 @@ async function registerBroker() {
     const {data:broker, error:brokerErr} = await sb.from('brokers').insert({
       user_id: authData.user.id,
       name, city, region, phone, telegram, email,
+      whatsapp: whatsapp||null,
+      viber: viber||null,
+      instagram: instagram||null,
+      facebook: facebook||null,
+      tiktok: tiktok||null,
+      youtube: youtube||null,
       experience: Number(exp)||0,
       about: about||null,
       plan: 'free', is_active: true
@@ -837,11 +880,17 @@ async function loadCabinetData() {
   document.getElementById('billing-plan-name').textContent = planEmoji(broker.plan)+' '+planLabel(broker.plan);
 
   // Профіль форма
-  document.getElementById('prof-name').value = broker.name||'';
-  document.getElementById('prof-phone').value = broker.phone||'';
-  document.getElementById('prof-telegram').value = broker.telegram||'';
-  document.getElementById('prof-city').value = broker.city||'';
-  document.getElementById('prof-about').value = broker.about||'';
+  document.getElementById('prof-name').value      = broker.name||'';
+  document.getElementById('prof-phone').value     = broker.phone||'';
+  document.getElementById('prof-telegram').value  = broker.telegram||'';
+  document.getElementById('prof-city').value      = broker.city||'';
+  document.getElementById('prof-about').value     = broker.about||'';
+  document.getElementById('prof-whatsapp').value  = broker.whatsapp||'';
+  document.getElementById('prof-viber').value     = broker.viber||'';
+  document.getElementById('prof-instagram').value = broker.instagram||'';
+  document.getElementById('prof-facebook').value  = broker.facebook||'';
+  document.getElementById('prof-tiktok').value    = broker.tiktok||'';
+  document.getElementById('prof-youtube').value   = broker.youtube||'';
 
   // Статистика
   document.getElementById('stat-views').textContent = broker.views_count||0;
@@ -927,15 +976,27 @@ async function updateReqStatus(id, status, btn) {
 async function saveProfile() {
   if(!currentBroker) return;
   const updates = {
-    name:document.getElementById('prof-name').value.trim(),
-    phone:document.getElementById('prof-phone').value.trim(),
-    telegram:document.getElementById('prof-telegram').value.trim(),
-    city:document.getElementById('prof-city').value.trim(),
-    about:document.getElementById('prof-about').value.trim()
+    name:      document.getElementById('prof-name').value.trim(),
+    phone:     document.getElementById('prof-phone').value.trim(),
+    telegram:  document.getElementById('prof-telegram').value.trim(),
+    city:      document.getElementById('prof-city').value.trim(),
+    about:     document.getElementById('prof-about').value.trim(),
+    whatsapp:  document.getElementById('prof-whatsapp').value.trim()||null,
+    viber:     document.getElementById('prof-viber').value.trim()||null,
+    instagram: document.getElementById('prof-instagram').value.trim()||null,
+    facebook:  document.getElementById('prof-facebook').value.trim()||null,
+    tiktok:    document.getElementById('prof-tiktok').value.trim()||null,
+    youtube:   document.getElementById('prof-youtube').value.trim()||null,
   };
   const {error} = await sb.from('brokers').update(updates).eq('id',currentBroker.id);
   if(error) showToast('❌ Помилка збереження',true);
-  else { showToast('✅ Профіль збережено!'); await loadCabinetData(); }
+  else {
+    currentBroker = {...currentBroker, ...updates};
+    const ini = updates.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+    document.getElementById('cab-initials').textContent = ini;
+    document.getElementById('cab-name').textContent = updates.name;
+    showToast('✅ Профіль збережено!');
+  }
 }
 
 // =============================================
