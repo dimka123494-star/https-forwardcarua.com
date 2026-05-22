@@ -300,6 +300,7 @@ function adminLogin() {
   const email = document.getElementById('admin-email').value;
   const pass = document.getElementById('admin-pass').value;
   if (pass === ADMIN_PASS || pass === 'demo') {
+    sessionStorage.setItem('adminLoggedIn', 'true');
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('admin-panel').style.display = 'block';
     loadAll();
@@ -314,6 +315,7 @@ function devLogin() {
 }
 
 function adminLogout() {
+  sessionStorage.removeItem('adminLoggedIn');
   document.getElementById('login-screen').style.display = 'flex';
   document.getElementById('admin-panel').style.display = 'none';
 }
@@ -565,14 +567,22 @@ function showToast(msg) {
   setTimeout(()=>t.classList.remove('show'),3000);
 }
 
-// Завантажити збережені ключі WayForPay
+// Завантажити збережені ключі WayForPay + відновити сесію після перезавантаження
 window.addEventListener('load', () => {
+  // WayForPay ключі
   const merchant = localStorage.getItem('wfp_merchant');
   const secret   = localStorage.getItem('wfp_secret');
   const domain   = localStorage.getItem('wfp_domain');
   if (merchant) document.getElementById('wfp-merchant').value = merchant;
   if (secret)   document.getElementById('wfp-secret').value = '••••••••••••••••';
   if (domain)   document.getElementById('wfp-domain').value = domain;
+
+  // Відновити адмін сесію після перезавантаження
+  if (sessionStorage.getItem('adminLoggedIn') === 'true') {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('admin-panel').style.display = 'block';
+    loadAll();
+  }
 });
 </script>
 </body>
