@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>МитнийБрокер — Адмін панель</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#0d0e14;--s:#13141d;--s2:#1a1c28;--border:rgba(255,255,255,0.07);--blue:#4B8EF1;--green:#2DD98F;--amber:#F5A623;--red:#F1654B;--purple:#A855F7;--text:#f0f1f5;--muted:rgba(240,241,245,0.45);--r:12px}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+.login-wrap{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:2rem}
+.login-card{background:var(--s);border:0.5px solid var(--border);border-radius:20px;padding:2.5rem;width:100%;max-width:380px}
+.login-logo{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;margin-bottom:2rem;text-align:center}
+.login-logo span{color:var(--blue)}
+.form-group{margin-bottom:1rem}
+.form-label{display:block;font-size:12px;font-weight:500;color:var(--muted);margin-bottom:5px;text-transform:uppercase;letter-spacing:0.5px}
+.form-input{width:100%;background:var(--s2);border:0.5px solid var(--border);color:var(--text);padding:11px 13px;border-radius:9px;font-family:'DM Sans',sans-serif;font-size:14px;outline:none;transition:border-color 0.2s}
+.form-input:focus{border-color:var(--blue)}
+.login-btn{width:100%;background:var(--blue);color:#fff;border:none;padding:13px;border-radius:9px;font-family:'Syne',sans-serif;font-size:16px;font-weight:700;cursor:pointer;margin-top:0.5rem}
+.login-error{color:var(--red);font-size:13px;text-align:center;margin-top:0.75rem}
+.sidebar{background:var(--s);border-right:0.5px solid var(--border);padding:1.5rem 1rem;display:flex;flex-direction:column;gap:4px;position:fixed;top:0;left:0;bottom:0;width:220px}
+.sidebar-logo{font-family:'Syne',sans-serif;font-size:18px;font-weight:800;padding:0 0.5rem 1.5rem;border-bottom:0.5px solid var(--border);margin-bottom:0.5rem}
+.sidebar-logo span{color:var(--blue)}
+.sidebar-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:9px;font-size:14px;color:var(--muted);cursor:pointer;transition:all 0.2s;border:none;background:none;width:100%;text-align:left}
+.sidebar-item.active,.sidebar-item:hover{background:var(--s2);color:var(--text)}
+.sidebar-item.active{color:var(--blue)}
+.sidebar-item i{font-size:16px}
+.sidebar-badge{background:var(--red);color:#fff;border-radius:5px;padding:1px 7px;font-size:11px;margin-left:auto}
+.sidebar-footer{margin-top:auto;padding-top:1rem;border-top:0.5px solid var(--border)}
+.main-content{margin-left:220px;padding:2rem;min-height:100vh}
+.page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:2rem;flex-wrap:wrap;gap:1rem}
+.page-title{font-family:'Syne',sans-serif;font-size:26px;font-weight:800}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:2rem}
+.stat-card{background:var(--s);border:0.5px solid var(--border);border-radius:var(--r);padding:1.25rem}
+.stat-card-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem}
+.stat-icon{width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:16px}
+.stat-trend{font-size:12px;display:flex;align-items:center;gap:3px}
+.stat-trend.up{color:var(--green)}
+.stat-val{font-family:'Syne',sans-serif;font-size:34px;font-weight:800;line-height:1;margin-bottom:3px}
+.stat-label{font-size:12px;color:var(--muted)}
+.table-wrap{background:var(--s);border:0.5px solid var(--border);border-radius:var(--r);overflow:hidden;margin-bottom:1.5rem}
+.table-header{display:flex;align-items:center;justify-content:space-between;padding:1rem 1.5rem;border-bottom:0.5px solid var(--border);flex-wrap:wrap;gap:10px}
+.table-title{font-size:15px;font-weight:500}
+.table-search{background:var(--s2);border:0.5px solid var(--border);color:var(--text);padding:7px 12px;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;outline:none;width:200px}
+.table-search::placeholder{color:var(--muted)}
+table{width:100%;border-collapse:collapse}
+th{padding:10px 16px;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);text-align:left;border-bottom:0.5px solid var(--border);white-space:nowrap}
+td{padding:12px 16px;font-size:14px;border-bottom:0.5px solid rgba(255,255,255,0.04);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:rgba(255,255,255,0.02)}
+.avatar-sm{width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-size:13px;font-weight:700;flex-shrink:0}
+.broker-cell{display:flex;align-items:center;gap:10px}
+.broker-cell-name{font-weight:500}
+.broker-cell-email{font-size:12px;color:var(--muted)}
+.plan-chip{display:inline-flex;align-items:center;gap:4px;border-radius:6px;padding:3px 10px;font-size:12px;font-weight:500}
+.plan-chip.premium{background:rgba(168,85,247,0.15);color:var(--purple)}
+.plan-chip.pro{background:rgba(245,166,35,0.15);color:var(--amber)}
+.plan-chip.standard{background:rgba(75,142,241,0.15);color:var(--blue)}
+.plan-chip.free{background:rgba(255,255,255,0.05);color:var(--muted)}
+.status-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:6px}
+.status-dot.new{background:var(--blue)}.status-dot.done{background:var(--green)}.status-dot.pending{background:var(--amber)}.status-dot.rejected{background:var(--red)}
+.action-btn{background:var(--s2);border:0.5px solid var(--border);color:var(--muted);padding:5px 10px;border-radius:6px;font-size:12px;cursor:pointer;transition:all 0.2s}
+.action-btn:hover{color:var(--text);border-color:var(--blue)}
+.action-btn.danger:hover{color:var(--red);border-color:var(--red)}
+.action-btn.success:hover{color:var(--green);border-color:var(--green)}
+.section-page{display:none}
+.section-page.active{display:block}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:300;backdrop-filter:blur(6px);align-items:center;justify-content:center;padding:1rem}
+.modal-overlay.open{display:flex}
+.modal{background:var(--s);border:0.5px solid var(--border);border-radius:20px;width:100%;max-width:480px;padding:2rem;position:relative;max-height:90vh;overflow-y:auto}
+.modal-close{position:absolute;top:1rem;right:1rem;background:var(--s2);border:none;color:var(--muted);width:32px;height:32px;border-radius:8px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center}
+.modal-title{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;margin-bottom:1.5rem}
+.btn-primary{background:var(--blue);color:#fff;border:none;padding:10px 20px;border-radius:9px;font-family:'Syne',sans-serif;font-size:14px;font-weight:700;cursor:pointer}
+.btn-danger{background:rgba(241,101,75,0.15);color:var(--red);border:0.5px solid rgba(241,101,75,0.3);padding:10px 20px;border-radius:9px;font-size:14px;cursor:pointer}
+.toast{position:fixed;bottom:2rem;right:2rem;background:var(--s);border:0.5px solid var(--green);border-radius:10px;padding:12px 18px;font-size:14px;color:var(--green);z-index:999;display:flex;align-items:center;gap:8px;transform:translateY(100px);opacity:0;transition:all 0.3s;max-width:300px}
+.toast.show{transform:translateY(0);opacity:1}
+.empty-state{text-align:center;padding:3rem;color:var(--muted)}
+.empty-state i{font-size:32px;margin-bottom:0.75rem;display:block}
+
+/* WayForPay badge */
+.wfp-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(45,217,143,0.1);border:0.5px solid rgba(45,217,143,0.3);border-radius:8px;padding:4px 10px;font-size:12px;color:var(--green);margin-bottom:1rem}
+
+@media(max-width:768px){.sidebar{display:none}.main-content{margin-left:0}}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen" class="login-wrap">
+  <div class="login-card">
+    <div class="login-logo">Митний<span>Брокер</span><br><span style="font-size:13px;color:var(--muted);font-family:'DM Sans'">Адмін панель</span></div>
+    <div class="form-group"><label class="form-label">Email</label><input type="email" class="form-input" id="admin-email" placeholder="admin@forwardcarua.com" value="custom@forwardcarua.com"></div>
+    <div class="form-group"><label class="form-label">Пароль</label><input type="password" class="form-input" id="admin-pass" placeholder="••••••••" onkeydown="if(event.key==='Enter')adminLogin()"></div>
+    <button class="login-btn" onclick="adminLogin()">Увійти</button>
+    <div class="login-error" id="login-error"></div>
+    <div style="margin-top:1rem;text-align:center;font-size:12px;color:var(--muted)">Або <a href="#" onclick="devLogin()" style="color:var(--blue)">увійти в демо-режимі</a></div>
+  </div>
+</div>
+
+<!-- ADMIN PANEL -->
+<div id="admin-panel" style="display:none">
+  <div class="sidebar">
+    <div class="sidebar-logo">Митний<span>Брокер</span></div>
+    <button class="sidebar-item active" onclick="showSection('dashboard',this)"><i class="ti ti-layout-dashboard"></i>Дашборд</button>
+    <button class="sidebar-item" onclick="showSection('brokers',this)"><i class="ti ti-users"></i>Брокери <span class="sidebar-badge" id="brokers-count-badge">0</span></button>
+    <button class="sidebar-item" onclick="showSection('requests',this)"><i class="ti ti-inbox"></i>Заявки <span class="sidebar-badge" id="requests-count-badge" style="background:var(--blue)">0</span></button>
+    <button class="sidebar-item" onclick="showSection('subscriptions',this)"><i class="ti ti-credit-card"></i>Підписки</button>
+    <button class="sidebar-item" onclick="showSection('settings',this)"><i class="ti ti-settings"></i>Налаштування</button>
+    <div class="sidebar-footer">
+      <button class="sidebar-item" onclick="window.open('https://forwardcarua.com','_blank')"><i class="ti ti-external-link"></i>Переглянути сайт</button>
+      <button class="sidebar-item" onclick="adminLogout()"><i class="ti ti-logout"></i>Вийти</button>
+    </div>
+  </div>
+
+  <div class="main-content">
+
+    <!-- DASHBOARD -->
+    <div class="section-page active" id="sec-dashboard">
+      <div class="page-header">
+        <div class="page-title">Дашборд</div>
+        <div style="font-size:13px;color:var(--muted)" id="last-updated"></div>
+      </div>
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-card-top"><div class="stat-icon" style="background:rgba(75,142,241,0.1);color:var(--blue)"><i class="ti ti-users"></i></div><div class="stat-trend up"><i class="ti ti-trending-up"></i>+12%</div></div>
+          <div class="stat-val" id="stat-brokers" style="color:var(--blue)">—</div>
+          <div class="stat-label">Всього брокерів</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-top"><div class="stat-icon" style="background:rgba(45,217,143,0.1);color:var(--green)"><i class="ti ti-inbox"></i></div><div class="stat-trend up"><i class="ti ti-trending-up"></i>+8%</div></div>
+          <div class="stat-val" id="stat-requests" style="color:var(--green)">—</div>
+          <div class="stat-label">Всього заявок</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-top"><div class="stat-icon" style="background:rgba(245,166,35,0.1);color:var(--amber)"><i class="ti ti-bolt"></i></div><div class="stat-trend up"><i class="ti ti-trending-up"></i>+3</div></div>
+          <div class="stat-val" id="stat-paid" style="color:var(--amber)">—</div>
+          <div class="stat-label">Платні підписки</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-top"><div class="stat-icon" style="background:rgba(168,85,247,0.1);color:var(--purple)"><i class="ti ti-cash"></i></div><div class="stat-trend up"><i class="ti ti-trending-up"></i>+15%</div></div>
+          <div class="stat-val" id="stat-revenue" style="color:var(--purple)">—</div>
+          <div class="stat-label">Дохід (грн/міс)</div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <div class="table-wrap">
+          <div class="table-header"><div class="table-title">Нові брокери</div></div>
+          <table><thead><tr><th>Брокер</th><th>План</th><th>Місто</th></tr></thead>
+          <tbody id="dash-brokers"></tbody></table>
+        </div>
+        <div class="table-wrap">
+          <div class="table-header"><div class="table-title">Нові заявки</div></div>
+          <table><thead><tr><th>Клієнт</th><th>Статус</th><th>Час</th></tr></thead>
+          <tbody id="dash-requests"></tbody></table>
+        </div>
+      </div>
+    </div>
+
+    <!-- BROKERS -->
+    <div class="section-page" id="sec-brokers">
+      <div class="page-header">
+        <div class="page-title">Брокери</div>
+        <button class="btn-primary" onclick="openAddBroker()"><i class="ti ti-plus"></i> Додати брокера</button>
+      </div>
+      <div class="table-wrap">
+        <div class="table-header">
+          <div class="table-title">Всі брокери <span id="brokers-total" style="color:var(--muted);font-size:13px"></span></div>
+          <input type="text" class="table-search" placeholder="Пошук..." oninput="filterBrokersTable(this.value)">
+        </div>
+        <div style="overflow-x:auto">
+        <table>
+          <thead><tr><th>Брокер</th><th>Місто</th><th>План</th><th>Рейтинг</th><th>Заявки</th><th>Верифікований</th><th>Дії</th></tr></thead>
+          <tbody id="brokers-table"></tbody>
+        </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- REQUESTS -->
+    <div class="section-page" id="sec-requests">
+      <div class="page-header"><div class="page-title">Заявки</div></div>
+      <div class="table-wrap">
+        <div class="table-header">
+          <div class="table-title">Всі заявки <span id="requests-total" style="color:var(--muted);font-size:13px"></span></div>
+          <select class="table-search" onchange="filterRequestsTable(this.value)">
+            <option value="all">Всі статуси</option>
+            <option value="new">Нові</option>
+            <option value="pending">В процесі</option>
+            <option value="done">Виконано</option>
+            <option value="rejected">Відхилено</option>
+          </select>
+        </div>
+        <div style="overflow-x:auto">
+        <table>
+          <thead><tr><th>Клієнт</th><th>Повідомлення</th><th>Брокер</th><th>Статус</th><th>Час</th><th>Дії</th></tr></thead>
+          <tbody id="requests-table"></tbody>
+        </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- SUBSCRIPTIONS -->
+    <div class="section-page" id="sec-subscriptions">
+      <div class="page-header"><div class="page-title">Підписки та доходи</div></div>
+      <div class="stats-grid" style="margin-bottom:1.5rem">
+        <div class="stat-card"><div class="stat-icon" style="background:rgba(75,142,241,0.1);color:var(--blue);margin-bottom:0.5rem"><i class="ti ti-bolt"></i></div><div class="stat-val" id="sub-standard" style="color:var(--blue)">—</div><div class="stat-label">Стандарт (299 грн)</div></div>
+        <div class="stat-card"><div class="stat-icon" style="background:rgba(245,166,35,0.1);color:var(--amber);margin-bottom:0.5rem"><i class="ti ti-star"></i></div><div class="stat-val" id="sub-pro" style="color:var(--amber)">—</div><div class="stat-label">Про (599 грн)</div></div>
+        <div class="stat-card"><div class="stat-icon" style="background:rgba(168,85,247,0.1);color:var(--purple);margin-bottom:0.5rem"><i class="ti ti-diamond"></i></div><div class="stat-val" id="sub-premium" style="color:var(--purple)">—</div><div class="stat-label">Преміум (999 грн)</div></div>
+        <div class="stat-card"><div class="stat-icon" style="background:rgba(45,217,143,0.1);color:var(--green);margin-bottom:0.5rem"><i class="ti ti-cash"></i></div><div class="stat-val" id="sub-total-rev" style="color:var(--green)">—</div><div class="stat-label">Загальний дохід/міс</div></div>
+      </div>
+      <div class="table-wrap">
+        <div class="table-header"><div class="table-title">Брокери по тарифах</div></div>
+        <div style="overflow-x:auto">
+        <table>
+          <thead><tr><th>Брокер</th><th>Поточний план</th><th>Email</th><th>Телефон</th><th>Дії</th></tr></thead>
+          <tbody id="subs-table"></tbody>
+        </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div class="section-page" id="sec-settings">
+      <div class="page-header"><div class="page-title">Налаштування</div></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+
+        <!-- Інформація про платформу -->
+        <div class="table-wrap" style="padding:1.5rem">
+          <div style="font-size:15px;font-weight:500;margin-bottom:1.25rem">Інформація про платформу</div>
+          <div class="form-group"><label class="form-label">Назва платформи</label><input class="form-input" id="platform-name" value="МитнийБрокер"></div>
+          <div class="form-group"><label class="form-label">Email підтримки</label><input class="form-input" id="platform-email" value="custom@forwardcarua.com"></div>
+          <div class="form-group"><label class="form-label">Телефон</label><input class="form-input" id="platform-phone" value="+380981722342"></div>
+          <button class="btn-primary" onclick="showToast('✅ Збережено!')">Зберегти</button>
+        </div>
+
+        <!-- WayForPay інтеграція -->
+        <div class="table-wrap" style="padding:1.5rem">
+          <div style="font-size:15px;font-weight:500;margin-bottom:0.75rem">WayForPay інтеграція</div>
+          <div class="wfp-badge"><i class="ti ti-shield-check"></i> Офіційний платіжний партнер України</div>
+          <div class="form-group"><label class="form-label">Merchant Account</label><input class="form-input" placeholder="your_merchant_account" id="wfp-merchant"></div>
+          <div class="form-group"><label class="form-label">Secret Key</label><input type="password" class="form-input" placeholder="••••••••••••••••" id="wfp-secret"></div>
+          <div class="form-group"><label class="form-label">Merchant Domain</label><input class="form-input" placeholder="forwardcarua.com" id="wfp-domain" value="forwardcarua.com"></div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:1rem">
+            Отримайте ключі на <a href="https://wayforpay.com" target="_blank" style="color:var(--blue)">wayforpay.com</a> · 
+            <a href="https://wiki.wayforpay.com" target="_blank" style="color:var(--blue)">Документація API</a>
+          </div>
+          <button class="btn-primary" onclick="saveWayForPay()"><i class="ti ti-device-floppy"></i> Зберегти ключі</button>
+        </div>
+      </div>
+
+      <!-- Шаблон повідомлення -->
+      <div class="table-wrap" style="padding:1.5rem;margin-top:16px">
+        <div style="font-size:15px;font-weight:500;margin-bottom:1rem">Шаблон повідомлення для залучення брокерів</div>
+        <div style="background:var(--s2);border-radius:10px;padding:1.25rem;font-size:14px;line-height:1.7;color:var(--text);position:relative">
+          <div id="message-template">👋 Привіт! Мене звати Дмитро.
+
+Я запустив платформу <b>forwardcarua.com</b> — каталог митних брокерів України.
+
+🔹 Розміщення БЕЗКОШТОВНЕ
+🔹 Клієнти знаходять вас за регіоном і послугами
+🔹 Отримуйте заявки прямо на сайті
+🔹 Рейтинг та відгуки клієнтів
+
+Реєстрація займає 3 хвилини:
+👉 https://forwardcarua.com
+
+Буду радий бачити вас на платформі! 🚀</div>
+          <button onclick="copyMessage()" style="position:absolute;top:10px;right:10px;background:var(--blue);color:#fff;border:none;padding:6px 12px;border-radius:7px;font-size:12px;cursor:pointer"><i class="ti ti-copy"></i> Копіювати</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- BROKER MODAL -->
+<div class="modal-overlay" id="broker-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('broker-modal')"><i class="ti ti-x"></i></button>
+    <div class="modal-title" id="broker-modal-title">Редагувати брокера</div>
+    <div id="broker-modal-body"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"><i class="ti ti-check"></i><span id="toast-text"></span></div>
+
+<script>
+const SUPABASE_URL = 'https://ecdfpqhbaqjqurzedunh.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVjZGZwcWhiYXFqcXVyemVkdW5oIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyNzU3NTIsImV4cCI6MjA5NDg1MTc1Mn0.t0ry-slbPVwVHmF1KLzWX6EDonWBMC2Uu3KUobH8oFY';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const ADMIN_PASS = 'admin2025';
+let allBrokersData = [];
+let allRequestsData = [];
+
+function adminLogin() {
+  const email = document.getElementById('admin-email').value;
+  const pass = document.getElementById('admin-pass').value;
+  if (pass === ADMIN_PASS || pass === 'demo') {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('admin-panel').style.display = 'block';
+    loadAll();
+  } else {
+    document.getElementById('login-error').textContent = 'Невірний пароль';
+  }
+}
+
+function devLogin() {
+  document.getElementById('admin-pass').value = 'demo';
+  adminLogin();
+}
+
+function adminLogout() {
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('admin-panel').style.display = 'none';
+}
+
+async function loadAll() {
+  document.getElementById('last-updated').textContent = 'Оновлено: ' + new Date().toLocaleTimeString('uk-UA');
+  await Promise.all([loadBrokers(), loadRequests()]);
+  updateDashboard();
+}
+
+async function loadBrokers() {
+  const {data} = await sb.from('brokers').select('*').order('created_at', {ascending:false});
+  allBrokersData = data || [];
+  document.getElementById('brokers-count-badge').textContent = allBrokersData.length;
+  document.getElementById('brokers-total').textContent = `(${allBrokersData.length})`;
+  renderBrokersTable(allBrokersData);
+  renderSubsTable(allBrokersData);
+  updateSubStats(allBrokersData);
+}
+
+async function loadRequests() {
+  const {data} = await sb.from('requests').select('*, brokers(name)').order('created_at', {ascending:false});
+  allRequestsData = data || [];
+  const newCount = allRequestsData.filter(r=>r.status==='new').length;
+  document.getElementById('requests-count-badge').textContent = newCount;
+  document.getElementById('requests-total').textContent = `(${allRequestsData.length})`;
+  renderRequestsTable(allRequestsData);
+}
+
+function updateDashboard() {
+  document.getElementById('stat-brokers').textContent = allBrokersData.length;
+  document.getElementById('stat-requests').textContent = allRequestsData.length;
+  const paid = allBrokersData.filter(b=>b.plan!=='free').length;
+  document.getElementById('stat-paid').textContent = paid;
+  const revenue = allBrokersData.reduce((sum,b)=>{
+    if(b.plan==='standard') return sum+299;
+    if(b.plan==='pro') return sum+599;
+    if(b.plan==='premium') return sum+999;
+    return sum;
+  }, 0);
+  document.getElementById('stat-revenue').textContent = revenue.toLocaleString('uk-UA')+' грн';
+  const recentBrokers = allBrokersData.slice(0,5);
+  document.getElementById('dash-brokers').innerHTML = recentBrokers.map(b=>`
+    <tr>
+      <td><div class="broker-cell"><div class="avatar-sm" style="background:${b.avatar_color||'linear-gradient(135deg,#4B8EF1,#2DD98F)'}">${b.initials||'??'}</div><div><div class="broker-cell-name">${b.name}</div></div></div></td>
+      <td><span class="plan-chip ${b.plan}">${planLabel(b.plan)}</span></td>
+      <td style="color:var(--muted);font-size:13px">${b.city||'—'}</td>
+    </tr>`).join('') || '<tr><td colspan="3" class="empty-state">Немає даних</td></tr>';
+  const recentReqs = allRequestsData.slice(0,5);
+  document.getElementById('dash-requests').innerHTML = recentReqs.map(r=>`
+    <tr>
+      <td>${r.client_name||'Анонім'}</td>
+      <td><span class="status-dot ${r.status}"></span>${statusLabel(r.status)}</td>
+      <td style="color:var(--muted);font-size:12px">${timeAgo(r.created_at)}</td>
+    </tr>`).join('') || '<tr><td colspan="3" class="empty-state">Немає заявок</td></tr>';
+}
+
+function renderBrokersTable(data) {
+  document.getElementById('brokers-table').innerHTML = data.map(b=>`
+    <tr>
+      <td><div class="broker-cell"><div class="avatar-sm" style="background:${b.avatar_color||'linear-gradient(135deg,#4B8EF1,#2DD98F)'}">${b.initials||'??'}</div><div><div class="broker-cell-name">${b.name}</div><div class="broker-cell-email">${b.email}</div></div></div></td>
+      <td style="color:var(--muted);font-size:13px">${b.city||'—'}</td>
+      <td><span class="plan-chip ${b.plan}">${planLabel(b.plan)}</span></td>
+      <td>⭐ ${b.rating||5.0} <span style="color:var(--muted);font-size:12px">(${b.reviews_count||0})</span></td>
+      <td style="color:var(--muted)">${b.requests_count||0}</td>
+      <td>${b.verified?'<span style="color:var(--green)"><i class="ti ti-rosette-discount-check"></i> Так</span>':'<span style="color:var(--muted)">Ні</span>'}</td>
+      <td style="display:flex;gap:6px">
+        <button class="action-btn success" onclick="verifyBroker('${b.id}',${!b.verified})">${b.verified?'Зняти':'Верифікувати'}</button>
+        <button class="action-btn" onclick="changePlan('${b.id}','${b.plan}')">План</button>
+        <button class="action-btn danger" onclick="deleteBroker('${b.id}','${b.name}')">Видалити</button>
+      </td>
+    </tr>`).join('') || '<tr><td colspan="7"><div class="empty-state"><i class="ti ti-users"></i>Брокерів немає</div></td></tr>';
+}
+
+function renderRequestsTable(data) {
+  document.getElementById('requests-table').innerHTML = data.map(r=>`
+    <tr>
+      <td><div style="font-weight:500">${r.client_name||'Анонім'}</div><div style="font-size:12px;color:var(--muted)">${r.client_phone||''}</div></td>
+      <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted);font-size:13px">${r.message}</td>
+      <td style="font-size:13px">${r.brokers?.name||'—'}</td>
+      <td><span class="status-dot ${r.status}"></span>${statusLabel(r.status)}</td>
+      <td style="color:var(--muted);font-size:12px">${timeAgo(r.created_at)}</td>
+      <td style="display:flex;gap:6px">
+        <button class="action-btn success" onclick="updateRequestStatus('${r.id}','done')">✓</button>
+        <button class="action-btn danger" onclick="updateRequestStatus('${r.id}','rejected')">✕</button>
+      </td>
+    </tr>`).join('') || '<tr><td colspan="6"><div class="empty-state"><i class="ti ti-inbox"></i>Заявок немає</div></td></tr>';
+}
+
+function renderSubsTable(data) {
+  document.getElementById('subs-table').innerHTML = data.map(b=>`
+    <tr>
+      <td><div class="broker-cell"><div class="avatar-sm" style="background:${b.avatar_color||'linear-gradient(135deg,#4B8EF1,#2DD98F)'}">${b.initials||'??'}</div><div class="broker-cell-name">${b.name}</div></div></td>
+      <td><span class="plan-chip ${b.plan}">${planLabel(b.plan)}</span></td>
+      <td style="font-size:13px;color:var(--muted)">${b.email}</td>
+      <td style="font-size:13px;color:var(--muted)">${b.phone||'—'}</td>
+      <td>
+        <select style="background:var(--s2);border:0.5px solid var(--border);color:var(--text);padding:5px 8px;border-radius:7px;font-size:12px;cursor:pointer" onchange="changePlanDirect('${b.id}',this.value)">
+          <option value="free" ${b.plan==='free'?'selected':''}>Безкоштовний</option>
+          <option value="standard" ${b.plan==='standard'?'selected':''}>Стандарт</option>
+          <option value="pro" ${b.plan==='pro'?'selected':''}>Про</option>
+          <option value="premium" ${b.plan==='premium'?'selected':''}>Преміум</option>
+        </select>
+      </td>
+    </tr>`).join('');
+}
+
+function updateSubStats(data) {
+  const s = data.filter(b=>b.plan==='standard').length;
+  const p = data.filter(b=>b.plan==='pro').length;
+  const pr = data.filter(b=>b.plan==='premium').length;
+  document.getElementById('sub-standard').textContent = s;
+  document.getElementById('sub-pro').textContent = p;
+  document.getElementById('sub-premium').textContent = pr;
+  document.getElementById('sub-total-rev').textContent = (s*299+p*599+pr*999).toLocaleString('uk-UA')+' грн';
+}
+
+async function verifyBroker(id, val) {
+  const {error} = await sb.from('brokers').update({verified:val}).eq('id',id);
+  if (!error) { showToast(val?'✅ Брокера верифіковано!':'Верифікацію знято'); loadBrokers(); }
+}
+
+async function changePlanDirect(id, plan) {
+  const {error} = await sb.from('brokers').update({plan}).eq('id',id);
+  if (!error) { showToast('✅ План оновлено!'); loadBrokers(); }
+}
+
+function changePlan(id, currentPlan) {
+  document.getElementById('broker-modal-title').textContent = 'Змінити план';
+  document.getElementById('broker-modal-body').innerHTML = `
+    <div class="form-group"><label class="form-label">Новий план</label>
+    <select class="form-input" id="new-plan">
+      <option value="free" ${currentPlan==='free'?'selected':''}>Безкоштовний</option>
+      <option value="standard" ${currentPlan==='standard'?'selected':''}>Стандарт — 299 грн</option>
+      <option value="pro" ${currentPlan==='pro'?'selected':''}>Про — 599 грн</option>
+      <option value="premium" ${currentPlan==='premium'?'selected':''}>Преміум — 999 грн</option>
+    </select></div>
+    <button class="btn-primary" onclick="changePlanDirect('${id}',document.getElementById('new-plan').value);closeModal('broker-modal')">Зберегти</button>`;
+  document.getElementById('broker-modal').classList.add('open');
+}
+
+async function deleteBroker(id, name) {
+  if (!confirm(`Видалити брокера "${name}"?`)) return;
+  const {error} = await sb.from('brokers').delete().eq('id',id);
+  if (!error) { showToast('Брокера видалено'); loadBrokers(); }
+}
+
+async function updateRequestStatus(id, status) {
+  const {error} = await sb.from('requests').update({status}).eq('id',id);
+  if (!error) { showToast('✅ Статус оновлено!'); loadRequests(); }
+}
+
+function filterBrokersTable(q) {
+  const filtered = allBrokersData.filter(b=>
+    b.name.toLowerCase().includes(q.toLowerCase()) ||
+    (b.email||'').toLowerCase().includes(q.toLowerCase()) ||
+    (b.city||'').toLowerCase().includes(q.toLowerCase())
+  );
+  renderBrokersTable(filtered);
+}
+
+function filterRequestsTable(status) {
+  const filtered = status==='all' ? allRequestsData : allRequestsData.filter(r=>r.status===status);
+  renderRequestsTable(filtered);
+}
+
+function openAddBroker() {
+  document.getElementById('broker-modal-title').textContent = 'Додати брокера';
+  document.getElementById('broker-modal-body').innerHTML = `
+    <div class="form-group"><label class="form-label">Ім'я</label><input class="form-input" id="nb-name" placeholder="Іван Петренко"></div>
+    <div class="form-group"><label class="form-label">Email</label><input class="form-input" id="nb-email" placeholder="broker@email.com"></div>
+    <div class="form-group"><label class="form-label">Телефон</label><input class="form-input" id="nb-phone" placeholder="+380..."></div>
+    <div class="form-group"><label class="form-label">Місто</label><input class="form-input" id="nb-city" placeholder="Київ"></div>
+    <div class="form-group"><label class="form-label">План</label>
+      <select class="form-input" id="nb-plan">
+        <option value="free">Безкоштовний</option>
+        <option value="standard">Стандарт</option>
+        <option value="pro">Про</option>
+        <option value="premium">Преміум</option>
+      </select>
+    </div>
+    <button class="btn-primary" onclick="addBrokerAdmin()">Додати</button>`;
+  document.getElementById('broker-modal').classList.add('open');
+}
+
+async function addBrokerAdmin() {
+  const name = document.getElementById('nb-name').value;
+  const email = document.getElementById('nb-email').value;
+  const phone = document.getElementById('nb-phone').value;
+  const city = document.getElementById('nb-city').value;
+  const plan = document.getElementById('nb-plan').value;
+  if (!name||!email) { showToast('Заповніть ім\'я та email'); return; }
+  const initials = name.split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();
+  const colors = ['linear-gradient(135deg,#4B8EF1,#2DD98F)','linear-gradient(135deg,#F5A623,#F1654B)','linear-gradient(135deg,#2DD98F,#4B8EF1)','linear-gradient(135deg,#A855F7,#4B8EF1)'];
+  const avatar_color = colors[Math.floor(Math.random()*colors.length)];
+  const {error} = await sb.from('brokers').insert({name,email,phone,city,plan,initials,avatar_color,verified:false,active:true});
+  if (error) { showToast('Помилка: '+error.message); return; }
+  showToast('✅ Брокера додано!');
+  closeModal('broker-modal');
+  loadBrokers();
+}
+
+// ── WayForPay ──
+function saveWayForPay() {
+  const merchant = document.getElementById('wfp-merchant').value.trim();
+  const secret   = document.getElementById('wfp-secret').value.trim();
+  const domain   = document.getElementById('wfp-domain').value.trim();
+  if (!merchant || !secret) { showToast('❌ Введіть Merchant Account та Secret Key'); return; }
+  localStorage.setItem('wfp_merchant', merchant);
+  localStorage.setItem('wfp_secret', secret);
+  localStorage.setItem('wfp_domain', domain);
+  showToast('✅ Ключі WayForPay збережено!');
+}
+
+function copyMessage() {
+  const text = document.getElementById('message-template').innerText;
+  navigator.clipboard.writeText(text).then(()=>showToast('✅ Скопійовано!'));
+}
+
+function planLabel(plan) {
+  const labels = {premium:'💎 Преміум',pro:'⭐ Про',standard:'⚡ Стандарт',free:'Безкоштовний'};
+  return labels[plan]||plan;
+}
+function statusLabel(s) {
+  const labels = {new:'Нова',pending:'В процесі',done:'Виконано',rejected:'Відхилено'};
+  return labels[s]||s;
+}
+function timeAgo(dateStr) {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const m = Math.floor(diff/60000);
+  if (m < 60) return m+' хв тому';
+  const h = Math.floor(m/60);
+  if (h < 24) return h+' год тому';
+  return Math.floor(h/24)+' дн тому';
+}
+
+function showSection(name, btn) {
+  document.querySelectorAll('.section-page').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.sidebar-item').forEach(b=>b.classList.remove('active'));
+  document.getElementById('sec-'+name).classList.add('active');
+  btn.classList.add('active');
+}
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.modal-overlay').forEach(o=>o.addEventListener('click',function(e){if(e.target===this)this.classList.remove('open')}));
+function showToast(msg) {
+  const t=document.getElementById('toast');
+  document.getElementById('toast-text').textContent=msg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),3000);
+}
+
+// Завантажити збережені ключі WayForPay
+window.addEventListener('load', () => {
+  const merchant = localStorage.getItem('wfp_merchant');
+  const secret   = localStorage.getItem('wfp_secret');
+  const domain   = localStorage.getItem('wfp_domain');
+  if (merchant) document.getElementById('wfp-merchant').value = merchant;
+  if (secret)   document.getElementById('wfp-secret').value = '••••••••••••••••';
+  if (domain)   document.getElementById('wfp-domain').value = domain;
+});
+</script>
+</body>
+</html>
