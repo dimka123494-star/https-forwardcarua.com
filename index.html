@@ -270,11 +270,11 @@ h1.hero-title span{color:var(--blue)}
   <div class="nav-tabs">
     <button class="nav-tab active" onclick="showPage('home')">Каталог</button>
     <button class="nav-tab" onclick="showPage('pricing')">Тарифи</button>
-    <button class="nav-tab" onclick="showPage('register')">Реєстрація</button>
+    <button class="nav-tab" onclick="switchAuthTab('register');showPage('register')">Реєстрація</button>
     <button class="nav-tab" id="cabinetTab" onclick="goToCabinet()">Кабінет</button>
   </div>
   <div class="nav-actions">
-    <button class="btn-ghost-sm" id="loginBtn" onclick="showPage('register')">Увійти</button>
+    <button class="btn-ghost-sm" id="loginBtn" onclick="switchAuthTab('login');showPage('register')">Увійти</button>
     <button class="btn-blue" onclick="showPage('pricing')"><i class="ti ti-bolt"></i>Підвищити план</button>
   </div>
 </nav>
@@ -455,68 +455,90 @@ h1.hero-title span{color:var(--blue)}
   </div>
 </div>
 
-<!-- REGISTER -->
+<!-- REGISTER / LOGIN -->
 <div class="page" id="page-register">
   <div class="register-wrap">
-    <div class="register-header">
-      <h2>Реєстрація брокера</h2>
-      <p>Розмістіть послуги і отримуйте клієнтів онлайн</p>
-    </div>
-    <div class="form-steps">
-      <div class="form-step active" id="step-1-tab">1. Профіль</div>
-      <div class="form-step" id="step-2-tab">2. Послуги</div>
-      <div class="form-step" id="step-3-tab">3. Контакти</div>
+
+    <!-- ВКЛАДКИ -->
+    <div style="display:flex;background:var(--surface);border:0.5px solid var(--border);border-radius:12px;padding:4px;margin-bottom:2rem">
+      <button id="tab-login-btn" onclick="switchAuthTab('login')" style="flex:1;padding:10px;border-radius:9px;border:none;font-family:'Syne',sans-serif;font-size:15px;font-weight:700;cursor:pointer;transition:all 0.2s;background:var(--blue);color:#fff">Вхід</button>
+      <button id="tab-register-btn" onclick="switchAuthTab('register')" style="flex:1;padding:10px;border-radius:9px;border:none;font-family:'Syne',sans-serif;font-size:15px;font-weight:700;cursor:pointer;transition:all 0.2s;background:transparent;color:var(--muted)">Реєстрація</button>
     </div>
 
-    <!-- Крок 1 -->
-    <div id="reg-step-1">
-      <div class="form-group"><label class="form-label">Ім'я або назва компанії *</label><input type="text" class="form-input" id="reg-name" placeholder="Іван Петренко або ТОВ МитБрок"></div>
-      <div class="form-row">
-        <div class="form-group"><label class="form-label">Місто</label><input type="text" class="form-input" id="reg-city" placeholder="Київ"></div>
-        <div class="form-group"><label class="form-label">Регіон</label>
-          <select class="form-input" id="reg-region"><option value="">Оберіть</option><option>Київська</option><option>Одеська</option><option>Харківська</option><option>Дніпропетровська</option><option>Львівська</option></select>
+    <!-- ВХІД -->
+    <div id="tab-login">
+      <div class="register-header" style="margin-bottom:1.5rem">
+        <h2>Увійти в кабінет</h2>
+        <p>Введіть email і пароль від вашого акаунту</p>
+      </div>
+      <div class="form-group"><label class="form-label">Email</label><input type="email" class="form-input" id="login-email" placeholder="broker@email.com"></div>
+      <div class="form-group"><label class="form-label">Пароль</label><input type="password" class="form-input" id="login-password" placeholder="••••••••"></div>
+      <div class="reg-msg" id="login-msg"></div>
+      <button class="form-btn" onclick="loginBroker()"><i class="ti ti-login"></i> Увійти в кабінет</button>
+      <div style="text-align:center;margin-top:1.25rem;font-size:14px;color:var(--muted)">
+        Ще немає акаунту? <span onclick="switchAuthTab('register')" style="color:var(--blue);cursor:pointer;font-weight:500">Зареєструватись</span>
+      </div>
+    </div>
+
+    <!-- РЕЄСТРАЦІЯ -->
+    <div id="tab-register" style="display:none">
+      <div class="register-header" style="margin-bottom:1.5rem">
+        <h2>Реєстрація брокера</h2>
+        <p>Розмістіть послуги і отримуйте клієнтів онлайн</p>
+      </div>
+      <div class="form-steps">
+        <div class="form-step active" id="step-1-tab">1. Профіль</div>
+        <div class="form-step" id="step-2-tab">2. Послуги</div>
+        <div class="form-step" id="step-3-tab">3. Контакти</div>
+      </div>
+
+      <!-- Крок 1 -->
+      <div id="reg-step-1">
+        <div class="form-group"><label class="form-label">Ім'я або назва компанії *</label><input type="text" class="form-input" id="reg-name" placeholder="Іван Петренко або ТОВ МитБрок"></div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Місто</label><input type="text" class="form-input" id="reg-city" placeholder="Київ"></div>
+          <div class="form-group"><label class="form-label">Регіон</label>
+            <select class="form-input" id="reg-region"><option value="">Оберіть</option><option>Київська</option><option>Одеська</option><option>Харківська</option><option>Дніпропетровська</option><option>Львівська</option></select>
+          </div>
+        </div>
+        <div class="form-group"><label class="form-label">Досвід (років)</label><input type="number" class="form-input" id="reg-exp" placeholder="5" min="0"></div>
+        <div class="form-group"><label class="form-label">Про себе</label><textarea class="form-input" id="reg-about" rows="3" placeholder="Коротко про досвід та спеціалізацію..." style="resize:none"></textarea></div>
+        <button class="form-btn" onclick="nextStep(2)">Далі →</button>
+      </div>
+
+      <!-- Крок 2 -->
+      <div id="reg-step-2" style="display:none">
+        <div class="form-group"><label class="form-label">Ваші послуги</label>
+          <div class="services-check">
+            <div class="service-check" onclick="toggleService(this)" data-svc="Розмитнення авто"><i class="ti ti-shield-check service-check-icon"></i><span>Розмитнення авто</span></div>
+            <div class="service-check" onclick="toggleService(this)" data-svc="Оцінка авто"><i class="ti ti-chart-bar service-check-icon"></i><span>Оцінка авто</span></div>
+            <div class="service-check" onclick="toggleService(this)" data-svc="Договір купівлі-продажу"><i class="ti ti-file-description service-check-icon"></i><span>Договір КП</span></div>
+            <div class="service-check" onclick="toggleService(this)" data-svc="Митне оформлення"><i class="ti ti-building-bank service-check-icon"></i><span>Митне оформлення</span></div>
+            <div class="service-check" onclick="toggleService(this)" data-svc="Консультація"><i class="ti ti-message-circle service-check-icon"></i><span>Консультація</span></div>
+            <div class="service-check" onclick="toggleService(this)" data-svc="Авто зі США"><i class="ti ti-world service-check-icon"></i><span>Авто зі США</span></div>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Ціна від (грн)</label><input type="number" class="form-input" id="reg-price-from" placeholder="500"></div>
+          <div class="form-group"><label class="form-label">Ціна до (грн)</label><input type="number" class="form-input" id="reg-price-to" placeholder="5000"></div>
+        </div>
+        <button class="form-btn" onclick="nextStep(3)">Далі →</button>
+      </div>
+
+      <!-- Крок 3 -->
+      <div id="reg-step-3" style="display:none">
+        <div class="form-group"><label class="form-label">Телефон</label><input type="tel" class="form-input" id="reg-phone" placeholder="+380 98 123 45 67"></div>
+        <div class="form-group"><label class="form-label">Telegram</label><input type="text" class="form-input" id="reg-telegram" placeholder="@username"></div>
+        <div class="form-group"><label class="form-label">Email *</label><input type="email" class="form-input" id="reg-email" placeholder="broker@email.com"></div>
+        <div class="form-group"><label class="form-label">Пароль * (мінімум 6 символів)</label><input type="password" class="form-input" id="reg-password" placeholder="••••••••"></div>
+        <div class="reg-msg" id="reg-msg"></div>
+        <button class="form-btn" id="reg-submit-btn" onclick="registerBroker()">✓ Зареєструватись безкоштовно</button>
+        <div style="text-align:center;margin-top:1.25rem;font-size:14px;color:var(--muted)">
+          Вже є акаунт? <span onclick="switchAuthTab('login')" style="color:var(--blue);cursor:pointer;font-weight:500">Увійти</span>
         </div>
       </div>
-      <div class="form-group"><label class="form-label">Досвід (років)</label><input type="number" class="form-input" id="reg-exp" placeholder="5" min="0"></div>
-      <div class="form-group"><label class="form-label">Про себе</label><textarea class="form-input" id="reg-about" rows="3" placeholder="Коротко про досвід та спеціалізацію..." style="resize:none"></textarea></div>
-      <button class="form-btn" onclick="nextStep(2)">Далі →</button>
     </div>
 
-    <!-- Крок 2 -->
-    <div id="reg-step-2" style="display:none">
-      <div class="form-group"><label class="form-label">Ваші послуги</label>
-        <div class="services-check">
-          <div class="service-check" onclick="toggleService(this)" data-svc="Розмитнення авто"><i class="ti ti-shield-check service-check-icon"></i><span>Розмитнення авто</span></div>
-          <div class="service-check" onclick="toggleService(this)" data-svc="Оцінка авто"><i class="ti ti-chart-bar service-check-icon"></i><span>Оцінка авто</span></div>
-          <div class="service-check" onclick="toggleService(this)" data-svc="Договір купівлі-продажу"><i class="ti ti-file-description service-check-icon"></i><span>Договір КП</span></div>
-          <div class="service-check" onclick="toggleService(this)" data-svc="Митне оформлення"><i class="ti ti-building-bank service-check-icon"></i><span>Митне оформлення</span></div>
-          <div class="service-check" onclick="toggleService(this)" data-svc="Консультація"><i class="ti ti-message-circle service-check-icon"></i><span>Консультація</span></div>
-          <div class="service-check" onclick="toggleService(this)" data-svc="Авто зі США"><i class="ti ti-world service-check-icon"></i><span>Авто зі США</span></div>
-        </div>
-      </div>
-      <div class="form-row">
-        <div class="form-group"><label class="form-label">Ціна від (грн)</label><input type="number" class="form-input" id="reg-price-from" placeholder="500"></div>
-        <div class="form-group"><label class="form-label">Ціна до (грн)</label><input type="number" class="form-input" id="reg-price-to" placeholder="5000"></div>
-      </div>
-      <button class="form-btn" onclick="nextStep(3)">Далі →</button>
-    </div>
-
-    <!-- Крок 3 -->
-    <div id="reg-step-3" style="display:none">
-      <div class="form-group"><label class="form-label">Телефон</label><input type="tel" class="form-input" id="reg-phone" placeholder="+380 98 123 45 67"></div>
-      <div class="form-group"><label class="form-label">Telegram</label><input type="text" class="form-input" id="reg-telegram" placeholder="@username"></div>
-      <div class="form-group"><label class="form-label">Email *</label><input type="email" class="form-input" id="reg-email" placeholder="broker@email.com"></div>
-      <div class="form-group"><label class="form-label">Пароль * (мінімум 6 символів)</label><input type="password" class="form-input" id="reg-password" placeholder="••••••••"></div>
-      <div class="reg-msg" id="reg-msg"></div>
-      <button class="form-btn" id="reg-submit-btn" onclick="registerBroker()">✓ Зареєструватись безкоштовно</button>
-      <div class="form-divider">або</div>
-      <div style="display:flex;flex-direction:column;gap:10px">
-        <div class="form-group" style="margin:0"><label class="form-label">Email для входу</label><input type="email" class="form-input" id="login-email" placeholder="broker@email.com"></div>
-        <div class="form-group" style="margin:0"><label class="form-label">Пароль</label><input type="password" class="form-input" id="login-password" placeholder="••••••••"></div>
-        <div class="reg-msg" id="login-msg"></div>
-        <button class="form-btn form-btn-outline" onclick="loginBroker()">Увійти в кабінет</button>
-      </div>
-    </div>
   </div>
 </div>
 
@@ -1093,6 +1115,43 @@ function toggleFaq(el){el.classList.toggle('open')}
 function closeModal(id){document.getElementById(id).classList.remove('open')}
 document.querySelectorAll('.modal-overlay').forEach(o=>o.addEventListener('click',function(e){if(e.target===this)this.classList.remove('open')}));
 
+// =============================================
+// ПЕРЕМИКАННЯ ВКЛАДОК ВХІД / РЕЄСТРАЦІЯ
+// =============================================
+function switchAuthTab(tab) {
+  const isLogin = tab === 'login';
+  document.getElementById('tab-login').style.display = isLogin ? 'block' : 'none';
+  document.getElementById('tab-register').style.display = isLogin ? 'none' : 'block';
+  document.getElementById('tab-login-btn').style.background = isLogin ? 'var(--blue)' : 'transparent';
+  document.getElementById('tab-login-btn').style.color = isLogin ? '#fff' : 'var(--muted)';
+  document.getElementById('tab-register-btn').style.background = isLogin ? 'transparent' : 'var(--blue)';
+  document.getElementById('tab-register-btn').style.color = isLogin ? 'var(--muted)' : '#fff';
+}
+
+// =============================================
+// ЗБЕРЕЖЕННЯ ПРОФІЛЮ
+// =============================================
+async function saveProfile() {
+  if(!currentBroker) return;
+  const name     = document.getElementById('prof-name').value.trim();
+  const phone    = document.getElementById('prof-phone').value.trim();
+  const telegram = document.getElementById('prof-telegram').value.trim();
+  const city     = document.getElementById('prof-city').value.trim();
+  const about    = document.getElementById('prof-about').value.trim();
+  try {
+    const {error} = await sb.from('brokers').update({name, phone, telegram, city, about})
+      .eq('id', currentBroker.id);
+    if(error) throw error;
+    currentBroker = {...currentBroker, name, phone, telegram, city, about};
+    const ini = name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+    document.getElementById('cab-initials').textContent = ini;
+    document.getElementById('cab-name').textContent = name;
+    showToast('✅ Профіль збережено!');
+  } catch(err) {
+    showToast('❌ Помилка збереження: '+err.message, true);
+  }
+}
+
 function nextStep(n) {
   for(let i=1;i<=3;i++){
     document.getElementById('reg-step-'+i).style.display=i===n?'block':'none';
@@ -1113,8 +1172,13 @@ function showCabinetSection(name,btn){
 
 function updateNavAuth(isLoggedIn) {
   const btn = document.getElementById('loginBtn');
-  if(isLoggedIn) { btn.textContent='👤 Кабінет'; btn.onclick=()=>{ showPage('cabinet'); loadCabinetData(); }; }
-  else { btn.textContent='Увійти'; btn.onclick=()=>showPage('register'); }
+  if(isLoggedIn) {
+    btn.textContent='👤 Кабінет';
+    btn.onclick=()=>{ showPage('cabinet'); loadCabinetData(); };
+  } else {
+    btn.textContent='Увійти';
+    btn.onclick=()=>{ switchAuthTab('login'); showPage('register'); };
+  }
 }
 
 // Демо-дані якщо Supabase порожній
