@@ -292,16 +292,31 @@ h1.hero-title span{color:var(--blue)}
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:10px;background:var(--surface);border:0.5px solid var(--border);border-radius:14px;padding:10px">
         <select id="filter-region" onchange="filterBrokers()" style="background:var(--surface2);border:0.5px solid var(--border);color:var(--text);padding:10px 12px;border-radius:9px;font-family:'DM Sans',sans-serif;font-size:14px;outline:none;cursor:pointer">
           <option value="">🗺 Вся Україна</option>
-          <option value="Київська">Київська</option>
-          <option value="Одеська">Одеська</option>
-          <option value="Харківська">Харківська</option>
-          <option value="Дніпропетровська">Дніпропетровська</option>
-          <option value="Львівська">Львівська</option>
-          <option value="Запорізька">Запорізька</option>
           <option value="Вінницька">Вінницька</option>
-          <option value="Полтавська">Полтавська</option>
-          <option value="Черкаська">Черкаська</option>
+          <option value="Волинська">Волинська</option>
+          <option value="Дніпропетровська">Дніпропетровська</option>
+          <option value="Донецька">Донецька</option>
+          <option value="Житомирська">Житомирська</option>
+          <option value="Закарпатська">Закарпатська</option>
+          <option value="Запорізька">Запорізька</option>
+          <option value="Івано-Франківська">Івано-Франківська</option>
+          <option value="Київська">Київська</option>
+          <option value="Кіровоградська">Кіровоградська</option>
+          <option value="Луганська">Луганська</option>
+          <option value="Львівська">Львівська</option>
           <option value="Миколаївська">Миколаївська</option>
+          <option value="Одеська">Одеська</option>
+          <option value="Полтавська">Полтавська</option>
+          <option value="Рівненська">Рівненська</option>
+          <option value="Сумська">Сумська</option>
+          <option value="Тернопільська">Тернопільська</option>
+          <option value="Харківська">Харківська</option>
+          <option value="Херсонська">Херсонська</option>
+          <option value="Хмельницька">Хмельницька</option>
+          <option value="Черкаська">Черкаська</option>
+          <option value="Чернівецька">Чернівецька</option>
+          <option value="Чернігівська">Чернігівська</option>
+          <option value="м. Київ">м. Київ</option>
         </select>
         <input type="text" id="filter-city" placeholder="🏙 Місто" oninput="filterBrokers()" style="background:var(--surface2);border:0.5px solid var(--border);color:var(--text);padding:10px 12px;border-radius:9px;font-family:'DM Sans',sans-serif;font-size:14px;outline:none">
         <input type="text" id="search-input" placeholder="🔍 Послуга або ім'я..." oninput="filterBrokers()" style="background:var(--surface2);border:0.5px solid var(--border);color:var(--text);padding:10px 12px;border-radius:9px;font-family:'DM Sans',sans-serif;font-size:14px;outline:none">
@@ -509,7 +524,7 @@ h1.hero-title span{color:var(--blue)}
         <div class="form-row">
           <div class="form-group"><label class="form-label">Місто</label><input type="text" class="form-input" id="reg-city" placeholder="Київ"></div>
           <div class="form-group"><label class="form-label">Регіон</label>
-            <select class="form-input" id="reg-region"><option value="">Оберіть</option><option>Київська</option><option>Одеська</option><option>Харківська</option><option>Дніпропетровська</option><option>Львівська</option></select>
+            <select class="form-input" id="reg-region"><option value="">Оберіть</option><option>Вінницька</option><option>Волинська</option><option>Дніпропетровська</option><option>Донецька</option><option>Житомирська</option><option>Закарпатська</option><option>Запорізька</option><option>Івано-Франківська</option><option>Київська</option><option>Кіровоградська</option><option>Луганська</option><option>Львівська</option><option>Миколаївська</option><option>Одеська</option><option>Полтавська</option><option>Рівненська</option><option>Сумська</option><option>Тернопільська</option><option>Харківська</option><option>Херсонська</option><option>Хмельницька</option><option>Черкаська</option><option>Чернівецька</option><option>Чернігівська</option><option>м. Київ</option></select>
           </div>
         </div>
         <div class="form-group"><label class="form-label">Досвід (років)</label><input type="number" class="form-input" id="reg-exp" placeholder="5" min="0"></div>
