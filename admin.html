@@ -11,8 +11,6 @@
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{--bg:#0d0e14;--s:#13141d;--s2:#1a1c28;--border:rgba(255,255,255,0.07);--blue:#4B8EF1;--green:#2DD98F;--amber:#F5A623;--red:#F1654B;--purple:#A855F7;--text:#f0f1f5;--muted:rgba(240,241,245,0.45);--r:12px}
 body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
-
-/* LOGIN */
 .login-wrap{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:2rem}
 .login-card{background:var(--s);border:0.5px solid var(--border);border-radius:20px;padding:2.5rem;width:100%;max-width:380px}
 .login-logo{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;margin-bottom:2rem;text-align:center}
@@ -23,9 +21,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .form-input:focus{border-color:var(--blue)}
 .login-btn{width:100%;background:var(--blue);color:#fff;border:none;padding:13px;border-radius:9px;font-family:'Syne',sans-serif;font-size:16px;font-weight:700;cursor:pointer;margin-top:0.5rem}
 .login-error{color:var(--red);font-size:13px;text-align:center;margin-top:0.75rem}
-
-/* LAYOUT */
-.admin-layout{display:grid;grid-template-columns:220px 1fr;min-height:100vh}
 .sidebar{background:var(--s);border-right:0.5px solid var(--border);padding:1.5rem 1rem;display:flex;flex-direction:column;gap:4px;position:fixed;top:0;left:0;bottom:0;width:220px}
 .sidebar-logo{font-family:'Syne',sans-serif;font-size:18px;font-weight:800;padding:0 0.5rem 1.5rem;border-bottom:0.5px solid var(--border);margin-bottom:0.5rem}
 .sidebar-logo span{color:var(--blue)}
@@ -35,23 +30,17 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .sidebar-item i{font-size:16px}
 .sidebar-badge{background:var(--red);color:#fff;border-radius:5px;padding:1px 7px;font-size:11px;margin-left:auto}
 .sidebar-footer{margin-top:auto;padding-top:1rem;border-top:0.5px solid var(--border)}
-
 .main-content{margin-left:220px;padding:2rem;min-height:100vh}
 .page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:2rem;flex-wrap:wrap;gap:1rem}
 .page-title{font-family:'Syne',sans-serif;font-size:26px;font-weight:800}
-
-/* STATS */
 .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:2rem}
 .stat-card{background:var(--s);border:0.5px solid var(--border);border-radius:var(--r);padding:1.25rem}
 .stat-card-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem}
 .stat-icon{width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:16px}
 .stat-trend{font-size:12px;display:flex;align-items:center;gap:3px}
 .stat-trend.up{color:var(--green)}
-.stat-trend.down{color:var(--red)}
 .stat-val{font-family:'Syne',sans-serif;font-size:34px;font-weight:800;line-height:1;margin-bottom:3px}
 .stat-label{font-size:12px;color:var(--muted)}
-
-/* TABLE */
 .table-wrap{background:var(--s);border:0.5px solid var(--border);border-radius:var(--r);overflow:hidden;margin-bottom:1.5rem}
 .table-header{display:flex;align-items:center;justify-content:space-between;padding:1rem 1.5rem;border-bottom:0.5px solid var(--border);flex-wrap:wrap;gap:10px}
 .table-title{font-size:15px;font-weight:500}
@@ -72,20 +61,13 @@ tr:hover td{background:rgba(255,255,255,0.02)}
 .plan-chip.standard{background:rgba(75,142,241,0.15);color:var(--blue)}
 .plan-chip.free{background:rgba(255,255,255,0.05);color:var(--muted)}
 .status-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:6px}
-.status-dot.new{background:var(--blue)}
-.status-dot.done{background:var(--green)}
-.status-dot.pending{background:var(--amber)}
-.status-dot.rejected{background:var(--red)}
+.status-dot.new{background:var(--blue)}.status-dot.done{background:var(--green)}.status-dot.pending{background:var(--amber)}.status-dot.rejected{background:var(--red)}
 .action-btn{background:var(--s2);border:0.5px solid var(--border);color:var(--muted);padding:5px 10px;border-radius:6px;font-size:12px;cursor:pointer;transition:all 0.2s}
 .action-btn:hover{color:var(--text);border-color:var(--blue)}
 .action-btn.danger:hover{color:var(--red);border-color:var(--red)}
 .action-btn.success:hover{color:var(--green);border-color:var(--green)}
-
-/* SECTION PAGES */
 .section-page{display:none}
 .section-page.active{display:block}
-
-/* MODAL */
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:300;backdrop-filter:blur(6px);align-items:center;justify-content:center;padding:1rem}
 .modal-overlay.open{display:flex}
 .modal{background:var(--s);border:0.5px solid var(--border);border-radius:20px;width:100%;max-width:480px;padding:2rem;position:relative;max-height:90vh;overflow-y:auto}
@@ -93,19 +75,15 @@ tr:hover td{background:rgba(255,255,255,0.02)}
 .modal-title{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;margin-bottom:1.5rem}
 .btn-primary{background:var(--blue);color:#fff;border:none;padding:10px 20px;border-radius:9px;font-family:'Syne',sans-serif;font-size:14px;font-weight:700;cursor:pointer}
 .btn-danger{background:rgba(241,101,75,0.15);color:var(--red);border:0.5px solid rgba(241,101,75,0.3);padding:10px 20px;border-radius:9px;font-size:14px;cursor:pointer}
-
-/* TOAST */
 .toast{position:fixed;bottom:2rem;right:2rem;background:var(--s);border:0.5px solid var(--green);border-radius:10px;padding:12px 18px;font-size:14px;color:var(--green);z-index:999;display:flex;align-items:center;gap:8px;transform:translateY(100px);opacity:0;transition:all 0.3s;max-width:300px}
 .toast.show{transform:translateY(0);opacity:1}
 .empty-state{text-align:center;padding:3rem;color:var(--muted)}
 .empty-state i{font-size:32px;margin-bottom:0.75rem;display:block}
-.loading{text-align:center;padding:3rem;color:var(--muted)}
 
-@media(max-width:768px){
-  .admin-layout{grid-template-columns:1fr}
-  .sidebar{display:none}
-  .main-content{margin-left:0}
-}
+/* WayForPay badge */
+.wfp-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(45,217,143,0.1);border:0.5px solid rgba(45,217,143,0.3);border-radius:8px;padding:4px 10px;font-size:12px;color:var(--green);margin-bottom:1rem}
+
+@media(max-width:768px){.sidebar{display:none}.main-content{margin-left:0}}
 </style>
 </head>
 <body>
@@ -167,7 +145,6 @@ tr:hover td{background:rgba(255,255,255,0.02)}
           <div class="stat-label">Дохід (грн/міс)</div>
         </div>
       </div>
-
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
         <div class="table-wrap">
           <div class="table-header"><div class="table-title">Нові брокери</div></div>
@@ -249,26 +226,36 @@ tr:hover td{background:rgba(255,255,255,0.02)}
     <div class="section-page" id="sec-settings">
       <div class="page-header"><div class="page-title">Налаштування</div></div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+
+        <!-- Інформація про платформу -->
         <div class="table-wrap" style="padding:1.5rem">
           <div style="font-size:15px;font-weight:500;margin-bottom:1.25rem">Інформація про платформу</div>
-          <div class="form-group"><label class="form-label">Назва платформи</label><input class="form-input" value="МитнийБрокер"></div>
-          <div class="form-group"><label class="form-label">Email підтримки</label><input class="form-input" value="custom@forwardcarua.com"></div>
-          <div class="form-group"><label class="form-label">Телефон</label><input class="form-input" value="+380981722342"></div>
-          <button class="btn-primary" onclick="showToast('Збережено!')">Зберегти</button>
+          <div class="form-group"><label class="form-label">Назва платформи</label><input class="form-input" id="platform-name" value="МитнийБрокер"></div>
+          <div class="form-group"><label class="form-label">Email підтримки</label><input class="form-input" id="platform-email" value="custom@forwardcarua.com"></div>
+          <div class="form-group"><label class="form-label">Телефон</label><input class="form-input" id="platform-phone" value="+380981722342"></div>
+          <button class="btn-primary" onclick="showToast('✅ Збережено!')">Зберегти</button>
         </div>
+
+        <!-- WayForPay інтеграція -->
         <div class="table-wrap" style="padding:1.5rem">
-          <div style="font-size:15px;font-weight:500;margin-bottom:1.25rem">LiqPay інтеграція</div>
-          <div class="form-group"><label class="form-label">Public Key</label><input class="form-input" placeholder="sandbox_i000000000000000" id="liqpay-public"></div>
-          <div class="form-group"><label class="form-label">Private Key</label><input type="password" class="form-input" placeholder="sandbox_••••••••" id="liqpay-private"></div>
-          <div style="font-size:12px;color:var(--muted);margin-bottom:1rem">Отримайте ключі на <a href="https://www.liqpay.ua/api/checkout" target="_blank" style="color:var(--blue)">liqpay.ua</a></div>
-          <button class="btn-primary" onclick="saveLiqPay()">Зберегти ключі</button>
+          <div style="font-size:15px;font-weight:500;margin-bottom:0.75rem">WayForPay інтеграція</div>
+          <div class="wfp-badge"><i class="ti ti-shield-check"></i> Офіційний платіжний партнер України</div>
+          <div class="form-group"><label class="form-label">Merchant Account</label><input class="form-input" placeholder="your_merchant_account" id="wfp-merchant"></div>
+          <div class="form-group"><label class="form-label">Secret Key</label><input type="password" class="form-input" placeholder="••••••••••••••••" id="wfp-secret"></div>
+          <div class="form-group"><label class="form-label">Merchant Domain</label><input class="form-input" placeholder="forwardcarua.com" id="wfp-domain" value="forwardcarua.com"></div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:1rem">
+            Отримайте ключі на <a href="https://wayforpay.com" target="_blank" style="color:var(--blue)">wayforpay.com</a> · 
+            <a href="https://wiki.wayforpay.com" target="_blank" style="color:var(--blue)">Документація API</a>
+          </div>
+          <button class="btn-primary" onclick="saveWayForPay()"><i class="ti ti-device-floppy"></i> Зберегти ключі</button>
         </div>
       </div>
+
+      <!-- Шаблон повідомлення -->
       <div class="table-wrap" style="padding:1.5rem;margin-top:16px">
         <div style="font-size:15px;font-weight:500;margin-bottom:1rem">Шаблон повідомлення для залучення брокерів</div>
         <div style="background:var(--s2);border-radius:10px;padding:1.25rem;font-size:14px;line-height:1.7;color:var(--text);position:relative">
-          <div id="message-template">
-👋 Привіт! Мене звати Дмитро.
+          <div id="message-template">👋 Привіт! Мене звати Дмитро.
 
 Я запустив платформу <b>forwardcarua.com</b> — каталог митних брокерів України.
 
@@ -280,8 +267,7 @@ tr:hover td{background:rgba(255,255,255,0.02)}
 Реєстрація займає 3 хвилини:
 👉 https://forwardcarua.com
 
-Буду радий бачити вас на платформі! 🚀
-          </div>
+Буду радий бачити вас на платформі! 🚀</div>
           <button onclick="copyMessage()" style="position:absolute;top:10px;right:10px;background:var(--blue);color:#fff;border:none;padding:6px 12px;border-radius:7px;font-size:12px;cursor:pointer"><i class="ti ti-copy"></i> Копіювати</button>
         </div>
       </div>
@@ -303,7 +289,7 @@ tr:hover td{background:rgba(255,255,255,0.02)}
 
 <script>
 const SUPABASE_URL = 'https://ecdfpqhbaqjqurzedunh.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_2OrrEi_GAYixZQTaZ0_ubg_QZhq1uG9';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVjZGZwcWhiYXFqcXVyemVkdW5oIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyNzU3NTIsImV4cCI6MjA5NDg1MTc1Mn0.t0ry-slbPVwVHmF1KLzWX6EDonWBMC2Uu3KUobH8oFY';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const ADMIN_PASS = 'admin2025';
@@ -369,7 +355,6 @@ function updateDashboard() {
     return sum;
   }, 0);
   document.getElementById('stat-revenue').textContent = revenue.toLocaleString('uk-UA')+' грн';
-
   const recentBrokers = allBrokersData.slice(0,5);
   document.getElementById('dash-brokers').innerHTML = recentBrokers.map(b=>`
     <tr>
@@ -377,7 +362,6 @@ function updateDashboard() {
       <td><span class="plan-chip ${b.plan}">${planLabel(b.plan)}</span></td>
       <td style="color:var(--muted);font-size:13px">${b.city||'—'}</td>
     </tr>`).join('') || '<tr><td colspan="3" class="empty-state">Немає даних</td></tr>';
-
   const recentReqs = allRequestsData.slice(0,5);
   document.getElementById('dash-requests').innerHTML = recentReqs.map(r=>`
     <tr>
@@ -449,12 +433,12 @@ function updateSubStats(data) {
 
 async function verifyBroker(id, val) {
   const {error} = await sb.from('brokers').update({verified:val}).eq('id',id);
-  if (!error) { showToast(val?'Брокера верифіковано!':'Верифікацію знято'); loadBrokers(); }
+  if (!error) { showToast(val?'✅ Брокера верифіковано!':'Верифікацію знято'); loadBrokers(); }
 }
 
 async function changePlanDirect(id, plan) {
   const {error} = await sb.from('brokers').update({plan}).eq('id',id);
-  if (!error) { showToast('План оновлено!'); loadBrokers(); }
+  if (!error) { showToast('✅ План оновлено!'); loadBrokers(); }
 }
 
 function changePlan(id, currentPlan) {
@@ -479,11 +463,15 @@ async function deleteBroker(id, name) {
 
 async function updateRequestStatus(id, status) {
   const {error} = await sb.from('requests').update({status}).eq('id',id);
-  if (!error) { showToast('Статус оновлено!'); loadRequests(); }
+  if (!error) { showToast('✅ Статус оновлено!'); loadRequests(); }
 }
 
 function filterBrokersTable(q) {
-  const filtered = allBrokersData.filter(b=>b.name.toLowerCase().includes(q.toLowerCase())||b.email.toLowerCase().includes(q.toLowerCase())||(b.city||'').toLowerCase().includes(q.toLowerCase()));
+  const filtered = allBrokersData.filter(b=>
+    b.name.toLowerCase().includes(q.toLowerCase()) ||
+    (b.email||'').toLowerCase().includes(q.toLowerCase()) ||
+    (b.city||'').toLowerCase().includes(q.toLowerCase())
+  );
   renderBrokersTable(filtered);
 }
 
@@ -500,7 +488,12 @@ function openAddBroker() {
     <div class="form-group"><label class="form-label">Телефон</label><input class="form-input" id="nb-phone" placeholder="+380..."></div>
     <div class="form-group"><label class="form-label">Місто</label><input class="form-input" id="nb-city" placeholder="Київ"></div>
     <div class="form-group"><label class="form-label">План</label>
-      <select class="form-input" id="nb-plan"><option value="free">Безкоштовний</option><option value="standard">Стандарт</option><option value="pro">Про</option><option value="premium">Преміум</option></select>
+      <select class="form-input" id="nb-plan">
+        <option value="free">Безкоштовний</option>
+        <option value="standard">Стандарт</option>
+        <option value="pro">Про</option>
+        <option value="premium">Преміум</option>
+      </select>
     </div>
     <button class="btn-primary" onclick="addBrokerAdmin()">Додати</button>`;
   document.getElementById('broker-modal').classList.add('open');
@@ -518,23 +511,26 @@ async function addBrokerAdmin() {
   const avatar_color = colors[Math.floor(Math.random()*colors.length)];
   const {error} = await sb.from('brokers').insert({name,email,phone,city,plan,initials,avatar_color,verified:false,active:true});
   if (error) { showToast('Помилка: '+error.message); return; }
-  showToast('Брокера додано!');
+  showToast('✅ Брокера додано!');
   closeModal('broker-modal');
   loadBrokers();
 }
 
-function saveLiqPay() {
-  const pub = document.getElementById('liqpay-public').value;
-  const priv = document.getElementById('liqpay-private').value;
-  if (!pub||!priv) { showToast('Введіть обидва ключі'); return; }
-  localStorage.setItem('liqpay_public', pub);
-  localStorage.setItem('liqpay_private', priv);
-  showToast('Ключі LiqPay збережено!');
+// ── WayForPay ──
+function saveWayForPay() {
+  const merchant = document.getElementById('wfp-merchant').value.trim();
+  const secret   = document.getElementById('wfp-secret').value.trim();
+  const domain   = document.getElementById('wfp-domain').value.trim();
+  if (!merchant || !secret) { showToast('❌ Введіть Merchant Account та Secret Key'); return; }
+  localStorage.setItem('wfp_merchant', merchant);
+  localStorage.setItem('wfp_secret', secret);
+  localStorage.setItem('wfp_domain', domain);
+  showToast('✅ Ключі WayForPay збережено!');
 }
 
 function copyMessage() {
   const text = document.getElementById('message-template').innerText;
-  navigator.clipboard.writeText(text).then(()=>showToast('Скопійовано!'));
+  navigator.clipboard.writeText(text).then(()=>showToast('✅ Скопійовано!'));
 }
 
 function planLabel(plan) {
@@ -569,12 +565,14 @@ function showToast(msg) {
   setTimeout(()=>t.classList.remove('show'),3000);
 }
 
-// Load saved liqpay keys
-window.addEventListener('load', ()=>{
-  const pub = localStorage.getItem('liqpay_public');
-  const priv = localStorage.getItem('liqpay_private');
-  if(pub) document.getElementById('liqpay-public').value=pub;
-  if(priv) document.getElementById('liqpay-private').value='••••••••';
+// Завантажити збережені ключі WayForPay
+window.addEventListener('load', () => {
+  const merchant = localStorage.getItem('wfp_merchant');
+  const secret   = localStorage.getItem('wfp_secret');
+  const domain   = localStorage.getItem('wfp_domain');
+  if (merchant) document.getElementById('wfp-merchant').value = merchant;
+  if (secret)   document.getElementById('wfp-secret').value = '••••••••••••••••';
+  if (domain)   document.getElementById('wfp-domain').value = domain;
 });
 </script>
 </body>
