@@ -260,6 +260,8 @@ h1.hero-title span{color:var(--blue)}
   .payment-methods,.contact-grid,.modal-price-grid{grid-template-columns:1fr}
   .form-row{grid-template-columns:1fr}
   .compare-table{font-size:12px}
+  #search-grid{grid-template-columns:1fr 1fr!important}
+  #search-grid button{grid-column:1/-1}
 }
 </style>
 </head>
@@ -268,14 +270,12 @@ h1.hero-title span{color:var(--blue)}
 <nav>
   <div class="nav-brand" onclick="showPage('home')">Митний<span>Брокер</span></div>
   <div class="nav-tabs">
-    <button class="nav-tab active" onclick="showPage('home')">Каталог</button>
-    <button class="nav-tab" onclick="showPage('pricing')">Тарифи</button>
-    <button class="nav-tab" onclick="switchAuthTab('register');showPage('register')">Реєстрація</button>
-    <button class="nav-tab" id="cabinetTab" onclick="goToCabinet()">Кабінет</button>
+    <button class="nav-tab active" id="navHome" onclick="showPage('home')">Каталог</button>
+    <button class="nav-tab" id="navPricing" onclick="showPage('pricing')">Тарифи</button>
   </div>
   <div class="nav-actions">
     <button class="btn-ghost-sm" id="loginBtn" onclick="switchAuthTab('login');showPage('register')">Увійти</button>
-    <button class="btn-blue" onclick="showPage('pricing')"><i class="ti ti-bolt"></i>Підвищити план</button>
+    <button class="btn-blue" id="registerBtn" onclick="switchAuthTab('register');showPage('register')"><i class="ti ti-user-plus"></i>Стати брокером</button>
   </div>
 </nav>
 
@@ -286,19 +286,29 @@ h1.hero-title span{color:var(--blue)}
     <div class="hero-badge"><span></span> <span id="onlineCount">247</span> брокерів онлайн</div>
     <h1 class="hero-title">Знайди митного<br><span>брокера</span> за хвилину</h1>
     <p class="hero-sub">Каталог перевірених митних брокерів України. Порівнюйте ціни, читайте відгуки, залишайте заявки онлайн.</p>
-    <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-bottom:2rem">
-      <button onclick="showPage('register')" style="background:var(--blue);color:#fff;border:none;padding:14px 28px;border-radius:10px;font-family:'Syne',sans-serif;font-size:16px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:8px">
-        <i class="ti ti-user-plus"></i>Зареєструватись як брокер
-      </button>
-      <button onclick="showPage('pricing')" style="background:transparent;color:var(--text);border:0.5px solid rgba(255,255,255,0.2);padding:14px 28px;border-radius:10px;font-family:'DM Sans',sans-serif;font-size:15px;cursor:pointer;display:inline-flex;align-items:center;gap:8px">
-        <i class="ti ti-bolt"></i>Переглянути тарифи
-      </button>
+
+    <!-- ПОШУК З ОБЛАСТЮ І МІСТОМ -->
+    <div style="max-width:700px;margin:0 auto 1rem">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:10px;background:var(--surface);border:0.5px solid var(--border);border-radius:14px;padding:10px">
+        <select id="filter-region" onchange="filterBrokers()" style="background:var(--surface2);border:0.5px solid var(--border);color:var(--text);padding:10px 12px;border-radius:9px;font-family:'DM Sans',sans-serif;font-size:14px;outline:none;cursor:pointer">
+          <option value="">🗺 Вся Україна</option>
+          <option value="Київська">Київська</option>
+          <option value="Одеська">Одеська</option>
+          <option value="Харківська">Харківська</option>
+          <option value="Дніпропетровська">Дніпропетровська</option>
+          <option value="Львівська">Львівська</option>
+          <option value="Запорізька">Запорізька</option>
+          <option value="Вінницька">Вінницька</option>
+          <option value="Полтавська">Полтавська</option>
+          <option value="Черкаська">Черкаська</option>
+          <option value="Миколаївська">Миколаївська</option>
+        </select>
+        <input type="text" id="filter-city" placeholder="🏙 Місто" oninput="filterBrokers()" style="background:var(--surface2);border:0.5px solid var(--border);color:var(--text);padding:10px 12px;border-radius:9px;font-family:'DM Sans',sans-serif;font-size:14px;outline:none">
+        <input type="text" id="search-input" placeholder="🔍 Послуга або ім'я..." oninput="filterBrokers()" style="background:var(--surface2);border:0.5px solid var(--border);color:var(--text);padding:10px 12px;border-radius:9px;font-family:'DM Sans',sans-serif;font-size:14px;outline:none">
+        <button onclick="filterBrokers()" style="background:var(--blue);color:#fff;border:none;padding:10px 22px;border-radius:9px;font-family:'Syne',sans-serif;font-size:15px;font-weight:700;cursor:pointer;white-space:nowrap">Знайти</button>
+      </div>
     </div>
-    <div class="search-bar">
-      <i class="ti ti-search"></i>
-      <input type="text" id="search-input" placeholder="Місто, послуга або ім'я брокера..." oninput="filterBrokers()">
-      <button class="search-btn" onclick="filterBrokers()">Знайти</button>
-    </div>
+
     <div class="filter-chips">
       <div class="chip active" onclick="filterByService(this,'all')">Всі послуги</div>
       <div class="chip" onclick="filterByService(this,'Розмитнення авто')">Розмитнення авто</div>
@@ -307,6 +317,7 @@ h1.hero-title span{color:var(--blue)}
       <div class="chip" onclick="filterByService(this,'Митне оформлення')">Митне оформлення</div>
       <div class="chip" onclick="filterByService(this,'Консультація')">Консультація</div>
     </div>
+
     <div class="stats-row">
       <div class="stat-pill"><div class="stat-num" id="statBrokers">—</div><div class="stat-label">Брокерів</div></div>
       <div class="stat-pill"><div class="stat-num" id="statRequests">—</div><div class="stat-label">Заявок</div></div>
@@ -1026,12 +1037,16 @@ async function sendRequest(brokerId, brokerName) {
 }
 
 function filterBrokers() {
-  const q = document.getElementById('search-input').value.toLowerCase();
+  const q       = (document.getElementById('search-input')?.value||'').toLowerCase();
+  const region  = (document.getElementById('filter-region')?.value||'').toLowerCase();
+  const city    = (document.getElementById('filter-city')?.value||'').toLowerCase();
   let list = allBrokers.filter(b=>{
     const svcs = (b.broker_services||[]).map(s=>s.name);
-    const matchSearch = !q || (b.name||'').toLowerCase().includes(q) || (b.city||'').toLowerCase().includes(q) || svcs.some(s=>s.toLowerCase().includes(q));
+    const matchSearch  = !q      || (b.name||'').toLowerCase().includes(q) || (b.city||'').toLowerCase().includes(q) || svcs.some(s=>s.toLowerCase().includes(q));
+    const matchRegion  = !region || (b.region||'').toLowerCase().includes(region);
+    const matchCity    = !city   || (b.city||'').toLowerCase().includes(city);
     const matchService = activeServiceFilter==='all' || svcs.includes(activeServiceFilter);
-    return matchSearch && matchService;
+    return matchSearch && matchRegion && matchCity && matchService;
   });
   filteredBrokers = list;
   renderBrokers(list);
@@ -1172,12 +1187,15 @@ function showCabinetSection(name,btn){
 
 function updateNavAuth(isLoggedIn) {
   const btn = document.getElementById('loginBtn');
+  const regBtn = document.getElementById('registerBtn');
   if(isLoggedIn) {
     btn.textContent='👤 Кабінет';
     btn.onclick=()=>{ showPage('cabinet'); loadCabinetData(); };
+    if(regBtn){ regBtn.innerHTML='<i class="ti ti-layout-dashboard"></i> Мій кабінет'; regBtn.onclick=()=>{ showPage('cabinet'); loadCabinetData(); }; }
   } else {
     btn.textContent='Увійти';
     btn.onclick=()=>{ switchAuthTab('login'); showPage('register'); };
+    if(regBtn){ regBtn.innerHTML='<i class="ti ti-user-plus"></i>Стати брокером'; regBtn.onclick=()=>{ switchAuthTab('register'); showPage('register'); }; }
   }
 }
 
