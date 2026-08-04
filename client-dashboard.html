@@ -52,7 +52,7 @@
     <form id="new-request-form">
       <div class="form-group">
         <label>Що потрібно розмитнити?</label>
-        <textarea id="req-desc" rows="3" required placeholder="Наприклад: Розмитнити Пассат 2016 року 5 шт"></textarea>
+        <textarea id="req-desc" rows="3" required placeholder="Наприклад: Розмитнити Пассат 2013 року"></textarea>
       </div>
       <div class="form-group">
         <label>Ваш номер телефону</label>
@@ -106,7 +106,7 @@
     listDiv.innerHTML = requests.map(r => `
       <div class="request-item">
         <div style="display:flex; justify-content:space-between; align-items:flex-start; gap: 10px;">
-          <div style="font-weight: 500;">${r.message || r.comment || r.description || 'Запит на розмитнення'}</div>
+          <div style="font-weight: 500;">${r.message || 'Запит на розмитнення'}</div>
           <span class="badge">${r.status || 'Нова'}</span>
         </div>
         <div class="request-date">Тел: ${r.client_phone || 'не вказано'}</div>
@@ -122,12 +122,11 @@
 
     btn.textContent = 'Збереження...';
 
+    // Передаємо ТІЛЬКИ ті поля, які є в базі даних
     const { error } = await sb.from('requests').insert([{
       client_name: currentUser.email.split('@')[0],
       client_phone: phone,
       message: desc,
-      comment: desc,
-      description: desc,
       status: 'new'
     }]);
 
