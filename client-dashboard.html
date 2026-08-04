@@ -30,13 +30,13 @@
   .badge { display: inline-block; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; background: rgba(56,189,248,.15); color: #38bdf8; }
   
   .empty-state { text-align: center; color: #64748b; padding: 2rem 0; font-size: 14px; }
-  .nav-back { display: inline-block; color: #94a3b8; text-decoration: none; font-size: 14px; margin-bottom: 1rem; }
+  .nav-back { display: inline-block; color: #38bdf8; text-decoration: none; font-size: 14px; margin-bottom: 1rem; font-weight: 500; }
 </style>
 </head>
 <body>
 
 <div class="container">
-  <a href="/catalog.html" class="nav-back">← Назад до каталогу</a>
+  <a href="/catalog.html" class="nav-back">← Повернутися до каталогу</a>
 
   <div class="header">
     <div>
@@ -52,7 +52,7 @@
     <form id="new-request-form">
       <div class="form-group">
         <label>Що потрібно розмитнити?</label>
-        <textarea id="req-desc" rows="3" required placeholder="Наприклад: Розмитнити легкову машину Пассат 2013 року"></textarea>
+        <textarea id="req-desc" rows="3" required placeholder="Наприклад: Розмитнити Пассат 2016 року 5 шт"></textarea>
       </div>
       <div class="form-group">
         <label>Ваш номер телефону</label>
@@ -105,8 +105,8 @@
 
     listDiv.innerHTML = requests.map(r => `
       <div class="request-item">
-        <div style="display:flex; justify-between; align-items:flex-start; gap: 10px;">
-          <div style="font-weight: 500;">${r.comment || 'Запит на розмитнення'}</div>
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; gap: 10px;">
+          <div style="font-weight: 500;">${r.message || r.comment || r.description || 'Запит на розмитнення'}</div>
           <span class="badge">${r.status || 'Нова'}</span>
         </div>
         <div class="request-date">Тел: ${r.client_phone || 'не вказано'}</div>
@@ -125,7 +125,9 @@
     const { error } = await sb.from('requests').insert([{
       client_name: currentUser.email.split('@')[0],
       client_phone: phone,
+      message: desc,
       comment: desc,
+      description: desc,
       status: 'new'
     }]);
 
