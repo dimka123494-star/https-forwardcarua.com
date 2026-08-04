@@ -4,67 +4,65 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Кабінет клієнта — МитнийБрокер</title>
-<link rel="stylesheet" href="/style.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   body { background: #0b0e14; color: #fff; font-family: system-ui, -apple-system, sans-serif; margin: 0; padding: 20px; }
-  .container { max-width: 600px; margin: 0 auto; }
+  .container { max-width: 650px; margin: 0 auto; }
   
-  .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; background: #161b26; padding: 1rem 1.5rem; border-radius: 12px; border: 1px solid rgba(255,255,255,.1); }
-  .user-email { color: #38bdf8; font-size: 14px; margin-top: 4px; }
-  .btn-logout { background: transparent; border: 1px solid rgba(255,255,255,.2); color: #f87171; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 13px; }
+  .nav-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
+  .nav-back { color: #38bdf8; text-decoration: none; font-size: 14px; font-weight: 500; }
   
-  .card { background: #161b26; border: 1px solid rgba(255,255,255,.1); border-radius: 16px; padding: 1.5rem; margin-bottom: 1.5rem; box-shadow: 0 4px 20px rgba(0,0,0,.3); }
-  .card-title { font-size: 18px; font-weight: 600; margin-bottom: 1rem; color: #38bdf8; display: flex; align-items: center; gap: 8px; }
+  .header-card { background: #161b26; border: 1px solid rgba(255,255,255,.1); border-radius: 16px; padding: 1.25rem 1.5rem; margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center; }
+  .user-name { font-size: 18px; font-weight: bold; margin: 0; color: #fff; }
+  .user-info { color: #38bdf8; font-size: 13px; margin-top: 4px; }
+  
+  .btn-logout { background: rgba(248,113,113,.1); border: 1px solid rgba(248,113,113,.3); color: #f87171; padding: 8px 14px; border-radius: 8px; cursor: pointer; font-size: 13px; }
+  
+  .card { background: #161b26; border: 1px solid rgba(255,255,255,.1); border-radius: 16px; padding: 1.5rem; margin-bottom: 1.5rem; }
+  .card-title { font-size: 16px; font-weight: 600; margin-bottom: 1rem; color: #38bdf8; display: flex; align-items: center; gap: 8px; }
   
   .form-group { margin-bottom: 1rem; }
-  label { display: block; font-size: 12px; color: #94a3b8; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+  label { display: block; font-size: 11px; color: #94a3b8; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
   input, textarea { width: 100%; padding: 12px; border: 1px solid rgba(255,255,255,.15); background: #0f172a; border-radius: 8px; font-size: 14px; color: #fff; box-sizing: border-box; }
-  input:focus, textarea:focus { outline: none; border-color: #38bdf8; }
   
-  .btn-submit { width: 100%; padding: 12px; background: #0284c7; color: #fff; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; transition: background 0.2s; }
+  .btn-submit { width: 100%; padding: 12px; background: #0284c7; color: #fff; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; }
   .btn-submit:hover { background: #0369a1; }
   
-  .request-item { background: #0f172a; border: 1px solid rgba(255,255,255,.08); border-radius: 10px; padding: 1rem; margin-bottom: 10px; }
-  .request-date { font-size: 12px; color: #64748b; margin-top: 4px; }
-  .badge { display: inline-block; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; background: rgba(56,189,248,.15); color: #38bdf8; }
-  
+  .request-item { background: #0f172a; border: 1px solid rgba(255,255,255,.08); border-radius: 12px; padding: 1rem; margin-bottom: 12px; }
+  .badge { display: inline-block; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 600; background: rgba(56,189,248,.15); color: #38bdf8; }
   .empty-state { text-align: center; color: #64748b; padding: 2rem 0; font-size: 14px; }
-  .nav-back { display: inline-block; color: #38bdf8; text-decoration: none; font-size: 14px; margin-bottom: 1rem; font-weight: 500; }
 </style>
 </head>
 <body>
 
 <div class="container">
-  <a href="/catalog.html" class="nav-back">← Повернутися до каталогу</a>
+  <div class="nav-header">
+    <a href="/catalog.html" class="nav-back">← Каталог брокерів</a>
+  </div>
 
-  <div class="header">
+  <div class="header-card">
     <div>
-      <h2 style="margin:0; font-size: 18px;">Кабінет клієнта</h2>
-      <div class="user-email" id="user-email">Завантаження...</div>
+      <h2 class="user-name" id="user-display-name">Завантаження...</h2>
+      <div class="user-info" id="user-display-phone"></div>
     </div>
     <button class="btn-logout" onclick="logout()">Вийти</button>
   </div>
 
-  <!-- Форма створення запиту -->
+  <!-- Форма створення заявки -->
   <div class="card">
-    <div class="card-title">📝 Створити новий запит на розмитнення</div>
+    <div class="card-title">📝 Створити загальну заявку на розмитнення</div>
     <form id="new-request-form">
       <div class="form-group">
-        <label>Що потрібно розмитнити?</label>
-        <textarea id="req-desc" rows="3" required placeholder="Наприклад: Розмитнити Пассат 2013 року"></textarea>
+        <label>Опис авто або вантажу</label>
+        <textarea id="req-desc" rows="3" required placeholder="Наприклад: VW Passat 2017 р.в. з Німеччини, потрібне повне розмитнення"></textarea>
       </div>
-      <div class="form-group">
-        <label>Ваш номер телефону</label>
-        <input type="tel" id="req-phone" required placeholder="+380967009902">
-      </div>
-      <button type="submit" class="btn-submit" id="btn-submit">Опублікувати запит</button>
+      <button type="submit" class="btn-submit" id="btn-submit">Опублікувати заявку</button>
     </form>
   </div>
 
   <!-- Список заявок -->
   <div class="card">
-    <div class="card-title">📋 Ваші опубліковані заявки</div>
+    <div class="card-title">📋 Мої опубліковані заявки</div>
     <div id="requests-list">
       <div class="empty-state">Завантаження заявок...</div>
     </div>
@@ -85,7 +83,13 @@
       return;
     }
     currentUser = session.user;
-    document.getElementById('user-email').textContent = currentUser.email;
+    
+    const userName = currentUser.user_metadata?.full_name || currentUser.email.split('@')[0];
+    const userPhone = currentUser.user_metadata?.phone || 'Телефон не вказано';
+
+    document.getElementById('user-display-name').textContent = userName;
+    document.getElementById('user-display-phone').textContent = '📞 ' + userPhone + ' | ✉️ ' + currentUser.email;
+
     loadUserRequests();
   }
 
@@ -95,7 +99,7 @@
     const { data: requests, error } = await sb
       .from('requests')
       .select('*')
-      .eq('client_name', currentUser.email.split('@')[0])
+      .eq('client_email', currentUser.email)
       .order('id', { ascending: false });
 
     if (error || !requests || requests.length === 0) {
@@ -105,11 +109,13 @@
 
     listDiv.innerHTML = requests.map(r => `
       <div class="request-item">
-        <div style="display:flex; justify-content:space-between; align-items:flex-start; gap: 10px;">
-          <div style="font-weight: 500;">${r.message || 'Запит на розмитнення'}</div>
-          <span class="badge">${r.status || 'Нова'}</span>
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom: 6px;">
+          <div style="font-weight: 600; font-size: 15px;">${r.message || 'Запит на розмитнення'}</div>
+          <span class="badge">${r.status === 'new' ? 'Нова' : r.status}</span>
         </div>
-        <div class="request-date">Тел: ${r.client_phone || 'не вказано'}</div>
+        <div style="font-size: 12px; color: #94a3b8;">
+          ${r.broker_name ? '👨‍💼 Кому: ' + r.broker_name : '🌐 Загальна заявка в каталог'}
+        </div>
       </div>
     `).join('');
   }
@@ -117,28 +123,29 @@
   document.getElementById('new-request-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const desc = document.getElementById('req-desc').value;
-    const phone = document.getElementById('req-phone').value;
     const btn = document.getElementById('btn-submit');
 
     btn.textContent = 'Збереження...';
 
-    // Передаємо ТІЛЬКИ ті поля, які є в базі даних
+    const userName = currentUser.user_metadata?.full_name || currentUser.email.split('@')[0];
+    const userPhone = currentUser.user_metadata?.phone || '';
+
     const { error } = await sb.from('requests').insert([{
-      client_name: currentUser.email.split('@')[0],
-      client_phone: phone,
+      client_email: currentUser.email,
+      client_name: userName,
+      client_phone: userPhone,
       message: desc,
       status: 'new'
     }]);
 
     if (error) {
-      alert('Помилка при створенні заявки: ' + error.message);
+      alert('Помилка: ' + error.message);
     } else {
       document.getElementById('req-desc').value = '';
-      document.getElementById('req-phone').value = '';
-      alert('Заявку успішно опубліковано!');
+      alert('Заявку успішно створено!');
       loadUserRequests();
     }
-    btn.textContent = 'Опублікувати запит';
+    btn.textContent = 'Опублікувати заявку';
   });
 
   async function logout() {
