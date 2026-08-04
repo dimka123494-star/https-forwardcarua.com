@@ -5,6 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Дашборд — Кабінет брокера</title>
 <link rel="stylesheet" href="/assets/css/style.css">
+
+<!-- 💥 Підключення Supabase SDK -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
 <style>
 .cab-nav{display:flex;gap:2px;border-bottom:0.5px solid rgba(0,0,0,.12);margin-bottom:1.25rem}
 .cnav{padding:8px 14px;font-size:13px;color:#73726c;border-bottom:2px solid transparent;margin-bottom:-0.5px;text-decoration:none;transition:color .12s;display:flex;align-items:center;gap:5px}
@@ -60,11 +64,10 @@
   </div>
 
   <div class="broker-hero">
-    <div class="av">ДК</div>
+    <div class="av">--</div>
     <div class="broker-info">
-      <div class="name">Дмитро Крикун</div>
-      <div class="meta">⚡ Тариф Стандарт · 🟢 Онлайн · 📍 Київ</div>
-      <div class="meta" style="margin-top:4px">18 з 30 заявок використано цього місяця</div>
+      <div class="name">Завантаження...</div>
+      <div class="meta">⚡ Завантаження даних...</div>
     </div>
   </div>
 
@@ -74,56 +77,29 @@
   </div>
 
   <div class="stats-grid">
-    <div class="stat"><div class="stat-val">248</div><div class="stat-lbl">👁 переглядів</div></div>
-    <div class="stat"><div class="stat-val">12</div><div class="stat-lbl">📥 заявок</div></div>
-    <div class="stat"><div class="stat-val gold">4.9★</div><div class="stat-lbl">⭐ рейтинг</div></div>
+    <div class="stat"><div class="stat-val" id="stat-views">0</div><div class="stat-lbl">👁 переглядів</div></div>
+    <div class="stat"><div class="stat-val" id="stat-reqs">0</div><div class="stat-lbl">📥 заявок</div></div>
+    <div class="stat"><div class="stat-val gold" id="stat-rating">5.0★</div><div class="stat-lbl">⭐ рейтинг</div></div>
   </div>
 
   <div class="section-title">Останні заявки <a href="#">Всі заявки →</a></div>
-  <div class="req-list">
-    <div class="req-item new-req">
-      <div class="req-av">ОВ</div>
-      <div class="req-info">
-        <div class="req-name">Олексій Василенко <span class="new-pill">Новий</span></div>
-        <div class="req-meta">🚗 Розмитнення Toyota Camry 2019 зі США · Терміново</div>
-        <div class="req-actions">
-          <button class="btn-accept" onclick="this.closest('.req-item').style.borderColor='#5DCAA5';this.textContent='✓ Прийнято';this.disabled=true">Відповісти</button>
-          <button class="btn-decline" onclick="this.closest('.req-item').style.opacity='.4'">Відхилити</button>
-        </div>
-      </div>
-      <div class="req-time">2 хв тому</div>
-    </div>
-    <div class="req-item new-req">
-      <div class="req-av">МК</div>
-      <div class="req-info">
-        <div class="req-name">Марія Коваленко <span class="new-pill">Новий</span></div>
-        <div class="req-meta">📄 Оцінка BMW X5 для банку (автокредит)</div>
-        <div class="req-actions">
-          <button class="btn-accept" onclick="this.closest('.req-item').style.borderColor='#5DCAA5';this.textContent='✓ Прийнято';this.disabled=true">Відповісти</button>
-          <button class="btn-decline" onclick="this.closest('.req-item').style.opacity='.4'">Відхилити</button>
-        </div>
-      </div>
-      <div class="req-time">1 год тому</div>
-    </div>
-    <div class="req-item">
-      <div class="req-av">ТМ</div>
-      <div class="req-info">
-        <div class="req-name">Тарас Мельник</div>
-        <div class="req-meta">💬 Консультація — розмитнення Tesla Model 3</div>
-      </div>
-      <div class="req-time">Вчора</div>
-    </div>
+  
+  <!-- Динамічний container для заявок з Supabase -->
+  <div class="req-list" id="requests-container">
+    <div style="color:#73726c; padding:15px; text-align:center;">Завантаження заявок...</div>
   </div>
 
   <div class="section-title">Швидкі дії</div>
   <div class="quick-links">
-    <a class="ql" href="/cabinet/reviews.html"><div class="ql-icon">⭐</div><div class="ql-name">Відгуки</div><div class="ql-sub">2 без відповіді</div></a>
+    <a class="ql" href="/cabinet/reviews.html"><div class="ql-icon">⭐</div><div class="ql-name">Відгуки</div><div class="ql-sub">Переглянути</div></a>
     <a class="ql" href="/cabinet/analytics.html"><div class="ql-icon">📈</div><div class="ql-name">Аналітика</div><div class="ql-sub">Переглянути статистику</div></a>
     <a class="ql" href="/broker/profile.html"><div class="ql-icon">👤</div><div class="ql-name">Мій профіль</div><div class="ql-sub">Редагувати</div></a>
-    <a class="ql" href="/cabinet/subscription.html"><div class="ql-icon">💳</div><div class="ql-name">Підписка</div><div class="ql-sub">Стандарт · 12 днів</div></a>
+    <a class="ql" href="/cabinet/subscription.html"><div class="ql-icon">💳</div><div class="ql-name">Підписка</div><div class="ql-sub">Керувати</div></a>
   </div>
 </div>
-<footer class="footer">© 2025 МитнийБрокер</footer>
-<script src="/assets/js/main.js"></script>
+<footer class="footer">© 2026 МитнийБрокер</footer>
+
+<!-- 💥 Підключення JS логіки -->
+<script src="/assets/js/dashboard.js"></script>
 </body>
 </html>
