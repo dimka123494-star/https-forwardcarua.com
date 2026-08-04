@@ -7,30 +7,31 @@
 <link rel="stylesheet" href="/style.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-  body { background: #0b0e14; color: #fff; font-family: system-ui, -apple-system, sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
-  .auth-card { background: #161b26; border: 1px solid rgba(255,255,255,.1); border-radius: 16px; padding: 2.5rem 2rem; width: 100%; max-width: 420px; box-shadow: 0 10px 30px rgba(0,0,0,.5); }
-  .logo { font-size: 24px; font-weight: 700; margin-bottom: 1.5rem; text-align: center; }
+  body { background: #0f172a; color: #fff; font-family: system-ui, -apple-system, sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
+  .auth-card { background: #1e293b; border: 1px solid rgba(255,255,255,.1); border-radius: 16px; padding: 2rem; width: 100%; max-width: 440px; box-shadow: 0 10px 30px rgba(0,0,0,.4); }
+  .logo { font-size: 24px; font-weight: 700; margin-bottom: 1.5rem; text-align: center; color: #fff; }
   .logo span { color: #38bdf8; }
   
   .tabs { display: flex; background: #0f172a; padding: 4px; border-radius: 10px; margin-bottom: 1.5rem; }
   .tab-btn { flex: 1; padding: 10px; text-align: center; border: none; background: transparent; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; color: #94a3b8; transition: all 0.2s; }
   .tab-btn.active { background: #0284c7; color: #fff; }
 
+  /* Перемикач ролей */
   .role-box { margin-bottom: 1.25rem; display: none; }
-  .role-title { font-size: 13px; color: #94a3b8; margin-bottom: 6px; text-align: center; }
+  .role-title { font-size: 13px; color: #94a3b8; margin-bottom: 8px; text-align: center; }
   .role-selector { display: flex; gap: 10px; }
   .role-option { flex: 1; border: 1px solid rgba(255,255,255,.15); background: #0f172a; border-radius: 8px; padding: 10px; text-align: center; cursor: pointer; font-size: 13px; color: #cbd5e1; transition: all 0.2s; }
-  .role-option.active { border-color: #38bdf8; background: rgba(56,189,248,.1); color: #38bdf8; font-weight: 600; }
+  .role-option.active { border-color: #38bdf8; background: rgba(56,189,248,.15); color: #38bdf8; font-weight: 600; }
 
-  .form-group { margin-bottom: 1.25rem; }
-  label { display: block; font-size: 12px; color: #94a3b8; margin-bottom: 6px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
-  input { width: 100%; padding: 12px; border: 1px solid rgba(255,255,255,.15); background: #0f172a; border-radius: 8px; font-size: 14px; color: #fff; box-sizing: border-box; }
-  input:focus { outline: none; border-color: #38bdf8; }
+  .form-group { margin-bottom: 1rem; }
+  label { display: block; font-size: 12px; color: #94a3b8; margin-bottom: 4px; font-weight: 600; text-transform: uppercase; }
+  input, select, textarea { width: 100%; padding: 10px 12px; border: 1px solid rgba(255,255,255,.15); background: #0f172a; border-radius: 8px; font-size: 14px; color: #fff; box-sizing: border-box; }
+  input:focus, select:focus, textarea:focus { outline: none; border-color: #38bdf8; }
   
-  .btn-submit { width: 100%; padding: 12px; background: #0284c7; color: #fff; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; transition: background 0.2s; margin-top: 5px; }
+  .btn-submit { width: 100%; padding: 12px; background: #0284c7; color: #fff; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; margin-top: 10px; transition: background 0.2s; }
   .btn-submit:hover { background: #0369a1; }
   
-  .error-msg { color: #f87171; font-size: 13px; margin-top: 12px; text-align: center; display: none; }
+  .error-msg { color: #f87171; font-size: 13px; margin-top: 10px; text-align: center; display: none; }
 </style>
 </head>
 <body>
@@ -44,22 +45,36 @@
   </div>
 
   <form id="auth-form">
-    <!-- Вибір ролі (видно тільки при реєстрації) -->
+    <!-- Вибір ролі (тільки при реєстрації) -->
     <div class="role-box" id="role-group">
-      <div class="role-title">Оберіть тип акаунту:</div>
+      <div class="role-title">Хто ви?</div>
       <div class="role-selector">
-        <div class="role-option active" onclick="selectRole('client', this)">👤 Я Клієнт</div>
-        <div class="role-option" onclick="selectRole('broker', this)">💼 Я Брокер</div>
+        <div class="role-option active" id="role-client" onclick="selectRole('client')">👤 Я Клієнт</div>
+        <div class="role-option" id="role-broker" onclick="selectRole('broker')">💼 Я Брокер</div>
       </div>
     </div>
 
+    <!-- Загальні поля -->
     <div class="form-group">
       <label>Email адреса</label>
       <input type="email" id="email" required placeholder="name@example.com">
     </div>
+
     <div class="form-group">
       <label>Пароль</label>
       <input type="password" id="password" required placeholder="••••••••">
+    </div>
+
+    <!-- Додаткові поля брокера (відкриваються тільки при виборі "Я Брокер") -->
+    <div id="broker-fields" style="display: none;">
+      <div class="form-group">
+        <label>Ім'я або Назва компанії</label>
+        <input type="text" id="broker-name" placeholder="ТОВ «МитБрок» або Іван Петренко">
+      </div>
+      <div class="form-group">
+        <label>Місто</label>
+        <input type="text" id="broker-city" placeholder="Київ">
+      </div>
     </div>
     
     <button type="submit" class="btn-submit" id="btn-submit">Увійти</button>
@@ -75,7 +90,7 @@
   let isRegisterMode = false;
   let selectedRole = 'client';
 
-  // Автоперевірка при заході на сторінку
+  // Автоперевірка сесії
   sb.auth.getSession().then(({ data: { session } }) => {
     if (session) redirectByUserRole(session.user.id);
   });
@@ -87,12 +102,20 @@
 
     document.getElementById('role-group').style.display = isRegisterMode ? 'block' : 'none';
     document.getElementById('btn-submit').textContent = isRegisterMode ? 'Зареєструватися' : 'Увійти';
+    
+    updateBrokerFields();
   }
 
-  function selectRole(role, el) {
+  function selectRole(role) {
     selectedRole = role;
-    document.querySelectorAll('.role-option').forEach(o => o.classList.remove('active'));
-    el.classList.add('active');
+    document.getElementById('role-client').classList.toggle('active', role === 'client');
+    document.getElementById('role-broker').classList.toggle('active', role === 'broker');
+    updateBrokerFields();
+  }
+
+  function updateBrokerFields() {
+    const isBrokerRegister = isRegisterMode && selectedRole === 'broker';
+    document.getElementById('broker-fields').style.display = isBrokerRegister ? 'block' : 'none';
   }
 
   document.getElementById('auth-form').addEventListener('submit', async (e) => {
@@ -108,47 +131,18 @@
     if (isRegisterMode) {
       // 1. РЕЄСТРАЦІЯ
       const { data, error } = await sb.auth.signUp({ email, password });
+      
       if (error) {
         showError(error.message);
       } else if (data.user) {
-        // Зберігаємо роль в таблиці user_profiles
+        // Записуємо роль
         await sb.from('user_profiles').insert([{ id: data.user.id, email: email, role: selectedRole }]);
         
-        // Якщо брокер — створюємо йому запис брокера
+        // Якщо брокер — додаємо його в каталог брокерів
         if (selectedRole === 'broker') {
-          await sb.from('brokers').insert([{ user_id: data.user.id, name: email.split('@')[0] }]);
+          const brokerName = document.getElementById('broker-name').value || email.split('@')[0];
+          const brokerCity = document.getElementById('broker-city').value || 'Україна';
+          await sb.from('brokers').insert([{ user_id: data.user.id, name: brokerName, city: brokerCity }]);
         }
         
-        redirectByUserRole(data.user.id);
-      }
-    } else {
-      // 2. ВХІД
-      const { data, error } = await sb.auth.signInWithPassword({ email, password });
-      if (error) {
-        showError('Невірний email або пароль');
-      } else {
-        redirectByUserRole(data.user.id);
-      }
-    }
-  });
-
-  async function redirectByUserRole(userId) {
-    const { data } = await sb.from('user_profiles').select('role').eq('id', userId).maybeSingle();
-    const role = data?.role || 'client';
-
-    if (role === 'broker') {
-      window.location.href = '/dashboard.html';
-    } else {
-      window.location.href = '/client-dashboard.html';
-    }
-  }
-
-  function showError(msg) {
-    const errDiv = document.getElementById('error-message');
-    errDiv.textContent = msg;
-    errDiv.style.display = 'block';
-    document.getElementById('btn-submit').textContent = isRegisterMode ? 'Зареєструватися' : 'Увійти';
-  }
-</script>
-</body>
-</html>
+        redirectByU
