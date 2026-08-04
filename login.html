@@ -26,89 +26,33 @@
     max-width: 400px;
     box-shadow: 0 10px 30px rgba(0,0,0,.5);
   }
-  .logo {
-    text-align: center;
-    font-size: 22px;
-    font-weight: bold;
-    margin-bottom: 1.5rem;
-  }
+  .logo { text-align: center; font-size: 22px; font-weight: bold; margin-bottom: 1.5rem; }
   .logo span { color: #38bdf8; }
-  .tabs {
-    display: flex;
-    margin-bottom: 1.5rem;
-    background: #0f172a;
-    padding: 4px;
-    border-radius: 8px;
-  }
-  .tab-btn {
-    flex: 1;
-    padding: 10px;
-    background: transparent;
-    border: none;
-    color: #94a3b8;
-    cursor: pointer;
-    border-radius: 6px;
-    font-weight: 500;
-  }
-  .tab-btn.active {
-    background: #0284c7;
-    color: #fff;
-  }
+  .tabs { display: flex; margin-bottom: 1.5rem; background: #0f172a; padding: 4px; border-radius: 8px; }
+  .tab-btn { flex: 1; padding: 10px; background: transparent; border: none; color: #94a3b8; cursor: pointer; border-radius: 6px; font-weight: 500; }
+  .tab-btn.active { background: #0284c7; color: #fff; }
   .role-box { margin-bottom: 1.25rem; display: none; }
   .role-title { font-size: 13px; color: #94a3b8; margin-bottom: 8px; text-align: center; }
   .role-selector { display: flex; gap: 10px; }
-  .role-option {
-    flex: 1;
-    border: 1px solid rgba(255,255,255,.15);
-    background: #0f172a;
-    border-radius: 8px;
-    padding: 10px;
-    text-align: center;
-    cursor: pointer;
-    font-size: 13px;
-    color: #94a3b8;
-  }
-  .role-option.active {
-    border-color: #38bdf8;
-    background: rgba(56,189,248,.15);
-    color: #38bdf8;
-    font-weight: 600;
-  }
+  .role-option { flex: 1; border: 1px solid rgba(255,255,255,.15); background: #0f172a; border-radius: 8px; padding: 10px; text-align: center; cursor: pointer; font-size: 13px; color: #94a3b8; }
+  .role-option.active { border-color: #38bdf8; background: rgba(56,189,248,.15); color: #38bdf8; font-weight: 600; }
   .form-group { margin-bottom: 1rem; }
   label { display: block; font-size: 12px; color: #94a3b8; margin-bottom: 4px; font-weight: 600; text-transform: uppercase; }
-  input {
-    width: 100%;
-    padding: 12px;
-    border: 1px solid rgba(255,255,255,.15);
-    background: #0f172a;
-    border-radius: 8px;
-    color: #fff;
-    box-sizing: border-box;
-  }
+  input { width: 100%; padding: 12px; border: 1px solid rgba(255,255,255,.15); background: #0f172a; border-radius: 8px; color: #fff; box-sizing: border-box; }
   input:focus { outline: none; border-color: #38bdf8; }
-  .btn-submit {
-    width: 100%;
-    padding: 12px;
-    background: #0284c7;
-    color: #fff;
-    border: none;
-    border-radius: 8px;
-    font-size: 15px;
-    font-weight: 600;
-    cursor: pointer;
-    margin-top: 10px;
-  }
+  .btn-submit { width: 100%; padding: 12px; background: #0284c7; color: #fff; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; margin-top: 10px; }
   .btn-submit:hover { background: #0369a1; }
-  .forgot-link {
-    display: block;
-    text-align: right;
-    margin-top: 6px;
+  
+  .forgot-btn {
+    background: none;
+    border: none;
     color: #38bdf8;
     font-size: 12px;
-    text-decoration: none;
     cursor: pointer;
+    padding: 0;
+    margin-top: 6px;
+    text-decoration: underline;
   }
-  .forgot-link:hover { text-decoration: underline; }
 </style>
 </head>
 <body>
@@ -117,16 +61,16 @@
   <div class="logo">Митний<span>Брокер</span></div>
 
   <div class="tabs">
-    <button type="button" class="tab-btn active" id="tab-login">Вхід</button>
-    <button type="button" class="tab-btn" id="tab-register">Реєстрація</button>
+    <button type="button" class="tab-btn active" id="tab-login" onclick="setMode('login')">Вхід</button>
+    <button type="button" class="tab-btn" id="tab-register" onclick="setMode('register')">Реєстрація</button>
   </div>
 
-  <form id="auth-form">
+  <form id="auth-form" onsubmit="handleAuth(event)">
     <div class="role-box" id="role-group">
       <div class="role-title">Оберіть роль:</div>
       <div class="role-selector">
-        <div class="role-option active" id="btn-client">Я Клієнт</div>
-        <div class="role-option" id="btn-broker">👨‍💼 Я Брокер</div>
+        <div class="role-option active" id="btn-client" onclick="setRole('client')">Я Клієнт</div>
+        <div class="role-option" id="btn-broker" onclick="setRole('broker')">👨‍💼 Я Брокер</div>
       </div>
     </div>
 
@@ -138,7 +82,9 @@
     <div class="form-group">
       <label>Пароль</label>
       <input type="password" id="password" required placeholder="••••••••">
-      <a href="#" class="forgot-link" id="btn-forgot">Забули пароль?</a>
+      <div style="text-align: right;">
+        <button type="button" class="forgot-btn" id="btn-forgot" onclick="resetPassword()">Забули пароль?</button>
+      </div>
     </div>
 
     <button type="submit" class="btn-submit" id="btn-submit-text">Увійти</button>
@@ -150,59 +96,59 @@
   const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVjZGZwcWhiYXFqcXVyemVkdW5oIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyNzU3NTIsImV4cCI6MjA5NDg1MTc1Mn0.t0ry-slbPVwVHmF1KLzWX6EDonWBMC2Uu3KUobH8oFY';
   const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-  let mode = 'login'; // 'login' або 'register'
-  let role = 'client'; // 'client' або 'broker'
+  let mode = 'login';
+  let role = 'client';
 
-  const tabLogin = document.getElementById('tab-login');
-  const tabRegister = document.getElementById('tab-register');
-  const roleGroup = document.getElementById('role-group');
-  const btnClient = document.getElementById('btn-client');
-  const btnBroker = document.getElementById('btn-broker');
-  const btnSubmitText = document.getElementById('btn-submit-text');
-  const btnForgot = document.getElementById('btn-forgot');
+  function setMode(newMode) {
+    mode = newMode;
+    const tabLogin = document.getElementById('tab-login');
+    const tabRegister = document.getElementById('tab-register');
+    const roleGroup = document.getElementById('role-group');
+    const btnSubmitText = document.getElementById('btn-submit-text');
+    const btnForgot = document.getElementById('btn-forgot');
 
-  tabLogin.onclick = () => {
-    mode = 'login';
-    tabLogin.classList.add('active');
-    tabRegister.classList.remove('active');
-    roleGroup.style.display = 'none';
-    btnSubmitText.textContent = 'Увійти';
-    btnForgot.style.display = 'block';
-  };
+    if (mode === 'login') {
+      tabLogin.classList.add('active');
+      tabRegister.classList.remove('active');
+      roleGroup.style.display = 'none';
+      btnSubmitText.textContent = 'Увійти';
+      btnForgot.style.display = 'inline-block';
+    } else {
+      tabRegister.classList.add('active');
+      tabLogin.classList.remove('active');
+      roleGroup.style.display = 'block';
+      btnSubmitText.textContent = 'Зареєструватися';
+      btnForgot.style.display = 'none';
+    }
+  }
 
-  tabRegister.onclick = () => {
-    mode = 'register';
-    tabRegister.classList.add('active');
-    tabLogin.classList.remove('active');
-    roleGroup.style.display = 'block';
-    btnSubmitText.textContent = 'Зареєструватися';
-    btnForgot.style.display = 'none';
-  };
+  function setRole(newRole) {
+    role = newRole;
+    const btnClient = document.getElementById('btn-client');
+    const btnBroker = document.getElementById('btn-broker');
 
-  btnClient.onclick = () => {
-    role = 'client';
-    btnClient.classList.add('active');
-    btnBroker.classList.remove('active');
-  };
+    if (role === 'client') {
+      btnClient.classList.add('active');
+      btnBroker.classList.remove('active');
+    } else {
+      btnBroker.classList.add('active');
+      btnClient.classList.remove('active');
+    }
+  }
 
-  btnBroker.onclick = () => {
-    role = 'broker';
-    btnBroker.classList.add('active');
-    btnClient.classList.remove('active');
-  };
-
-  // Функція скидання/відновлення пароля
-  btnForgot.onclick = async (e) => {
-    e.preventDefault();
-    const email = document.getElementById('email').value.trim();
+  // Пряма функція для скидання пароля
+  async function resetPassword() {
+    const emailInput = document.getElementById('email');
+    const email = emailInput ? emailInput.value.trim() : '';
 
     if (!email) {
-      alert('Введіть ваш Email у поле вище, щоб ми могли надіслати лист для відновлення пароля.');
+      alert('Будь ласка, введіть свій Email у поле вище, перш ніж тиснути "Забули пароль".');
       return;
     }
 
+    const btnForgot = document.getElementById('btn-forgot');
     btnForgot.textContent = 'Надсилання...';
-    
+
     const { error } = await sb.auth.resetPasswordForEmail(email, {
       redirectTo: window.location.origin + '/login.html',
     });
@@ -210,17 +156,17 @@
     btnForgot.textContent = 'Забули пароль?';
 
     if (error) {
-      alert('Помилка надсилання: ' + error.message);
+      alert('Помилка: ' + error.message);
     } else {
-      alert('Лист із інструкціями щодо скидання пароля надіслано на вашу пошту: ' + email);
+      alert('Інструкцію щодо відновлення пароля надіслано на вашу пошту ' + email);
     }
-  };
+  }
 
-  // Авторизація / Реєстрація
-  document.getElementById('auth-form').onsubmit = async (e) => {
+  async function handleAuth(e) {
     e.preventDefault();
     const email = document.getElementById('email').value.trim();
     const password = document.getElementById('password').value;
+    const btnSubmitText = document.getElementById('btn-submit-text');
 
     btnSubmitText.textContent = 'Зачекайте...';
 
@@ -228,15 +174,12 @@
       const { data, error } = await sb.auth.signUp({
         email,
         password,
-        options: {
-          data: { user_role: role }
-        }
+        options: { data: { user_role: role } }
       });
 
       if (error) {
         alert('Помилка реєстрації: ' + error.message);
         btnSubmitText.textContent = 'Зареєструватися';
       } else {
-        alert('Реєстрація успішна!');
-        if (role === 'broker') {
-          window.location.href = '/broker-dashboard.htm
+        alert('Успішна реєстрація!');
+        window.location.href = role === 'broker' ? '/broker-dashboard.html'
