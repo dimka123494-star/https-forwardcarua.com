@@ -140,8 +140,8 @@
 
     const { error } = await sb.from('requests').insert([{
       client_name: currentUser.email.split('@')[0],
-      client_phone: currentUser.email, // Ідентифікатор клієнта
-      comment: desc + ' | Тел: ' + phone,
+      client_phone: phone, // Тепер тут буде саме номер (+380...)
+      comment: desc,
       status: 'new'
     }]);
 
