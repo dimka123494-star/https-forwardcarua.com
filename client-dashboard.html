@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Кабінет клієнта — МитнийБрокер</title>
+<link rel="stylesheet" href="/style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  .container { display: none; max-width: 800px; margin: 2rem auto; padding: 0 1rem; }
+  .client-card { background: #fff; border: 1px solid rgba(0,0,0,.12); border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem; }
+  .req-card { background: #fff; border: 1px solid rgba(0,0,0,.1); border-radius: 10px; padding: 1rem; margin-bottom: 10px; }
+  .status-badge { font-size: 11px; padding: 3px 8px; border-radius: 12px; font-weight: 600; }
+  .status-new { background: #FAEEDA; color: #633806; }
+  .status-accepted { background: #E1F5EE; color: #085041; }
+  .status-completed { background: #EBF8FF; color: #2B6CB0; }
+  .btn-logout { background: transparent; border: 1px solid #ccc; padding: 6px 12px; border-radius: 6px; cursor: pointer; float: right; font-size: 12px; }
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <a class="nav-logo" href="/index.html">Митний<span>Брокер</span></a>
+  <div class="nav-links"><a class="nav-link" href="/catalog.html">Знайти брокера</a></div>
+</nav>
+
+<div class="container">
+  <button class="btn-logout" onclick="logout()">Вийти 🚪</button>
+  <h2>👋 Кабінет клієнта</h2>
+  <p style="color:#73726c; font-size:14px; margin-bottom:1.5rem;">Тут ви бачите всі ваші запити на розмитнення вантажів</p>
+
+  <div class="client-card">
+    <h3 style="margin-top:0;">Створити новий запит</h3>
+    <form id="new-request-form">
+      <div style="margin-bottom:10px;">
+        <input type="text" id="req-desc" placeholder="Опишіть вантаж (наприклад: Авто з США, Ford Fusion 2018)" required style="width:100%; padding:10px; border:1px solid #ccc; border-radius:8px;">
+      </div>
+      <div style="margin-bottom:10px;">
+        <input type="tel" id="req-phone" placeholder="Ваш номер телефону (+380...)" required style="width:100%; padding:10px; border:1px solid #ccc; border-radius:8px;">
+      </div>
+      <button type="submit" class="btn btn-primary" style="width:100%">Опублікувати запит</button>
+    </form>
+  </div>
+
+  <h3>Мої заявки</h3>
+  <div id="client-requests">Завантаження...</div>
+</div>
+
+<script>
+  const SUPABASE_URL = 'https://ecdfpqhbaqjqurzedunh.supabase.co';
+  const SUPABASE_ANON_KEY = 'EyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVjZGZwcWhiYXFqcXVyemVkdW5oIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyNzU3NTIsImV4cCI6MjA5NDg1MTc1Mn0.t0ry-slbPVwVHmF1KLzWX6EDonWBMC2Uu3KUobH8oFY';
+  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  let currentUser = null;
+
+  document.addEventListener('DOMContentLoaded', async () => {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) {
+      window.location.href = '/login.html';
+      return;
+    }
+    currentUser = session.user;
+    document.querySelector('.container').style.display = 'block';
+    loadUserRequests();
+  });
+
+  async function loadUserRequests() {
+    const { data: reqs } = await sb.from('requests').select('*').eq('client_phone', currentUser.email);
+    const container = document.getElementById('client-requests');
+
+    if (!reqs || reqs.length === 0) {
+      container.innerHTML = '<div style="color:#73726c; padding:10px;">У вас ще немає активних заявок</div>';
+      return;
+    }
+
+    container.innerHTML = reqs.map(r => `
+      <div class="req-card">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <strong>${r.comment || 'Запит'}</strong>
+          <span class="status-badge status-${r.status}">${getStatusTitle(r.status)}</span>
+        </div>
+        <div style="font-size:12px; color:#73726c; margin-top:6px;">Дата: ${new Date(r.created_at).toLocaleDateString('uk-UA')}</div>
+      </div>
+    `).join('');
+  }
+
+  function getStatusTitle(s) {
+    if(s === 'new') return '🟡 Пошук брокера';
+    if(s === 'accepted') return '🟢 В роботі';
+    if(s === 'completed') return '🔵 Завершено';
+    return s;
+  }
+
+  async function logout() {
+    await sb.auth.signOut();
+    window.location.href = '/login.html';
+  }
+</script>
+</body>
+</html>
