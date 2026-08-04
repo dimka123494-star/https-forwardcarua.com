@@ -6,91 +6,79 @@
 <title>Кабінет клієнта — МитнийБрокер</title>
 <link rel="stylesheet" href="/style.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
 <style>
-  body { background: #F5F4EF; font-family: system-ui, -apple-system, sans-serif; margin: 0; color: #1a1a18; }
-  .container { display: none; max-width: 800px; margin: 2rem auto; padding: 0 1rem; }
+  body { background: #0b0e14; color: #fff; font-family: system-ui, -apple-system, sans-serif; margin: 0; padding: 20px; }
+  .container { max-width: 600px; margin: 0 auto; }
   
-  /* Верхній блок вітання */
-  .hero-client { background: #fff; border: 0.5px solid rgba(0,0,0,.12); border-radius: 12px; padding: 1.25rem; margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center; }
-  .hero-info h2 { margin: 0 0 4px 0; font-size: 20px; font-weight: 600; }
-  .hero-info p { margin: 0; font-size: 13px; color: #73726c; }
-  .btn-logout { background: transparent; border: 0.5px solid rgba(0,0,0,.2); color: #73726c; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 500; transition: all 0.15s; }
-  .btn-logout:hover { color: #1a1a18; border-color: rgba(0,0,0,.4); }
-
-  /* Картка створення заявки */
-  .card-form { background: #fff; border: 0.5px solid rgba(0,0,0,.12); border-radius: 12px; padding: 1.25rem; margin-bottom: 1.5rem; }
-  .card-title { font-size: 15px; font-weight: 600; margin-bottom: 1rem; display: flex; align-items: center; gap: 8px; }
+  .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; background: #161b26; padding: 1rem 1.5rem; border-radius: 12px; border: 1px solid rgba(255,255,255,.1); }
+  .user-email { color: #38bdf8; font-size: 14px; margin-top: 4px; }
+  .btn-logout { background: transparent; border: 1px solid rgba(255,255,255,.2); color: #f87171; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 13px; }
   
-  .form-group { margin-bottom: 10px; }
-  .form-group input, .form-group textarea { width: 100%; padding: 10px 12px; border: 1px solid #E2E8F0; border-radius: 8px; font-size: 14px; box-sizing: border-radius: 8px; font-family: inherit; }
-  .form-group input:focus, .form-group textarea:focus { outline: none; border-color: #BA7517; }
+  .card { background: #161b26; border: 1px solid rgba(255,255,255,.1); border-radius: 16px; padding: 1.5rem; margin-bottom: 1.5rem; box-shadow: 0 4px 20px rgba(0,0,0,.3); }
+  .card-title { font-size: 18px; font-weight: 600; margin-bottom: 1rem; color: #38bdf8; display: flex; align-items: center; gap: 8px; }
   
-  .btn-gold { background: #BA7517; color: #fff; border: none; padding: 10px 18px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; transition: background 0.15s; width: 100%; }
-  .btn-gold:hover { background: #a26412; }
-
-  /* Заголовки розділів */
-  .section-title { font-size: 15px; font-weight: 600; margin-bottom: 12px; }
-
-  /* Список заявок */
-  .req-card { background: #fff; border: 0.5px solid rgba(0,0,0,.12); border-radius: 12px; padding: 1rem 1.25rem; margin-bottom: 10px; }
-  .req-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
-  .req-desc { font-size: 14px; font-weight: 500; color: #1a1a18; margin-bottom: 6px; }
-  .req-date { font-size: 11px; color: #9c9a92; }
+  .form-group { margin-bottom: 1rem; }
+  label { display: block; font-size: 12px; color: #94a3b8; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+  input, textarea { width: 100%; padding: 12px; border: 1px solid rgba(255,255,255,.15); background: #0f172a; border-radius: 8px; font-size: 14px; color: #fff; box-sizing: border-box; }
+  input:focus, textarea:focus { outline: none; border-color: #38bdf8; }
   
-  /* Статуси в стилі сайту */
-  .status-badge { font-size: 11px; padding: 2px 8px; border-radius: 10px; font-weight: 600; white-space: nowrap; }
-  .status-new { background: #FAEEDA; color: #633806; }
-  .status-accepted { background: #E1F5EE; color: #085041; }
-  .status-completed { background: #EBF8FF; color: #2B6CB0; }
+  .btn-submit { width: 100%; padding: 12px; background: #0284c7; color: #fff; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; transition: background 0.2s; }
+  .btn-submit:hover { background: #0369a1; }
+  
+  .request-item { background: #0f172a; border: 1px solid rgba(255,255,255,.08); border-radius: 10px; padding: 1rem; margin-bottom: 10px; }
+  .request-date { font-size: 12px; color: #64748b; margin-top: 4px; }
+  .badge { display: inline-block; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; background: rgba(56,189,248,.15); color: #38bdf8; }
+  
+  .empty-state { text-align: center; color: #64748b; padding: 2rem 0; font-size: 14px; }
+  .nav-back { display: inline-block; color: #94a3b8; text-decoration: none; font-size: 14px; margin-bottom: 1rem; }
 </style>
 </head>
 <body>
 
-<nav class="nav">
-  <a class="nav-logo" href="/index.html">Митний<span>Брокер</span></a>
-  <div class="nav-links">
-    <a class="nav-link" href="/catalog.html">Каталог брокерів</a>
-  </div>
-</nav>
-
 <div class="container">
-  
-  <div class="hero-client">
-    <div class="hero-info">
-      <h2>Особистий кабінет клієнта</h2>
-      <p id="user-email">Завантаження...</p>
+  <a href="/catalog.html" class="nav-back">← Назад до каталогу</a>
+
+  <div class="header">
+    <div>
+      <h2 style="margin:0; font-size: 18px;">Кабінет клієнта</h2>
+      <div class="user-email" id="user-email">Завантаження...</div>
     </div>
-    <button class="btn-logout" onclick="logout()">Вийти 🚪</button>
+    <button class="btn-logout" onclick="logout()">Вийти</button>
   </div>
 
-  <div class="card-form">
+  <!-- Форма створення запиту -->
+  <div class="card">
     <div class="card-title">📝 Створити новий запит на розмитнення</div>
     <form id="new-request-form">
       <div class="form-group">
-        <input type="text" id="req-desc" placeholder="Що саме потрібно розмитнити? (наприклад: Ford Fusion 2019 з США)" required>
+        <label>Що потрібно розмитнити?</label>
+        <textarea id="req-desc" rows="3" required placeholder="Наприклад: Розмитнити легкову машину Пассат 2013 року"></textarea>
       </div>
       <div class="form-group">
-        <input type="tel" id="req-phone" placeholder="Ваш номер телефону для зв'язку (+380...)" required>
+        <label>Ваш номер телефону</label>
+        <input type="tel" id="req-phone" required placeholder="+380967009902">
       </div>
-      <button type="submit" class="btn-gold" id="btn-submit">Опублікувати запит</button>
+      <button type="submit" class="btn-submit" id="btn-submit">Опублікувати запит</button>
     </form>
   </div>
 
-  <div class="section-title">Ваші заявки</div>
-  <div id="client-requests">Завантаження заявок...</div>
-
+  <!-- Список заявок -->
+  <div class="card">
+    <div class="card-title">📋 Ваші опубліковані заявки</div>
+    <div id="requests-list">
+      <div class="empty-state">Завантаження заявок...</div>
+    </div>
+  </div>
 </div>
-
-<footer class="footer">© 2026 МитнийБрокер</footer>
 
 <script>
   const SUPABASE_URL = 'https://ecdfpqhbaqjqurzedunh.supabase.co';
-  const SUPABASE_ANON_KEY = 'EyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVjZGZwcWhiYXFqcXVyemVkdW5oIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyNzU3NTIsImV4cCI6MjA5NDg1MTc1Mn0.t0ry-slbPVwVHmF1KLzWX6EDonWBMC2Uu3KUobH8oFY';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVjZGZwcWhiYXFqcXVyemVkdW5oIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyNzU3NTIsImV4cCI6MjA5NDg1MTc1Mn0.t0ry-slbPVwVHmF1KLzWX6EDonWBMC2Uu3KUobH8oFY';
   const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
   let currentUser = null;
 
-  document.addEventListener('DOMContentLoaded', async () => {
+  async function init() {
     const { data: { session } } = await sb.auth.getSession();
     if (!session) {
       window.location.href = '/login.html';
@@ -98,38 +86,34 @@
     }
     currentUser = session.user;
     document.getElementById('user-email').textContent = currentUser.email;
-    document.querySelector('.container').style.display = 'block';
     loadUserRequests();
-  });
+  }
 
   async function loadUserRequests() {
-    const { data: reqs } = await sb.from('requests').select('*').eq('client_phone', currentUser.email);
-    const container = document.getElementById('client-requests');
+    const listDiv = document.getElementById('requests-list');
+    
+    const { data: requests, error } = await sb
+      .from('requests')
+      .select('*')
+      .eq('client_name', currentUser.email.split('@')[0])
+      .order('id', { ascending: false });
 
-    if (!reqs || reqs.length === 0) {
-      container.innerHTML = '<div style="color:#73726c; padding:20px; background:#fff; border-radius:12px; text-align:center; border:0.5px solid rgba(0,0,0,.12); font-size:13px;">У вас ще немає створених заявок</div>';
+    if (error || !requests || requests.length === 0) {
+      listDiv.innerHTML = '<div class="empty-state">У вас ще немає створених заявок</div>';
       return;
     }
 
-    container.innerHTML = reqs.map(r => `
-      <div class="req-card">
-        <div class="req-header">
-          <div class="req-desc">${r.comment || 'Запит на розмитнення'}</div>
-          <span class="status-badge status-${r.status}">${getStatusTitle(r.status)}</span>
+    listDiv.innerHTML = requests.map(r => `
+      <div class="request-item">
+        <div style="display:flex; justify-between; align-items:flex-start; gap: 10px;">
+          <div style="font-weight: 500;">${r.comment || 'Запит на розмитнення'}</div>
+          <span class="badge">${r.status || 'Нова'}</span>
         </div>
-        <div class="req-date">Створено: ${new Date(r.created_at).toLocaleDateString('uk-UA')}</div>
+        <div class="request-date">Тел: ${r.client_phone || 'не вказано'}</div>
       </div>
     `).join('');
   }
 
-  function getStatusTitle(s) {
-    if(s === 'new') return '🟡 Очікує брокера';
-    if(s === 'accepted') return '🟢 В роботі';
-    if(s === 'completed') return '🔵 Завершено';
-    return s;
-  }
-
-  // Обробка створення нової заявки
   document.getElementById('new-request-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const desc = document.getElementById('req-desc').value;
@@ -140,14 +124,17 @@
 
     const { error } = await sb.from('requests').insert([{
       client_name: currentUser.email.split('@')[0],
-      client_phone: phone, // Тепер тут буде саме номер (+380...)
+      client_phone: phone,
       comment: desc,
       status: 'new'
     }]);
 
-    if (!error) {
+    if (error) {
+      alert('Помилка при створенні заявки: ' + error.message);
+    } else {
       document.getElementById('req-desc').value = '';
       document.getElementById('req-phone').value = '';
+      alert('Заявку успішно опубліковано!');
       loadUserRequests();
     }
     btn.textContent = 'Опублікувати запит';
@@ -157,6 +144,8 @@
     await sb.auth.signOut();
     window.location.href = '/login.html';
   }
+
+  init();
 </script>
 </body>
 </html>
