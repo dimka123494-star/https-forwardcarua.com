@@ -182,4 +182,21 @@
         btnSubmitText.textContent = 'Зареєструватися';
       } else {
         alert('Успішна реєстрація!');
-        window.location.href = role === 'broker' ? '/broker-dashboard.html'
+        window.location.href = role === 'broker' ? '/broker-dashboard.html' : '/client-dashboard.html';
+      }
+    } else {
+      const { data, error } = await sb.auth.signInWithPassword({ email, password });
+
+      if (error) {
+        alert('Помилка входу: ' + error.message);
+        btnSubmitText.textContent = 'Увійти';
+      } else {
+        const userRole = data.user?.user_metadata?.user_role || 'client';
+        window.location.href = userRole === 'broker' ? '/broker-dashboard.html' : '/client-dashboard.html';
+      }
+    }
+  }
+</script>
+
+</body>
+</html>
