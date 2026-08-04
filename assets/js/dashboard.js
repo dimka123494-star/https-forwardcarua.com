@@ -4,29 +4,27 @@ const SUPABASE_ANON_KEY = 'EyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+let currentFilter = 'all'; // Поточний активний фільтр
+let allRequestsData = [];   // Локальне збереження всіх заявок
+
 document.addEventListener('DOMContentLoaded', async () => {
-  // 1. Перевірка чи залогінений брокер
+  // 1. Перевірка авторизації
   const { data: { session } } = await sb.auth.getSession();
   
   if (!session) {
-    // Якщо не авторизований — перенаправляємо на сторінку входу
     window.location.href = '/login.html';
     return;
   }
 
   const userId = session.user.id;
 
-  // 2. Завантажуємо профіль брокера
+  // 2. Завантажуємо профіль та заявки
   loadBrokerProfile(userId);
-
-  // 3. Завантажуємо заявки брокера
   loadBrokerRequests(userId);
-
-  // 4. Реальний час: відстежуємо нові заявки
   subscribeToRealtimeRequests(userId);
 });
 
-// Завантаження даних профілю
+// Завантаження профілю
 async function loadBrokerProfile(userId) {
   const { data: profile, error } = await sb
     .from('brokers')
@@ -35,31 +33,25 @@ async function loadBrokerProfile(userId) {
     .maybeSingle();
 
   if (error) {
-    console.error('Помилка завантаження профілю:', error);
+    console.error('Помилка профілю:', error);
     return;
   }
 
   if (profile) {
-    // Аватарка (ініціали)
     const initials = profile.name ? profile.name.split(' ').map(n => n[0]).join('').toUpperCase() : 'БР';
     document.querySelector('.av').textContent = initials;
-    
-    // Ім'я та статус
     document.querySelector('.broker-info .name').textContent = profile.name || 'Брокер';
     const plan = profile.plan || 'Стандарт';
     const city = profile.city || 'Київ';
     document.querySelector('.broker-info .meta').innerHTML = `⚡ Тариф ${plan} · 🟢 Онлайн · 📍 ${city}`;
 
-    // Статистика
     if(profile.views) document.getElementById('stat-views').textContent = profile.views;
     if(profile.rating) document.getElementById('stat-rating').textContent = `${profile.rating}★`;
   }
 }
 
-// Завантаження заявок з бази з кнопками швидкого зв'язку
+// Завантаження всіх заявок брокера
 async function loadBrokerRequests(brokerId) {
-  const container = document.getElementById('requests-container');
-
   const { data: requests, error } = await sb
     .from('requests')
     .select('*')
@@ -67,27 +59,41 @@ async function loadBrokerRequests(brokerId) {
     .order('created_at', { ascending: false });
 
   if (error) {
-    console.error('Помилка завантаження заявок:', error);
-    container.innerHTML = '<div style="color:red; padding:10px;">Помилка завантаження даних</div>';
+    console.error('Помилка заявок:', error);
+    document.getElementById('requests-container').innerHTML = '<div style="color:red; padding:10px;">Помилка завантаження даних</div>';
     return;
   }
 
-  // Лічильник заявок
-  document.getElementById('stat-reqs').textContent = requests ? requests.length : 0;
+  allRequestsData = requests || [];
+  document.getElementById('stat-reqs').textContent = allRequestsData.length;
+  
+  // Рендеримо відповідно до поточного фільтра
+  renderRequests();
+}
 
-  if (!requests || requests.length === 0) {
-    container.innerHTML = '<div style="color:#73726c; padding: 15px; text-align:center;">У вас поки немає заявок</div>';
+// Функція малювання заявок на екрані
+function renderRequests() {
+  const container = document.getElementById('requests-container');
+  
+  // Фільтрація
+  let filtered = allRequestsData;
+  if (currentFilter !== 'all') {
+    filtered = allRequestsData.filter(r => r.status === currentFilter);
+  }
+
+  if (filtered.length === 0) {
+    container.innerHTML = '<div style="color:#73726c; padding: 15px; text-align:center;">Заявок у цій категорії немає</div>';
     return;
   }
 
-  // Відображення списку заявок
-  container.innerHTML = requests.map(req => {
+  container.innerHTML = filtered.map(req => {
     const isNew = req.status === 'new';
+    const isAccepted = req.status === 'accepted';
+    const isCompleted = req.status === 'completed';
+    
     const name = req.client_name || 'Анонімний клієнт';
     const initials = name.split(' ').map(n => n[0]).join('').toUpperCase();
     const timeAgo = formatTimeAgo(req.created_at);
-
-    // Форматування номера для посилань (видаляємо зайві символи)
     const rawPhone = req.client_phone ? req.client_phone.replace(/\D/g, '') : '';
 
     return `
@@ -102,7 +108,7 @@ async function loadBrokerRequests(brokerId) {
             ${req.comment ? '💬 ' + req.comment : 'Запит на консультацію'}
           </div>
 
-          <!-- 📲 Кнопки швидкого зв'язку -->
+          <!-- 📲 Кнопки зв'язку -->
           <div style="display:flex; gap:8px; margin-top:6px; flex-wrap:wrap;">
             <a href="tel:+${rawPhone}" class="btn-decline" style="text-decoration:none; display:inline-flex; align-items:center; gap:4px; color:#185FA5; border-color:#BEE3F8;">
               📞 +${rawPhone}
@@ -115,15 +121,25 @@ async function loadBrokerRequests(brokerId) {
             </a>
           </div>
 
-          <div class="req-actions" id="actions-${req.id}" style="margin-top:8px;">
+          <!-- 🎛️ Дії залежно від статусу -->
+          <div class="req-actions" style="margin-top:8px;">
             ${isNew ? `
-              <button class="btn-accept" onclick="updateRequestStatus('${req.id}', 'accepted')">✓ Прийняти</button>
+              <button class="btn-accept" onclick="updateRequestStatus('${req.id}', 'accepted')">🟢 Взяти в роботу</button>
               <button class="btn-decline" onclick="updateRequestStatus('${req.id}', 'declined')">Відхилити</button>
-            ` : `
-              <span style="font-size:11px; color:${req.status === 'accepted' ? '#085041' : '#73726c'}">
-                ${req.status === 'accepted' ? '✓ Прийнято' : 'Відхилено'}
-              </span>
-            `}
+            ` : ''}
+
+            ${isAccepted ? `
+              <span style="font-size:11px; color:#085041; font-weight:500; margin-right:8px;">🟢 В роботі</span>
+              <button class="btn-done" onclick="updateRequestStatus('${req.id}', 'completed')">🔵 Завершити</button>
+            ` : ''}
+
+            ${isCompleted ? `
+              <span style="font-size:11px; color:#2B6CB0; font-weight:500;">🔵 Розмитнено / Завершено</span>
+            ` : ''}
+
+            ${req.status === 'declined' ? `
+              <span style="font-size:11px; color:#73726c;">Відхилено</span>
+            ` : ''}
           </div>
         </div>
         <div class="req-time">${timeAgo}</div>
@@ -132,7 +148,18 @@ async function loadBrokerRequests(brokerId) {
   }).join('');
 }
 
-// Зміна статусу заявки (Прийняти / Відхилити)
+// Перемикання табів-фільтрів
+function filterRequests(status, btnElement) {
+  currentFilter = status;
+  
+  // Стилі активної кнопки
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  btnElement.classList.add('active');
+
+  renderRequests();
+}
+
+// Зміна статусу в БД Supabase
 async function updateRequestStatus(requestId, newStatus) {
   const { error } = await sb
     .from('requests')
@@ -144,19 +171,14 @@ async function updateRequestStatus(requestId, newStatus) {
     return;
   }
 
-  const actionsDiv = document.getElementById(`actions-${requestId}`);
-  const reqItem = document.getElementById(`req-${requestId}`);
+  // Оновлюємо статус в локальному масиві і перемальовуємо
+  const reqObj = allRequestsData.find(r => r.id === requestId);
+  if (reqObj) reqObj.status = newStatus;
 
-  if (newStatus === 'accepted') {
-    reqItem.style.borderColor = '#5DCAA5';
-    actionsDiv.innerHTML = '<span style="color:#085041; font-size:11px; font-weight:500;">✓ Прийнято</span>';
-  } else if (newStatus === 'declined') {
-    reqItem.style.opacity = '0.4';
-    actionsDiv.innerHTML = '<span style="color:#73726c; font-size:11px;">Відхилено</span>';
-  }
+  renderRequests();
 }
 
-// Форматування відносного часу
+// Форматування часу
 function formatTimeAgo(dateString) {
   if (!dateString) return '';
   const date = new Date(dateString);
@@ -170,16 +192,4 @@ function formatTimeAgo(dateString) {
   return date.toLocaleDateString('uk-UA');
 }
 
-// Підписка на реальний час (Realtime)
-function subscribeToRealtimeRequests(brokerId) {
-  sb.channel('public:requests')
-    .on('postgres_changes', { 
-      event: 'INSERT', 
-      schema: 'public', 
-      table: 'requests',
-      filter: `broker_id=eq.${brokerId}`
-    }, payload => {
-      loadBrokerRequests(brokerId);
-    })
-    .subscribe();
-}
+//
