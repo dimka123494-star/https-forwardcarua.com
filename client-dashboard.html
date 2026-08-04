@@ -6,45 +6,83 @@
 <title>Кабінет клієнта — МитнийБрокер</title>
 <link rel="stylesheet" href="/style.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
 <style>
+  body { background: #F5F4EF; font-family: system-ui, -apple-system, sans-serif; margin: 0; color: #1a1a18; }
   .container { display: none; max-width: 800px; margin: 2rem auto; padding: 0 1rem; }
-  .client-card { background: #fff; border: 1px solid rgba(0,0,0,.12); border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem; }
-  .req-card { background: #fff; border: 1px solid rgba(0,0,0,.1); border-radius: 10px; padding: 1rem; margin-bottom: 10px; }
-  .status-badge { font-size: 11px; padding: 3px 8px; border-radius: 12px; font-weight: 600; }
+  
+  /* Верхній блок вітання */
+  .hero-client { background: #fff; border: 0.5px solid rgba(0,0,0,.12); border-radius: 12px; padding: 1.25rem; margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center; }
+  .hero-info h2 { margin: 0 0 4px 0; font-size: 20px; font-weight: 600; }
+  .hero-info p { margin: 0; font-size: 13px; color: #73726c; }
+  .btn-logout { background: transparent; border: 0.5px solid rgba(0,0,0,.2); color: #73726c; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 500; transition: all 0.15s; }
+  .btn-logout:hover { color: #1a1a18; border-color: rgba(0,0,0,.4); }
+
+  /* Картка створення заявки */
+  .card-form { background: #fff; border: 0.5px solid rgba(0,0,0,.12); border-radius: 12px; padding: 1.25rem; margin-bottom: 1.5rem; }
+  .card-title { font-size: 15px; font-weight: 600; margin-bottom: 1rem; display: flex; align-items: center; gap: 8px; }
+  
+  .form-group { margin-bottom: 10px; }
+  .form-group input, .form-group textarea { width: 100%; padding: 10px 12px; border: 1px solid #E2E8F0; border-radius: 8px; font-size: 14px; box-sizing: border-radius: 8px; font-family: inherit; }
+  .form-group input:focus, .form-group textarea:focus { outline: none; border-color: #BA7517; }
+  
+  .btn-gold { background: #BA7517; color: #fff; border: none; padding: 10px 18px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; transition: background 0.15s; width: 100%; }
+  .btn-gold:hover { background: #a26412; }
+
+  /* Заголовки розділів */
+  .section-title { font-size: 15px; font-weight: 600; margin-bottom: 12px; }
+
+  /* Список заявок */
+  .req-card { background: #fff; border: 0.5px solid rgba(0,0,0,.12); border-radius: 12px; padding: 1rem 1.25rem; margin-bottom: 10px; }
+  .req-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+  .req-desc { font-size: 14px; font-weight: 500; color: #1a1a18; margin-bottom: 6px; }
+  .req-date { font-size: 11px; color: #9c9a92; }
+  
+  /* Статуси в стилі сайту */
+  .status-badge { font-size: 11px; padding: 2px 8px; border-radius: 10px; font-weight: 600; white-space: nowrap; }
   .status-new { background: #FAEEDA; color: #633806; }
   .status-accepted { background: #E1F5EE; color: #085041; }
   .status-completed { background: #EBF8FF; color: #2B6CB0; }
-  .btn-logout { background: transparent; border: 1px solid #ccc; padding: 6px 12px; border-radius: 6px; cursor: pointer; float: right; font-size: 12px; }
 </style>
 </head>
 <body>
 
 <nav class="nav">
   <a class="nav-logo" href="/index.html">Митний<span>Брокер</span></a>
-  <div class="nav-links"><a class="nav-link" href="/catalog.html">Знайти брокера</a></div>
+  <div class="nav-links">
+    <a class="nav-link" href="/catalog.html">Каталог брокерів</a>
+  </div>
 </nav>
 
 <div class="container">
-  <button class="btn-logout" onclick="logout()">Вийти 🚪</button>
-  <h2>👋 Кабінет клієнта</h2>
-  <p style="color:#73726c; font-size:14px; margin-bottom:1.5rem;">Тут ви бачите всі ваші запити на розмитнення вантажів</p>
+  
+  <div class="hero-client">
+    <div class="hero-info">
+      <h2>Особистий кабінет клієнта</h2>
+      <p id="user-email">Завантаження...</p>
+    </div>
+    <button class="btn-logout" onclick="logout()">Вийти 🚪</button>
+  </div>
 
-  <div class="client-card">
-    <h3 style="margin-top:0;">Створити новий запит</h3>
+  <div class="card-form">
+    <div class="card-title">📝 Створити новий запит на розмитнення</div>
     <form id="new-request-form">
-      <div style="margin-bottom:10px;">
-        <input type="text" id="req-desc" placeholder="Опишіть вантаж (наприклад: Авто з США, Ford Fusion 2018)" required style="width:100%; padding:10px; border:1px solid #ccc; border-radius:8px;">
+      <div class="form-group">
+        <input type="text" id="req-desc" placeholder="Що саме потрібно розмитнити? (наприклад: Ford Fusion 2019 з США)" required>
       </div>
-      <div style="margin-bottom:10px;">
-        <input type="tel" id="req-phone" placeholder="Ваш номер телефону (+380...)" required style="width:100%; padding:10px; border:1px solid #ccc; border-radius:8px;">
+      <div class="form-group">
+        <input type="tel" id="req-phone" placeholder="Ваш номер телефону для зв'язку (+380...)" required>
       </div>
-      <button type="submit" class="btn btn-primary" style="width:100%">Опублікувати запит</button>
+      <button type="submit" class="btn-gold" id="btn-submit">Опублікувати запит</button>
     </form>
   </div>
 
-  <h3>Мої заявки</h3>
-  <div id="client-requests">Завантаження...</div>
+  <div class="section-title">Ваші заявки</div>
+  <div id="client-requests">Завантаження заявок...</div>
+
 </div>
+
+<footer class="footer">© 2026 МитнийБрокер</footer>
 
 <script>
   const SUPABASE_URL = 'https://ecdfpqhbaqjqurzedunh.supabase.co';
@@ -59,6 +97,7 @@
       return;
     }
     currentUser = session.user;
+    document.getElementById('user-email').textContent = currentUser.email;
     document.querySelector('.container').style.display = 'block';
     loadUserRequests();
   });
@@ -68,27 +107,51 @@
     const container = document.getElementById('client-requests');
 
     if (!reqs || reqs.length === 0) {
-      container.innerHTML = '<div style="color:#73726c; padding:10px;">У вас ще немає активних заявок</div>';
+      container.innerHTML = '<div style="color:#73726c; padding:20px; background:#fff; border-radius:12px; text-align:center; border:0.5px solid rgba(0,0,0,.12); font-size:13px;">У вас ще немає створених заявок</div>';
       return;
     }
 
     container.innerHTML = reqs.map(r => `
       <div class="req-card">
-        <div style="display:flex; justify-content:space-between; align-items:center;">
-          <strong>${r.comment || 'Запит'}</strong>
+        <div class="req-header">
+          <div class="req-desc">${r.comment || 'Запит на розмитнення'}</div>
           <span class="status-badge status-${r.status}">${getStatusTitle(r.status)}</span>
         </div>
-        <div style="font-size:12px; color:#73726c; margin-top:6px;">Дата: ${new Date(r.created_at).toLocaleDateString('uk-UA')}</div>
+        <div class="req-date">Створено: ${new Date(r.created_at).toLocaleDateString('uk-UA')}</div>
       </div>
     `).join('');
   }
 
   function getStatusTitle(s) {
-    if(s === 'new') return '🟡 Пошук брокера';
+    if(s === 'new') return '🟡 Очікує брокера';
     if(s === 'accepted') return '🟢 В роботі';
     if(s === 'completed') return '🔵 Завершено';
     return s;
   }
+
+  // Обробка створення нової заявки
+  document.getElementById('new-request-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const desc = document.getElementById('req-desc').value;
+    const phone = document.getElementById('req-phone').value;
+    const btn = document.getElementById('btn-submit');
+
+    btn.textContent = 'Збереження...';
+
+    const { error } = await sb.from('requests').insert([{
+      client_name: currentUser.email.split('@')[0],
+      client_phone: currentUser.email, // Ідентифікатор клієнта
+      comment: desc + ' | Тел: ' + phone,
+      status: 'new'
+    }]);
+
+    if (!error) {
+      document.getElementById('req-desc').value = '';
+      document.getElementById('req-phone').value = '';
+      loadUserRequests();
+    }
+    btn.textContent = 'Опублікувати запит';
+  });
 
   async function logout() {
     await sb.auth.signOut();
