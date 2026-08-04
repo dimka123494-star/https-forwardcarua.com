@@ -4,29 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Вхід / Реєстрація — МитнийБрокер</title>
-<link rel="stylesheet" href="/style.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-  body {
-    background: #0b0e14;
-    color: #fff;
-    font-family: system-ui, -apple-system, sans-serif;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: 100vh;
-    margin: 0;
-  }
-  .auth-card {
-    background: #161b26;
-    border: 1px solid rgba(255,255,255,.1);
-    border-radius: 16px;
-    padding: 2rem;
-    width: 100%;
-    max-width: 400px;
-    box-shadow: 0 10px 30px rgba(0,0,0,.5);
-  }
-  .logo { text-align: center; font-size: 22px; font-weight: bold; margin-bottom: 1.5rem; }
+  body { background: #0b0e14; color: #fff; font-family: system-ui, -apple-system, sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+  .auth-card { background: #161b26; border: 1px solid rgba(255,255,255,.1); border-radius: 16px; padding: 2rem; width: 100%; max-width: 400px; box-shadow: 0 10px 30px rgba(0,0,0,.5); }
+  .logo { text-align: center; font-size: 22px; font-weight: bold; margin-bottom: 1.5rem; color: #fff; }
   .logo span { color: #38bdf8; }
   .tabs { display: flex; margin-bottom: 1.5rem; background: #0f172a; padding: 4px; border-radius: 8px; }
   .tab-btn { flex: 1; padding: 10px; background: transparent; border: none; color: #94a3b8; cursor: pointer; border-radius: 6px; font-weight: 500; }
@@ -42,17 +24,7 @@
   input:focus { outline: none; border-color: #38bdf8; }
   .btn-submit { width: 100%; padding: 12px; background: #0284c7; color: #fff; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; margin-top: 10px; }
   .btn-submit:hover { background: #0369a1; }
-  
-  .forgot-btn {
-    background: none;
-    border: none;
-    color: #38bdf8;
-    font-size: 12px;
-    cursor: pointer;
-    padding: 0;
-    margin-top: 6px;
-    text-decoration: underline;
-  }
+  .forgot-btn { background: none; border: none; color: #38bdf8; font-size: 12px; cursor: pointer; padding: 0; margin-top: 6px; text-decoration: underline; }
 </style>
 </head>
 <body>
@@ -60,7 +32,7 @@
 <div class="auth-card">
   <div class="logo">Митний<span>Брокер</span></div>
 
-  <div class="tabs">
+  <div class="tabs" id="auth-tabs">
     <button type="button" class="tab-btn active" id="tab-login" onclick="setMode('login')">Вхід</button>
     <button type="button" class="tab-btn" id="tab-register" onclick="setMode('register')">Реєстрація</button>
   </div>
@@ -74,15 +46,25 @@
       </div>
     </div>
 
-    <div class="form-group">
+    <div class="form-group" id="name-group" style="display:none;">
+      <label>Ваше ім'я</label>
+      <input type="text" id="user_name" placeholder="Олександр">
+    </div>
+
+    <div class="form-group" id="phone-group" style="display:none;">
+      <label>Номер телефону</label>
+      <input type="tel" id="user_phone" placeholder="+380967009902">
+    </div>
+
+    <div class="form-group" id="email-group">
       <label>Email</label>
       <input type="email" id="email" required placeholder="name@example.com">
     </div>
 
     <div class="form-group">
-      <label>Пароль</label>
+      <label id="password-label">Пароль</label>
       <input type="password" id="password" required placeholder="••••••••">
-      <div style="text-align: right;">
+      <div style="text-align: right;" id="forgot-container">
         <button type="button" class="forgot-btn" id="btn-forgot" onclick="resetPassword()">Забули пароль?</button>
       </div>
     </div>
@@ -104,6 +86,8 @@
     const tabLogin = document.getElementById('tab-login');
     const tabRegister = document.getElementById('tab-register');
     const roleGroup = document.getElementById('role-group');
+    const phoneGroup = document.getElementById('phone-group');
+    const nameGroup = document.getElementById('name-group');
     const btnSubmitText = document.getElementById('btn-submit-text');
     const btnForgot = document.getElementById('btn-forgot');
 
@@ -111,12 +95,16 @@
       tabLogin.classList.add('active');
       tabRegister.classList.remove('active');
       roleGroup.style.display = 'none';
+      phoneGroup.style.display = 'none';
+      nameGroup.style.display = 'none';
       btnSubmitText.textContent = 'Увійти';
       btnForgot.style.display = 'inline-block';
     } else {
       tabRegister.classList.add('active');
       tabLogin.classList.remove('active');
       roleGroup.style.display = 'block';
+      phoneGroup.style.display = 'block';
+      nameGroup.style.display = 'block';
       btnSubmitText.textContent = 'Зареєструватися';
       btnForgot.style.display = 'none';
     }
@@ -124,62 +112,42 @@
 
   function setRole(newRole) {
     role = newRole;
-    const btnClient = document.getElementById('btn-client');
-    const btnBroker = document.getElementById('btn-broker');
-
-    if (role === 'client') {
-      btnClient.classList.add('active');
-      btnBroker.classList.remove('active');
-    } else {
-      btnBroker.classList.add('active');
-      btnClient.classList.remove('active');
-    }
-  }
-
-  // Пряма функція для скидання пароля
-  async function resetPassword() {
-    const emailInput = document.getElementById('email');
-    const email = emailInput ? emailInput.value.trim() : '';
-
-    if (!email) {
-      alert('Будь ласка, введіть свій Email у поле вище, перш ніж тиснути "Забули пароль".');
-      return;
-    }
-
-    const btnForgot = document.getElementById('btn-forgot');
-    btnForgot.textContent = 'Надсилання...';
-
-    const { error } = await sb.auth.resetPasswordForEmail(email, {
-      redirectTo: window.location.origin + '/login.html',
-    });
-
-    btnForgot.textContent = 'Забули пароль?';
-
-    if (error) {
-      alert('Помилка: ' + error.message);
-    } else {
-      alert('Інструкцію щодо відновлення пароля надіслано на вашу пошту ' + email);
-    }
+    document.getElementById('btn-client').classList.toggle('active', role === 'client');
+    document.getElementById('btn-broker').classList.toggle('active', role === 'broker');
   }
 
   async function handleAuth(e) {
     e.preventDefault();
     const email = document.getElementById('email').value.trim();
     const password = document.getElementById('password').value;
-    const btnSubmitText = document.getElementById('btn-submit-text');
+    const phone = document.getElementById('user_phone').value.trim();
+    const name = document.getElementById('user_name').value.trim();
+    const btnSubmit = document.getElementById('btn-submit-text');
 
-    btnSubmitText.textContent = 'Зачекайте...';
+    btnSubmit.textContent = 'Зачекайте...';
 
     if (mode === 'register') {
+      if (!phone) {
+        alert('Будь ласка, вкажіть ваш номер телефону!');
+        btnSubmit.textContent = 'Зареєструватися';
+        return;
+      }
+
       const { data, error } = await sb.auth.signUp({
         email,
         password,
-        options: { data: { user_role: role } }
+        options: {
+          data: {
+            user_role: role,
+            phone: phone,
+            full_name: name || email.split('@')[0]
+          }
+        }
       });
 
       if (error) {
         alert('Помилка реєстрації: ' + error.message);
-        btnSubmitText.textContent = 'Зареєструватися';
+        btnSubmit.textContent = 'Зареєструватися';
       } else {
         alert('Успішна реєстрація!');
         window.location.href = role === 'broker' ? '/broker-dashboard.html' : '/client-dashboard.html';
@@ -189,14 +157,21 @@
 
       if (error) {
         alert('Помилка входу: ' + error.message);
-        btnSubmitText.textContent = 'Увійти';
+        btnSubmit.textContent = 'Увійти';
       } else {
         const userRole = data.user?.user_metadata?.user_role || 'client';
         window.location.href = userRole === 'broker' ? '/broker-dashboard.html' : '/client-dashboard.html';
       }
     }
   }
-</script>
 
+  async function resetPassword() {
+    const email = document.getElementById('email').value.trim();
+    if (!email) { alert('Введіть ваш Email у поле вище!'); return; }
+    const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: 'https://forwardcarua.com/login.html' });
+    if (error) alert('Помилка: ' + error.message);
+    else alert('Лист для скидання пароля надіслано на ' + email);
+  }
+</script>
 </body>
 </html>
