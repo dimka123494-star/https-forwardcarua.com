@@ -1,4 +1,7 @@
 User-agent: *
 Allow: /
+Disallow: /admin
+Disallow: /kabinet
+Disallow: /vhid
 
 Sitemap: https://forwardcarua.com/sitemap.xml

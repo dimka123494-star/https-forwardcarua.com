@@ -1,0 +1,8 @@
+# Netlify: SPA-роутинг — усі шляхи віддають index.html
+/terms            /terms.html   200
+/admin            /admin.html   200
+/brokery/*        /index.html   200
+/taryfy           /index.html   200
+/vhid             /index.html   200
+/kabinet          /index.html   200
+/*                /index.html   200
