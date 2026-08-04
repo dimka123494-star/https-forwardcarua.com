@@ -47,7 +47,7 @@
 
   // Перевірка: якщо вже залогінений — в кабінет
   sb.auth.getSession().then(({ data: { session } }) => {
-    if (session) window.location.href = '/cabinet/dashboard.html';
+    if (session) window.location.href = '/dashboard.html';
   });
 
   document.getElementById('login-form').addEventListener('submit', async (e) => {
