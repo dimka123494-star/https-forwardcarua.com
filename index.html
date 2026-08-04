@@ -353,8 +353,8 @@ footer{border-top:0.5px solid var(--border);background:var(--surface);padding:2.
     <button class="nav-tab" id="navPricing" onclick="showPage('pricing')">Тарифи</button>
   </div>
   <div class="nav-actions">
-    <button class="btn-ghost-sm" id="loginBtn" onclick="switchAuthTab('login');showPage('register')">Увійти</button>
-    <button class="btn-blue" id="registerBtn" onclick="switchAuthTab('register');showPage('register')"><i class="ti ti-user-plus"></i>Стати брокером</button>
+   <a href="/login.html" class="btn-ghost-sm" id="loginBtn">Увійти</a>
+<a href="/login.html" class="btn-blue" id="registerBtn">Реєстрація</a>
     <button class="nav-burger" onclick="toggleMobileMenu()" aria-label="Меню"><i class="ti ti-menu-2"></i></button>
   </div>
 </nav>
@@ -362,7 +362,7 @@ footer{border-top:0.5px solid var(--border);background:var(--surface);padding:2.
 <div class="mobile-menu" id="mobile-menu">
   <button onclick="showPage('home');toggleMobileMenu()">Каталог брокерів</button>
   <button onclick="showPage('pricing');toggleMobileMenu()">Тарифи</button>
-  <button onclick="switchAuthTab('login');showPage('register');toggleMobileMenu()">Увійти в кабінет</button>
+ <a href="/login.html" onclick="toggleMobileMenu()">Увійти в кабінет</a>
   <a href="/terms">Публічна оферта</a>
 </div>
 
