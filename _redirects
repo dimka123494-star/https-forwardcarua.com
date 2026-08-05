@@ -1,8 +1,28 @@
-# Netlify: SPA-роутинг — усі шляхи віддають index.html
-/terms            /terms.html   200
-/admin            /admin.html   200
-/brokery/*        /index.html   200
-/taryfy           /index.html   200
-/vhid             /index.html   200
-/kabinet          /index.html   200
-/*                /index.html   200
+# ── ТЕРМІНОВО: сторінки з формою картки і вигаданими даними ──
+/subscription.html      /taryfy      301
+/cabinet/subscription.html  /taryfy  301
+/admin-reviews.html     /admin       301
+
+# ── Старі шляхи → нові ──
+/catalog.html           /            301
+/broker-profile.html    /            301
+/client-dashboard.html  /kabinet     301
+/broker-dashboard.html  /kabinet     301
+/dashboard.html         /kabinet     301
+/cabinet/dashboard.html /kabinet     301
+/cabinet/analytics.html /kabinet     301
+/analytics.html         /kabinet     301
+/profile.html           /kabinet     301
+/login.html             /vhid        301
+
+# ── Робочі сторінки ──
+/terms                  /terms.html  200
+/admin                  /admin.html  200
+/zayavka                /request.html 200
+/vidhuky/*              /broker.html 200
+/broker/*               /broker.html 200
+/brokery/*              /index.html  200
+/taryfy                 /index.html  200
+/vhid                   /index.html  200
+/kabinet                /index.html  200
+/*                      /index.html  200
