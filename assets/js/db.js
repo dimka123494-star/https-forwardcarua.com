@@ -1,11 +1,11 @@
 /* =========================================================
    assets/js/db.js
-   Єдиний шар доступу до бази. Сторінки не звертаються
-   до Supabase напряму — тільки через ці функції.
-   Назви колонок відповідають схемі після db-setup-full.sql.
+   Р„РґРёРЅРёР№ С€Р°СЂ РґРѕСЃС‚СѓРїСѓ РґРѕ Р±Р°Р·Рё. РЎС‚РѕСЂС–РЅРєРё РЅРµ Р·РІРµСЂС‚Р°СЋС‚СЊСЃСЏ
+   РґРѕ Supabase РЅР°РїСЂСЏРјСѓ вЂ” С‚С–Р»СЊРєРё С‡РµСЂРµР· С†С– С„СѓРЅРєС†С–С—.
+   РќР°Р·РІРё РєРѕР»РѕРЅРѕРє РІС–РґРїРѕРІС–РґР°СЋС‚СЊ СЃС…РµРјС– РїС–СЃР»СЏ db-setup-full.sql.
    ========================================================= */
 
-/* ================= АВТОРИЗАЦІЯ ================= */
+/* ================= РђР’РўРћР РР—РђР¦Р†РЇ ================= */
 
 async function currentUser(){
   const sb = await sbReady();
@@ -19,7 +19,7 @@ async function currentSession(){
   return session || null;
 }
 
-/** Повертає користувача або відправляє на вхід. */
+/** РџРѕРІРµСЂС‚Р°С” РєРѕСЂРёСЃС‚СѓРІР°С‡Р° Р°Р±Рѕ РІС–РґРїСЂР°РІР»СЏС” РЅР° РІС…С–Рґ. */
 async function requireAuth(redirect = '/vhid'){
   const user = await currentUser();
   if (!user){ location.href = redirect + '?next=' + encodeURIComponent(location.pathname); return null; }
@@ -36,8 +36,8 @@ async function signIn(email, password){
 /** role: 'broker' | 'client' */
 async function signUp({ email, password, name, phone, role = 'client' }){
   const sb = await sbReady();
-  if (!isValidEmail(email)) throw new Error('Вкажіть коректний email');
-  if ((password || '').length < 8) throw new Error('Пароль має містити щонайменше 8 символів');
+  if (!isValidEmail(email)) throw new Error('Р’РєР°Р¶С–С‚СЊ РєРѕСЂРµРєС‚РЅРёР№ email');
+  if ((password || '').length < 8) throw new Error('РџР°СЂРѕР»СЊ РјР°С” РјС–СЃС‚РёС‚Рё С‰РѕРЅР°Р№РјРµРЅС€Рµ 8 СЃРёРјРІРѕР»С–РІ');
   const { data, error } = await sb.auth.signUp({
     email, password,
     options: { data: { full_name: name || '', phone: phone || '', user_role: role } }
@@ -53,9 +53,9 @@ async function signOut(){
 
 async function resetPassword(email){
   const sb = await sbReady();
-  if (!isValidEmail(email)) throw new Error('Вкажіть коректний email');
+  if (!isValidEmail(email)) throw new Error('Р’РєР°Р¶С–С‚СЊ РєРѕСЂРµРєС‚РЅРёР№ email');
   const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: location.origin + '/vhid' });
-  if (error) throw new Error('Не вдалося надіслати лист');
+  if (error) throw new Error('РќРµ РІРґР°Р»РѕСЃСЏ РЅР°РґС–СЃР»Р°С‚Рё Р»РёСЃС‚');
 }
 
 async function isAdmin(){
@@ -66,8 +66,8 @@ async function isAdmin(){
   return !!data;
 }
 
-/** Роль визначається наявністю профілю брокера, а не метаданими:
-    метадані користувач може підмінити при реєстрації. */
+/** Р РѕР»СЊ РІРёР·РЅР°С‡Р°С”С‚СЊСЃСЏ РЅР°СЏРІРЅС–СЃС‚СЋ РїСЂРѕС„С–Р»СЋ Р±СЂРѕРєРµСЂР°, Р° РЅРµ РјРµС‚Р°РґР°РЅРёРјРё:
+    РјРµС‚Р°РґР°РЅС– РєРѕСЂРёСЃС‚СѓРІР°С‡ РјРѕР¶Рµ РїС–РґРјС–РЅРёС‚Рё РїСЂРё СЂРµС”СЃС‚СЂР°С†С–С—. */
 async function userRole(){
   const user = await currentUser();
   if (!user) return 'guest';
@@ -77,15 +77,15 @@ async function userRole(){
 }
 
 function authMessage(m){
-  if (/Invalid login/i.test(m))            return 'Невірний email або пароль';
-  if (/already registered|User already/i.test(m)) return 'Цей email уже зареєстрований — увійдіть у кабінет';
-  if (/Email not confirmed/i.test(m))      return 'Підтвердіть email — лист уже у вашій пошті';
-  if (/Password/i.test(m))                 return 'Пароль надто короткий';
-  if (/rate limit|too many/i.test(m))      return 'Забагато спроб. Спробуйте за кілька хвилин';
-  return m || 'Сталася помилка';
+  if (/Invalid login/i.test(m))            return 'РќРµРІС–СЂРЅРёР№ email Р°Р±Рѕ РїР°СЂРѕР»СЊ';
+  if (/already registered|User already/i.test(m)) return 'Р¦РµР№ email СѓР¶Рµ Р·Р°СЂРµС”СЃС‚СЂРѕРІР°РЅРёР№ вЂ” СѓРІС–Р№РґС–С‚СЊ Сѓ РєР°Р±С–РЅРµС‚';
+  if (/Email not confirmed/i.test(m))      return 'РџС–РґС‚РІРµСЂРґС–С‚СЊ email вЂ” Р»РёСЃС‚ СѓР¶Рµ Сѓ РІР°С€С–Р№ РїРѕС€С‚С–';
+  if (/Password/i.test(m))                 return 'РџР°СЂРѕР»СЊ РЅР°РґС‚Рѕ РєРѕСЂРѕС‚РєРёР№';
+  if (/rate limit|too many/i.test(m))      return 'Р—Р°Р±Р°РіР°С‚Рѕ СЃРїСЂРѕР±. РЎРїСЂРѕР±СѓР№С‚Рµ Р·Р° РєС–Р»СЊРєР° С…РІРёР»РёРЅ';
+  return m || 'РЎС‚Р°Р»Р°СЃСЏ РїРѕРјРёР»РєР°';
 }
 
-/* ================= КАТАЛОГ ================= */
+/* ================= РљРђРўРђР›РћР“ ================= */
 
 const BROKER_FIELDS = 'id, name, city, region, plan, plan_expires_at, rating_avg, rating_count, experience, is_verified, views_count, about, phone, telegram, whatsapp, viber, instagram, facebook, tiktok, youtube, created_at';
 
@@ -99,7 +99,7 @@ async function listBrokers({ region = '', city = '', service = '', search = '', 
   if (verifiedOnly) query = query.eq('is_verified', true);
 
   const { data, error } = await query;
-  if (error){ console.error('listBrokers:', error); throw new Error('Не вдалося завантажити каталог'); }
+  if (error){ console.error('listBrokers:', error); throw new Error('РќРµ РІРґР°Р»РѕСЃСЏ Р·Р°РІР°РЅС‚Р°Р¶РёС‚Рё РєР°С‚Р°Р»РѕРі'); }
 
   let list = data || [];
   const q = search.trim().toLowerCase();
@@ -147,24 +147,24 @@ async function countBrokers(){
 async function incrementViews(brokerId){
   const sb = await sbReady();
   const key = 'viewed_' + brokerId;
-  if (sessionStorage.getItem(key)) return;      // один перегляд за сесію
+  if (sessionStorage.getItem(key)) return;      // РѕРґРёРЅ РїРµСЂРµРіР»СЏРґ Р·Р° СЃРµСЃС–СЋ
   sessionStorage.setItem(key, '1');
   await sb.rpc('increment_broker_views', { broker: brokerId }).catch(() => {});
 }
 
-/* ================= ЗАЯВКИ ================= */
+/* ================= Р—РђРЇР’РљР ================= */
 
 /**
  * @param {object} p
- *   brokerId — id брокера або null («будь-який вільний»)
+ *   brokerId вЂ” id Р±СЂРѕРєРµСЂР° Р°Р±Рѕ null (В«Р±СѓРґСЊ-СЏРєРёР№ РІС–Р»СЊРЅРёР№В»)
  *   service, comment, urgency
  *   car: { make, model, year, country }
  *   contact: { name, phone, telegram, email }
  */
 async function createRequest(p){
   const sb = await sbReady();
-  if (!p.contact?.name || p.contact.name.trim().length < 2) throw new Error('Вкажіть ім\'я');
-  if (!isValidPhone(p.contact?.phone)) throw new Error('Вкажіть коректний номер телефону');
+  if (!p.contact?.name || p.contact.name.trim().length < 2) throw new Error('Р’РєР°Р¶С–С‚СЊ С–Рј\'СЏ');
+  if (!isValidPhone(p.contact?.phone)) throw new Error('Р’РєР°Р¶С–С‚СЊ РєРѕСЂРµРєС‚РЅРёР№ РЅРѕРјРµСЂ С‚РµР»РµС„РѕРЅСѓ');
 
   const user = await currentUser();
   const { error } = await sb.from('requests').insert({
@@ -183,8 +183,8 @@ async function createRequest(p){
     client_email:    p.contact.email || null,
     status:          'new'
   });
-  if (error){ console.error('createRequest:', error); throw new Error('Заявку не надіслано. Спробуйте ще раз'); }
-  track('generate_lead', { service: p.service || 'Загальний запит' });
+  if (error){ console.error('createRequest:', error); throw new Error('Р—Р°СЏРІРєСѓ РЅРµ РЅР°РґС–СЃР»Р°РЅРѕ. РЎРїСЂРѕР±СѓР№С‚Рµ С‰Рµ СЂР°Р·'); }
+  track('generate_lead', { service: p.service || 'Р—Р°РіР°Р»СЊРЅРёР№ Р·Р°РїРёС‚' });
 }
 
 async function brokerRequests(brokerId, { status = null, limit = 100 } = {}){
@@ -211,12 +211,12 @@ async function clientRequests(){
 
 async function updateRequestStatus(id, status){
   const sb = await sbReady();
-  if (!REQUEST_STATUS[status]) throw new Error('Невідомий статус');
+  if (!REQUEST_STATUS[status]) throw new Error('РќРµРІС–РґРѕРјРёР№ СЃС‚Р°С‚СѓСЃ');
   const { error } = await sb.from('requests').update({ status }).eq('id', id);
-  if (error) throw new Error('Не вдалося оновити статус');
+  if (error) throw new Error('РќРµ РІРґР°Р»РѕСЃСЏ РѕРЅРѕРІРёС‚Рё СЃС‚Р°С‚СѓСЃ');
 }
 
-/* ================= ВІДГУКИ ================= */
+/* ================= Р’Р†Р”Р“РЈРљР ================= */
 
 async function listReviews(brokerId, { rating = 'all', sort = 'newest' } = {}){
   const sb = await sbReady();
@@ -231,7 +231,7 @@ async function listReviews(brokerId, { rating = 'all', sort = 'newest' } = {}){
   return data || [];
 }
 
-/** Відгуки брокера в кабінеті — включно з тими, що на модерації. */
+/** Р’С–РґРіСѓРєРё Р±СЂРѕРєРµСЂР° РІ РєР°Р±С–РЅРµС‚С– вЂ” РІРєР»СЋС‡РЅРѕ Р· С‚РёРјРё, С‰Рѕ РЅР° РјРѕРґРµСЂР°С†С–С—. */
 async function myReviews(brokerId){
   const sb = await sbReady();
   const { data, error } = await sb.from('reviews')
@@ -243,10 +243,10 @@ async function myReviews(brokerId){
 
 async function submitReview({ brokerId, authorName, rating, service, body }){
   const sb = await sbReady();
-  if (!authorName || authorName.trim().length < 2) throw new Error('Вкажіть ім\'я');
-  if (!rating) throw new Error('Поставте оцінку');
-  if (!service) throw new Error('Оберіть послугу');
-  if (!body || body.trim().length < 20) throw new Error('Опишіть досвід — щонайменше 20 символів');
+  if (!authorName || authorName.trim().length < 2) throw new Error('Р’РєР°Р¶С–С‚СЊ С–Рј\'СЏ');
+  if (!rating) throw new Error('РџРѕСЃС‚Р°РІС‚Рµ РѕС†С–РЅРєСѓ');
+  if (!service) throw new Error('РћР±РµСЂС–С‚СЊ РїРѕСЃР»СѓРіСѓ');
+  if (!body || body.trim().length < 20) throw new Error('РћРїРёС€С–С‚СЊ РґРѕСЃРІС–Рґ вЂ” С‰РѕРЅР°Р№РјРµРЅС€Рµ 20 СЃРёРјРІРѕР»С–РІ');
 
   const user = await currentUser();
   const { error } = await sb.from('reviews').insert({
@@ -255,28 +255,28 @@ async function submitReview({ brokerId, authorName, rating, service, body }){
     author_user_id: user?.id || null,
     rating: Number(rating),
     service, body: body.trim()
-    // status ставить тригер у базі — завжди 'pending'
+    // status СЃС‚Р°РІРёС‚СЊ С‚СЂРёРіРµСЂ Сѓ Р±Р°Р·С– вЂ” Р·Р°РІР¶РґРё 'pending'
   });
-  if (error){ console.error('submitReview:', error); throw new Error('Не вдалося надіслати відгук'); }
+  if (error){ console.error('submitReview:', error); throw new Error('РќРµ РІРґР°Р»РѕСЃСЏ РЅР°РґС–СЃР»Р°С‚Рё РІС–РґРіСѓРє'); }
 }
 
 async function markHelpful(reviewId){
   const sb = await sbReady();
   const key = 'helpful_' + reviewId;
-  if (localStorage.getItem(key)) throw new Error('Ви вже позначили цей відгук');
+  if (localStorage.getItem(key)) throw new Error('Р’Рё РІР¶Рµ РїРѕР·РЅР°С‡РёР»Рё С†РµР№ РІС–РґРіСѓРє');
   const voter = (await currentUser())?.id || ('anon-' + reviewId + '-' + Math.random().toString(36).slice(2,10));
   const { data, error } = await sb.rpc('mark_review_helpful', { review: reviewId, voter });
-  if (error) throw new Error('Не вдалося зарахувати голос');
+  if (error) throw new Error('РќРµ РІРґР°Р»РѕСЃСЏ Р·Р°СЂР°С…СѓРІР°С‚Рё РіРѕР»РѕСЃ');
   localStorage.setItem(key, '1');
   return data;
 }
 
 async function replyToReview(reviewId, brokerId, body){
   const sb = await sbReady();
-  if (!body || body.trim().length < 10) throw new Error('Відповідь — щонайменше 10 символів');
+  if (!body || body.trim().length < 10) throw new Error('Р’С–РґРїРѕРІС–РґСЊ вЂ” С‰РѕРЅР°Р№РјРµРЅС€Рµ 10 СЃРёРјРІРѕР»С–РІ');
   const { error } = await sb.from('review_replies')
     .upsert({ review_id: reviewId, broker_id: brokerId, body: body.trim() }, { onConflict:'review_id' });
-  if (error){ console.error('replyToReview:', error); throw new Error('Не вдалося зберегти відповідь'); }
+  if (error){ console.error('replyToReview:', error); throw new Error('РќРµ РІРґР°Р»РѕСЃСЏ Р·Р±РµСЂРµРіС‚Рё РІС–РґРїРѕРІС–РґСЊ'); }
 }
 
 function ratingSummary(reviews){
@@ -287,7 +287,7 @@ function ratingSummary(reviews){
   return { counts, total, avg };
 }
 
-/* ================= КАБІНЕТ БРОКЕРА ================= */
+/* ================= РљРђР‘Р†РќР•Рў Р‘Р РћРљР•Р Рђ ================= */
 
 async function getMyBroker(){
   const sb = await sbReady();
@@ -303,7 +303,7 @@ async function getMyBroker(){
 async function createBrokerProfile(fields){
   const sb = await sbReady();
   const user = await currentUser();
-  if (!user) throw new Error('Спочатку увійдіть у кабінет');
+  if (!user) throw new Error('РЎРїРѕС‡Р°С‚РєСѓ СѓРІС–Р№РґС–С‚СЊ Сѓ РєР°Р±С–РЅРµС‚');
   const { data, error } = await sb.from('brokers').insert({
     user_id: user.id,
     email: user.email,
@@ -313,26 +313,26 @@ async function createBrokerProfile(fields){
   }).select().single();
   if (error){
     console.error('createBrokerProfile:', error);
-    if (/duplicate|unique/i.test(error.message)) throw new Error('Профіль брокера вже існує');
-    throw new Error('Не вдалося створити профіль');
+    if (/duplicate|unique/i.test(error.message)) throw new Error('РџСЂРѕС„С–Р»СЊ Р±СЂРѕРєРµСЂР° РІР¶Рµ С–СЃРЅСѓС”');
+    throw new Error('РќРµ РІРґР°Р»РѕСЃСЏ СЃС‚РІРѕСЂРёС‚Рё РїСЂРѕС„С–Р»СЊ');
   }
   track('sign_up', { method:'broker' });
   return data;
 }
 
-/** Тариф, рейтинг і верифікацію звідси змінити не можна — блокує тригер у базі. */
+/** РўР°СЂРёС„, СЂРµР№С‚РёРЅРі С– РІРµСЂРёС„С–РєР°С†С–СЋ Р·РІС–РґСЃРё Р·РјС–РЅРёС‚Рё РЅРµ РјРѕР¶РЅР° вЂ” Р±Р»РѕРєСѓС” С‚СЂРёРіРµСЂ Сѓ Р±Р°Р·С–. */
 async function updateMyBroker(updates){
   const sb = await sbReady();
   const user = await currentUser();
-  if (!user) throw new Error('Сесія завершилась — увійдіть знову');
+  if (!user) throw new Error('РЎРµСЃС–СЏ Р·Р°РІРµСЂС€РёР»Р°СЃСЊ вЂ” СѓРІС–Р№РґС–С‚СЊ Р·РЅРѕРІСѓ');
   const allowed = ['name','city','region','about','experience','phone','telegram',
                    'whatsapp','viber','instagram','facebook','tiktok','youtube'];
   const patch = {};
   allowed.forEach(k => { if (k in updates) patch[k] = updates[k] || null; });
-  if (!patch.name || patch.name.trim().length < 2) throw new Error('Вкажіть ім\'я або назву компанії');
+  if (!patch.name || patch.name.trim().length < 2) throw new Error('Р’РєР°Р¶С–С‚СЊ С–Рј\'СЏ Р°Р±Рѕ РЅР°Р·РІСѓ РєРѕРјРїР°РЅС–С—');
 
   const { error } = await sb.from('brokers').update(patch).eq('user_id', user.id);
-  if (error){ console.error('updateMyBroker:', error); throw new Error('Зміни не збережено'); }
+  if (error){ console.error('updateMyBroker:', error); throw new Error('Р—РјС–РЅРё РЅРµ Р·Р±РµСЂРµР¶РµРЅРѕ'); }
 }
 
 async function setMyServices(brokerId, services){
@@ -346,7 +346,7 @@ async function setMyServices(brokerId, services){
       price_from: s.price_from ?? null,
       price_to: s.price_to ?? null
     })));
-  if (error){ console.error('setMyServices:', error); throw new Error('Не вдалося зберегти послуги'); }
+  if (error){ console.error('setMyServices:', error); throw new Error('РќРµ РІРґР°Р»РѕСЃСЏ Р·Р±РµСЂРµРіС‚Рё РїРѕСЃР»СѓРіРё'); }
 }
 
 async function brokerStats(brokerId){
@@ -360,7 +360,7 @@ async function brokerStats(brokerId){
   return { total: total||0, month: month||0, fresh: fresh||0 };
 }
 
-/* ================= ПІДПИСКА ================= */
+/* ================= РџР†Р”РџРРЎРљРђ ================= */
 
 async function myPayments(brokerId){
   const sb = await sbReady();
@@ -376,20 +376,20 @@ function planActive(broker){
 }
 
 /**
- * Готує платіж на сервері й веде на WayForPay.
- * Суму рахує edge-функція — з браузера її підмінити не можна.
+ * Р“РѕС‚СѓС” РїР»Р°С‚С–Р¶ РЅР° СЃРµСЂРІРµСЂС– Р№ РІРµРґРµ РЅР° WayForPay.
+ * РЎСѓРјСѓ СЂР°С…СѓС” edge-С„СѓРЅРєС†С–СЏ вЂ” Р· Р±СЂР°СѓР·РµСЂР° С—С— РїС–РґРјС–РЅРёС‚Рё РЅРµ РјРѕР¶РЅР°.
  */
 async function startCheckout(planKey, period = 'month'){
   const session = await currentSession();
-  if (!session) throw new Error('Увійдіть у кабінет, щоб оформити підписку');
-  if (!PLANS[planKey] || planKey === 'free') throw new Error('Оберіть тариф');
+  if (!session) throw new Error('РЈРІС–Р№РґС–С‚СЊ Сѓ РєР°Р±С–РЅРµС‚, С‰РѕР± РѕС„РѕСЂРјРёС‚Рё РїС–РґРїРёСЃРєСѓ');
+  if (!PLANS[planKey] || planKey === 'free') throw new Error('РћР±РµСЂС–С‚СЊ С‚Р°СЂРёС„');
 
   const res = await fetch(CHECKOUT_FN, {
     method:'POST',
     headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer ' + session.access_token },
     body: JSON.stringify({ plan: planKey, period })
   });
-  if (!res.ok) throw new Error('Оплата тимчасово недоступна. Напишіть на ' + CONTACTS.email + ' — виставимо рахунок');
+  if (!res.ok) throw new Error('РћРїР»Р°С‚Р° С‚РёРјС‡Р°СЃРѕРІРѕ РЅРµРґРѕСЃС‚СѓРїРЅР°. РќР°РїРёС€С–С‚СЊ РЅР° ' + CONTACTS.email + ' вЂ” РІРёСЃС‚Р°РІРёРјРѕ СЂР°С…СѓРЅРѕРє');
 
   const fields = await res.json();
   const form = document.createElement('form');
@@ -409,7 +409,7 @@ async function startCheckout(planKey, period = 'month'){
   form.submit();
 }
 
-/* ================= КЛІЄНТ ================= */
+/* ================= РљР›Р†Р„РќРў ================= */
 
 async function getMyProfile(){
   const sb = await sbReady();
@@ -422,18 +422,18 @@ async function getMyProfile(){
 async function updateMyProfile({ full_name, phone }){
   const sb = await sbReady();
   const user = await currentUser();
-  if (!user) throw new Error('Сесія завершилась');
+  if (!user) throw new Error('РЎРµСЃС–СЏ Р·Р°РІРµСЂС€РёР»Р°СЃСЊ');
   const { error } = await sb.from('profiles')
     .upsert({ id: user.id, full_name: full_name || null, phone: phone || null });
-  if (error) throw new Error('Зміни не збережено');
+  if (error) throw new Error('Р—РјС–РЅРё РЅРµ Р·Р±РµСЂРµР¶РµРЅРѕ');
 }
 
-/* ================= АДМІН ================= */
+/* ================= РђР”РњР†Рќ ================= */
 
 async function adminBrokers(){
   const sb = await sbReady();
   const { data, error } = await sb.from('brokers').select('*').order('created_at', { ascending:false });
-  if (error) throw new Error('Брокери не завантажились: ' + error.message);
+  if (error) throw new Error('Р‘СЂРѕРєРµСЂРё РЅРµ Р·Р°РІР°РЅС‚Р°Р¶РёР»РёСЃСЊ: ' + error.message);
   return data || [];
 }
 
@@ -441,7 +441,7 @@ async function adminRequests(){
   const sb = await sbReady();
   const { data, error } = await sb.from('requests')
     .select('*, brokers(name)').order('created_at', { ascending:false });
-  if (error) throw new Error('Заявки не завантажились: ' + error.message);
+  if (error) throw new Error('Р—Р°СЏРІРєРё РЅРµ Р·Р°РІР°РЅС‚Р°Р¶РёР»РёСЃСЊ: ' + error.message);
   return data || [];
 }
 
@@ -464,7 +464,7 @@ async function moderateReview(id, status, reason = ''){
   const sb = await sbReady();
   const { error } = await sb.from('reviews')
     .update({ status, rejection_reason: reason || null }).eq('id', id);
-  if (error) throw new Error('Не вдалося змінити статус відгуку');
+  if (error) throw new Error('РќРµ РІРґР°Р»РѕСЃСЏ Р·РјС–РЅРёС‚Рё СЃС‚Р°С‚СѓСЃ РІС–РґРіСѓРєСѓ');
 }
 
 async function adminSetPlan(brokerId, plan){
@@ -473,23 +473,76 @@ async function adminSetPlan(brokerId, plan){
   if (plan === 'free') patch.plan_expires_at = null;
   else { const d = new Date(); d.setMonth(d.getMonth()+1); patch.plan_expires_at = d.toISOString(); }
   const { error } = await sb.from('brokers').update(patch).eq('id', brokerId);
-  if (error) throw new Error('Не вдалося змінити тариф');
+  if (error) throw new Error('РќРµ РІРґР°Р»РѕСЃСЏ Р·РјС–РЅРёС‚Рё С‚Р°СЂРёС„');
 }
 
 async function adminSetVerified(brokerId, value){
   const sb = await sbReady();
   const { error } = await sb.from('brokers').update({ is_verified: value }).eq('id', brokerId);
-  if (error) throw new Error('Не вдалося змінити позначку');
+  if (error) throw new Error('РќРµ РІРґР°Р»РѕСЃСЏ Р·РјС–РЅРёС‚Рё РїРѕР·РЅР°С‡РєСѓ');
 }
 
 async function adminSetActive(brokerId, value){
   const sb = await sbReady();
   const { error } = await sb.from('brokers').update({ is_active: value }).eq('id', brokerId);
-  if (error) throw new Error('Не вдалося змінити видимість профілю');
+  if (error) throw new Error('РќРµ РІРґР°Р»РѕСЃСЏ Р·РјС–РЅРёС‚Рё РІРёРґРёРјС–СЃС‚СЊ РїСЂРѕС„С–Р»СЋ');
 }
 
 async function adminDeleteBroker(brokerId){
   const sb = await sbReady();
   const { error } = await sb.from('brokers').delete().eq('id', brokerId);
-  if (error) throw new Error('Не вдалося видалити профіль');
+  if (error) throw new Error('РќРµ РІРґР°Р»РѕСЃСЏ РІРёРґР°Р»РёС‚Рё РїСЂРѕС„С–Р»СЊ');
+}
+
+/* ================= Р—РђРџР РћРЁР•РќРќРЇ Р‘Р РћРљР•Р Р†Р’ ================= */
+
+const INVITE_FN = SUPABASE_URL + '/functions/v1/invite-broker';
+
+/**
+ * Р“РѕС‚СѓС” РїСЂРѕС„С–Р»СЊ Р±СЂРѕРєРµСЂР° С– РЅР°РґСЃРёР»Р°С” Р№РѕРјСѓ Р»РёСЃС‚-Р·Р°РїСЂРѕС€РµРЅРЅСЏ.
+ * РџСЂРѕС„С–Р»СЊ Р»РёС€Р°С”С‚СЊСЃСЏ РїСЂРёС…РѕРІР°РЅРёРј, РґРѕРєРё Р±СЂРѕРєРµСЂ РЅРµ РїС–РґС‚РІРµСЂРґРёС‚СЊ РґР°РЅС–.
+ */
+async function inviteBroker(fields){
+  const session = await currentSession();
+  if (!session) throw new Error('РЎРµСЃС–СЏ Р·Р°РІРµСЂС€РёР»Р°СЃСЊ вЂ” СѓРІС–Р№РґС–С‚СЊ Р·РЅРѕРІСѓ');
+
+  const res = await fetch(INVITE_FN, {
+    method:'POST',
+    headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer ' + session.access_token },
+    body: JSON.stringify(fields)
+  });
+  const data = await res.json().catch(() => ({}));
+
+  if (!res.ok){
+    const map = {
+      unauthorized:    'РќРµРјР°С” РїСЂР°РІ. РЈРІС–Р№РґС–С‚СЊ СЏРє Р°РґРјС–РЅС–СЃС‚СЂР°С‚РѕСЂ',
+      forbidden:       'Р¦РµР№ Р°РєР°СѓРЅС‚ РЅРµ РјР°С” РїСЂР°РІ Р°РґРјС–РЅС–СЃС‚СЂР°С‚РѕСЂР°',
+      bad_email:       'Р’РєР°Р¶С–С‚СЊ РєРѕСЂРµРєС‚РЅРёР№ email',
+      bad_name:        'Р’РєР°Р¶С–С‚СЊ РЅР°Р·РІСѓ РєРѕРјРїР°РЅС–С— Р°Р±Рѕ С–Рј\'СЏ',
+      already_exists:  data.claimed ? 'РўР°РєРёР№ Р±СЂРѕРєРµСЂ СѓР¶Рµ С” РІ РєР°С‚Р°Р»РѕР·С–' : 'Р—Р°РїСЂРѕС€РµРЅРЅСЏ С†СЊРѕРјСѓ Р±СЂРѕРєРµСЂСѓ РІР¶Рµ РЅР°РґС–СЃР»Р°РЅРѕ',
+      email_registered:'Р¦РµР№ email СѓР¶Рµ Р·Р°СЂРµС”СЃС‚СЂРѕРІР°РЅРёР№ РЅР° РїР»Р°С‚С„РѕСЂРјС–',
+      invite_failed:   'Р›РёСЃС‚ РЅРµ РЅР°РґС–СЃР»Р°РІСЃСЏ. РџРµСЂРµРІС–СЂС‚Рµ email',
+      profile_failed:  'РџСЂРѕС„С–Р»СЊ РЅРµ СЃС‚РІРѕСЂРµРЅРѕ'
+    };
+    throw new Error(map[data.error] || 'РќРµ РІРґР°Р»РѕСЃСЏ РЅР°РґС–СЃР»Р°С‚Рё Р·Р°РїСЂРѕС€РµРЅРЅСЏ');
+  }
+  return data;
+}
+
+/** Р—Р°РїСЂРѕС€РµРЅС–, СЏРєС– С‰Рµ РЅРµ РїС–РґС‚РІРµСЂРґРёР»Рё РїСЂРѕС„С–Р»СЊ. */
+async function pendingInvites(){
+  const sb = await sbReady();
+  const { data } = await sb.from('brokers')
+    .select('id, name, email, city, region, invited_at')
+    .is('claimed_at', null)
+    .order('invited_at', { ascending:false });
+  return data || [];
+}
+
+/** РЎРєР°СЃСѓРІР°С‚Рё Р·Р°РїСЂРѕС€РµРЅРЅСЏ (РїСЂРѕС„С–Р»СЊ С‰Рµ РЅРµ РїС–РґС‚РІРµСЂРґР¶РµРЅРёР№). */
+async function cancelInvite(brokerId){
+  const sb = await sbReady();
+  const { error } = await sb.from('brokers')
+    .delete().eq('id', brokerId).is('claimed_at', null);
+  if (error) throw new Error('РќРµ РІРґР°Р»РѕСЃСЏ СЃРєР°СЃСѓРІР°С‚Рё Р·Р°РїСЂРѕС€РµРЅРЅСЏ');
 }
