@@ -83,7 +83,21 @@
     <section class="cab-pane" id="pane-brokers">
       <div class="spread" style="margin-bottom:1rem">
         <h1 class="h-md">Брокери <span class="text-sm text-muted" id="bTotal"></span></h1>
-        <input class="input" style="max-width:240px" placeholder="Пошук за іменем, email, містом" oninput="filterBrokers(this.value)">
+        <div class="row" style="gap:8px">
+          <input class="input" style="max-width:240px" placeholder="Пошук за іменем, email, містом" oninput="filterBrokers(this.value)">
+          <button class="btn btn-primary btn-sm" onclick="openInvite()"><i class="ti ti-mail-plus"></i> Запросити брокера</button>
+        </div>
+      </div>
+
+      <div id="pendingBox" style="display:none;margin-bottom:1.5rem">
+        <div class="card-title">Очікують підтвердження</div>
+        <div class="table-wrap table-scroll">
+          <table>
+            <thead><tr><th>Брокер</th><th>Email</th><th>Місто</th><th>Запрошено</th><th></th></tr></thead>
+            <tbody id="pendingTable"></tbody>
+          </table>
+        </div>
+        <p class="hint">Ці профілі не показуються в каталозі й не приймають заявок, доки брокер не підтвердить дані за посиланням з листа.</p>
       </div>
       <div class="table-wrap table-scroll">
         <table>
@@ -152,6 +166,41 @@
 </div>
 </div>
 
+<!-- МОДАЛКА ЗАПРОШЕННЯ -->
+<div class="overlay" id="inviteModal">
+  <div class="modal modal-wide" role="dialog" aria-modal="true">
+    <button class="modal-close" onclick="closeInvite()" aria-label="Закрити"><i class="ti ti-x"></i></button>
+    <div class="modal-title">Запросити брокера</div>
+    <div class="modal-sub">Брокер отримає лист із посиланням. Профіль з'явиться в каталозі лише після того, як він підтвердить дані.</div>
+
+    <div class="field-row">
+      <div class="field"><label class="label" for="i-name">Назва компанії або ім'я *</label>
+        <input class="input" id="i-name" placeholder="ТОВ «МитБрок» або Іван Петренко"></div>
+      <div class="field"><label class="label" for="i-email">Email *</label>
+        <input class="input" type="email" id="i-email" placeholder="broker@company.com"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label class="label" for="i-city">Місто</label><input class="input" id="i-city" placeholder="Київ"></div>
+      <div class="field"><label class="label" for="i-region">Область</label><select class="input" id="i-region"></select></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label class="label" for="i-phone">Телефон</label><input class="input" id="i-phone" placeholder="+380…"></div>
+      <div class="field"><label class="label" for="i-tg">Telegram</label><input class="input" id="i-tg" placeholder="@username"></div>
+    </div>
+    <div class="field"><label class="label" for="i-about">Про компанію</label>
+      <textarea class="input" id="i-about" placeholder="Коротко — брокер зможе відредагувати"></textarea></div>
+    <div class="field"><span class="label">Послуги</span>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px" id="iSvc"></div></div>
+
+    <div class="hint" style="margin-bottom:1rem">
+      Вносьте лише ті контакти, які компанія сама опублікувала для клієнтів,
+      і лише після того, як домовились про розміщення.
+    </div>
+    <div class="msg" id="i-msg"></div>
+    <button class="btn btn-primary btn-block" id="i-btn" onclick="sendInvite()">Надіслати запрошення</button>
+  </div>
+</div>
+
 <script src="/assets/js/config.js"></script>
 <script src="/assets/js/db.js"></script>
 <script>
@@ -198,7 +247,7 @@ async function loadAll(){
       adminBrokers(), adminRequests(), adminPayments(), adminReviews()
     ]);
   }catch(e){ showToast(e.message, 'error'); return; }
-  renderDash(); renderBrokers(brokers); renderRequests(requests); renderPayments(); renderReviews();
+  renderDash(); renderBrokers(brokers); renderPending(); renderRequests(requests); renderPayments(); renderReviews();
 }
 
 function renderDash(){
@@ -289,7 +338,63 @@ async function changePlan(id, plan, name){
   try{ await adminSetPlan(id, plan); showToast('Тариф змінено вручну'); await refreshBrokers(); }
   catch(e){ showToast(e.message, 'error'); }
 }
-async function refreshBrokers(){ brokers = await adminBrokers(); renderBrokers(brokers); renderDash(); }
+async function refreshBrokers(){ brokers = await adminBrokers(); renderBrokers(brokers); renderDash(); renderPending(); }
+
+/* ---------- Запрошення ---------- */
+function openInvite(){
+  document.getElementById('i-region').innerHTML =
+    '<option value="">Оберіть область</option>' + REGIONS.map(r => '<option>' + r + '</option>').join('');
+  document.getElementById('iSvc').innerHTML = SERVICES.map(s =>
+    '<div class="svc-pick" data-name="' + s.name + '" onclick="this.classList.toggle(\'on\')" ' +
+    'style="display:flex;align-items:center;gap:8px;background:var(--surface);border:.5px solid var(--border);' +
+    'border-radius:var(--r-sm);padding:10px 12px;cursor:pointer;font-size:13px">' +
+    '<span>' + s.icon + '</span><span>' + s.name + '</span></div>').join('');
+  document.getElementById('i-msg').className = 'msg';
+  document.getElementById('inviteModal').classList.add('open');
+}
+function closeInvite(){ document.getElementById('inviteModal').classList.remove('open'); }
+
+async function sendInvite(){
+  const v = id => document.getElementById(id).value.trim();
+  const m = document.getElementById('i-msg');
+  const btn = document.getElementById('i-btn');
+  btn.disabled = true; btn.textContent = 'Надсилаємо…';
+  try{
+    await inviteBroker({
+      name: v('i-name'), email: v('i-email'), city: v('i-city'),
+      region: document.getElementById('i-region').value,
+      phone: v('i-phone'), telegram: v('i-tg'), about: v('i-about'),
+      services: [...document.querySelectorAll('#iSvc .on')].map(el => el.dataset.name)
+    });
+    m.className = 'msg show msg-ok';
+    m.textContent = 'Запрошення надіслано на ' + v('i-email');
+    ['i-name','i-email','i-city','i-phone','i-tg','i-about'].forEach(id => document.getElementById(id).value = '');
+    document.querySelectorAll('#iSvc .on').forEach(el => el.classList.remove('on'));
+    await refreshBrokers();
+  }catch(e){
+    m.className = 'msg show msg-err'; m.textContent = e.message;
+  }
+  btn.disabled = false; btn.textContent = 'Надіслати запрошення';
+}
+
+function renderPending(){
+  const list = brokers.filter(b => !b.claimed_at);
+  document.getElementById('pendingBox').style.display = list.length ? 'block' : 'none';
+  if (!list.length) return;
+  document.getElementById('pendingTable').innerHTML = list.map(b =>
+    '<tr><td style="font-weight:500">' + esc(b.name) + '</td>' +
+    '<td class="text-sm text-muted">' + esc(b.email || '') + '</td>' +
+    '<td class="text-sm text-muted">' + esc([b.city, b.region].filter(Boolean).join(', ') || '—') + '</td>' +
+    '<td class="text-xs text-muted">' + (b.invited_at ? timeAgo(b.invited_at) : '—') + '</td>' +
+    '<td><button class="btn-quiet" onclick="dropInvite(\'' + esc(b.id) + '\',\'' + esc(b.name) + '\')">Скасувати</button></td></tr>'
+  ).join('');
+}
+
+async function dropInvite(id, name){
+  if (!confirm('Скасувати запрошення для «' + name + '»?\n\nПідготовлений профіль буде видалено.\nАкаунт у розділі Authentication потрібно прибрати вручну.')) return;
+  try{ await cancelInvite(id); showToast('Запрошення скасовано'); await refreshBrokers(); }
+  catch(e){ showToast(e.message, 'error'); }
+}
 
 /* ---------- Заявки ---------- */
 function renderRequests(list){
