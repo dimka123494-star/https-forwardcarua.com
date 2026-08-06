@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Мої заявки — МитнийБрокер</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.7.0/dist/tabler-icons.min.css">
+<link rel="stylesheet" href="/assets/css/app.css">
+<style>
+.wrap{max-width:760px;margin:0 auto;padding:2.5rem 1.25rem 4rem}
+.req{background:var(--surface);border:.5px solid var(--border);border-radius:var(--r);padding:1.25rem;margin-bottom:10px}
+.req-top{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:8px}
+.timeline{display:flex;align-items:center;gap:6px;margin-top:12px;font-size:11px;color:var(--muted)}
+.tl-step{display:flex;align-items:center;gap:5px}
+.tl-dot{width:9px;height:9px;border-radius:50%;background:var(--surface2)}
+.tl-dot.on{background:var(--green)}
+.tl-line{width:22px;height:1px;background:var(--border)}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <a class="nav-brand" href="/">Митний<span>Брокер</span></a>
+  <div class="nav-links">
+    <a class="nav-link" href="/">Каталог</a>
+    <a class="nav-link" href="/zayavka">Нова заявка</a>
+  </div>
+  <div class="nav-actions">
+    <button class="btn btn-ghost btn-sm" onclick="doLogout()"><i class="ti ti-logout"></i> Вийти</button>
+  </div>
+</nav>
+
+<div class="page">
+  <div class="wrap">
+    <div class="spread" style="margin-bottom:1.5rem">
+      <div>
+        <h1 class="h-md">Мої заявки</h1>
+        <p class="text-sm text-muted" id="hello"></p>
+      </div>
+      <a class="btn btn-primary btn-sm" href="/zayavka"><i class="ti ti-plus"></i> Нова заявка</a>
+    </div>
+
+    <div id="list"><div class="text-sm text-muted">Завантаження…</div></div>
+
+    <div class="card" style="margin-top:2rem">
+      <div class="card-title">Мої дані</div>
+      <p class="text-sm text-muted" style="margin-bottom:1rem">Підставляються автоматично, коли ви створюєте нову заявку.</p>
+      <div class="field-row">
+        <div class="field"><label class="label" for="pf-name">Ім'я</label><input class="input" id="pf-name"></div>
+        <div class="field"><label class="label" for="pf-phone">Телефон</label><input class="input" id="pf-phone" placeholder="+380…"></div>
+      </div>
+      <div class="msg" id="pfMsg"></div>
+      <button class="btn btn-primary" onclick="saveProfile()">Зберегти</button>
+    </div>
+  </div>
+</div>
+
+<script src="/assets/js/config.js"></script>
+<script src="/assets/js/db.js"></script>
+<script>
+async function doLogout(){ await signOut(); location.href = '/'; }
+
+function timeline(status){
+  const steps = [['new','Надіслано'],['accepted','Взято в роботу'],['done','Завершено']];
+  if (status === 'declined')
+    return '<div class="timeline"><span class="dot" style="background:var(--red)"></span>' +
+           '<span style="color:var(--red)">Брокер відхилив заявку — спробуйте іншого фахівця</span></div>';
+  const idx = { new:0, accepted:1, done:2 }[status] ?? 0;
+  return '<div class="timeline">' + steps.map((s,i) =>
+    '<span class="tl-step"><span class="tl-dot ' + (i <= idx ? 'on' : '') + '"></span>' +
+    '<span style="' + (i <= idx ? 'color:var(--text)' : '') + '">' + s[1] + '</span></span>' +
+    (i < 2 ? '<span class="tl-line"></span>' : '')).join('') + '</div>';
+}
+
+function card(r){
+  const car = [r.car_make, r.car_model, r.car_year].filter(Boolean).join(' ');
+  const b = r.brokers;
+  return '<div class="req">' +
+    '<div class="req-top">' +
+      '<div>' +
+        '<div style="font-weight:500">' + esc(r.service || 'Загальний запит') + '</div>' +
+        (car ? '<div class="text-sm text-muted" style="margin-top:2px">' + esc(car) +
+               (r.car_country ? ' · ' + esc(r.car_country) : '') + '</div>' : '') +
+      '</div>' +
+      '<span class="text-xs text-muted" style="white-space:nowrap">' + timeAgo(r.created_at) + '</span>' +
+    '</div>' +
+    (r.comment ? '<p class="text-sm" style="line-height:1.55;margin-bottom:8px">' + esc(r.comment) + '</p>' : '') +
+    '<div class="text-sm text-muted">' +
+      (b ? 'Брокер: <a href="/broker/' + esc(r.broker_id) + '">' + esc(b.name) + '</a>' +
+           (r.status !== 'new' && b.phone ? ' · <a href="' + telHref(b.phone) + '">' + esc(b.phone) + '</a>' : '') +
+           (r.status !== 'new' && b.telegram ? ' · <a href="' + tgHref(b.telegram) + '" target="_blank" rel="noopener">Telegram</a>' : '')
+         : 'Загальна заявка — передана менеджеру') +
+    '</div>' +
+    timeline(r.status) +
+  '</div>';
+}
+
+async function load(){
+  const list = await clientRequests();
+  document.getElementById('list').innerHTML = list.length
+    ? list.map(card).join('')
+    : '<div class="empty"><strong>Заявок ще немає</strong>' +
+      'Опишіть завдання — і брокери зв\'яжуться з вами.<br><a href="/zayavka">Створити заявку</a></div>';
+}
+
+async function saveProfile(){
+  const m = document.getElementById('pfMsg');
+  try{
+    await updateMyProfile({
+      full_name: document.getElementById('pf-name').value.trim(),
+      phone: document.getElementById('pf-phone').value.trim()
+    });
+    m.className = 'msg show msg-ok'; m.textContent = 'Збережено';
+  }catch(e){ m.className = 'msg show msg-err'; m.textContent = e.message; }
+}
+
+window.addEventListener('DOMContentLoaded', async () => {
+  const user = await requireAuth();
+  if (!user) return;
+
+  // Якщо це брокер — його місце в іншому кабінеті
+  const broker = await getMyBroker();
+  if (broker){ location.href = '/kabinet'; return; }
+
+  const p = await getMyProfile();
+  document.getElementById('hello').textContent = p?.full_name ? 'Вітаємо, ' + p.full_name : user.email;
+  document.getElementById('pf-name').value  = p?.full_name || '';
+  document.getElementById('pf-phone').value = p?.phone || '';
+
+  load();
+});
+</script>
+</body>
+</html>

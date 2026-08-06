@@ -4,629 +4,390 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex, nofollow">
-<title>МитнийБрокер — Адмін панель</title>
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
+<title>Адмін-панель — МитнийБрокер</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.7.0/dist/tabler-icons.min.css">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="stylesheet" href="/assets/css/app.css">
 <style>
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{--bg:#0d0e14;--s:#13141d;--s2:#1a1c28;--border:rgba(255,255,255,0.07);--blue:#4B8EF1;--green:#2DD98F;--amber:#F5A623;--red:#F1654B;--purple:#A855F7;--text:#f0f1f5;--muted:rgba(240,241,245,0.45);--r:12px}
-body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
-a{color:var(--blue)}
-:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
 .login-wrap{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:2rem}
-.login-card{background:var(--s);border:0.5px solid var(--border);border-radius:20px;padding:2.5rem;width:100%;max-width:380px}
-.login-logo{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;margin-bottom:2rem;text-align:center}
-.login-logo span{color:var(--blue)}
-.form-group{margin-bottom:1rem}
-.form-label{display:block;font-size:12px;font-weight:500;color:var(--muted);margin-bottom:5px;text-transform:uppercase;letter-spacing:0.5px}
-.form-input{width:100%;background:var(--s2);border:0.5px solid var(--border);color:var(--text);padding:11px 13px;border-radius:9px;font-family:'DM Sans',sans-serif;font-size:14px;outline:none;transition:border-color 0.2s}
-.form-input:focus{border-color:var(--blue)}
-.login-btn{width:100%;background:var(--blue);color:#fff;border:none;padding:13px;border-radius:9px;font-family:'Syne',sans-serif;font-size:16px;font-weight:700;cursor:pointer;margin-top:0.5rem}
-.login-btn:disabled{opacity:0.6;cursor:not-allowed}
-.login-error{color:var(--red);font-size:13px;text-align:center;margin-top:0.75rem;line-height:1.5}
-.login-hint{margin-top:1.25rem;text-align:center;font-size:12px;color:var(--muted);line-height:1.6}
-.sidebar{background:var(--s);border-right:0.5px solid var(--border);padding:1.5rem 1rem;display:flex;flex-direction:column;gap:4px;position:fixed;top:0;left:0;bottom:0;width:220px}
-.sidebar-logo{font-family:'Syne',sans-serif;font-size:18px;font-weight:800;padding:0 0.5rem 1.5rem;border-bottom:0.5px solid var(--border);margin-bottom:0.5rem}
-.sidebar-logo span{color:var(--blue)}
-.sidebar-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:9px;font-size:14px;color:var(--muted);cursor:pointer;transition:all 0.2s;border:none;background:none;width:100%;text-align:left;font-family:'DM Sans',sans-serif}
-.sidebar-item.active,.sidebar-item:hover{background:var(--s2);color:var(--text)}
-.sidebar-item.active{color:var(--blue)}
-.sidebar-item i{font-size:16px}
-.sidebar-badge{background:var(--s2);color:var(--muted);border-radius:5px;padding:1px 7px;font-size:11px;margin-left:auto}
-.sidebar-badge.alert{background:var(--blue);color:#fff}
-.sidebar-footer{margin-top:auto;padding-top:1rem;border-top:0.5px solid var(--border)}
-.admin-email{font-size:11px;color:var(--muted);padding:0 12px 8px;word-break:break-all}
-.main-content{margin-left:220px;padding:2rem;min-height:100vh}
-.page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:2rem;flex-wrap:wrap;gap:1rem}
-.page-title{font-family:'Syne',sans-serif;font-size:26px;font-weight:800}
-.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:2rem}
-.stat-card{background:var(--s);border:0.5px solid var(--border);border-radius:var(--r);padding:1.25rem}
-.stat-icon{width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:16px;margin-bottom:0.75rem}
-.stat-val{font-family:'Syne',sans-serif;font-size:34px;font-weight:800;line-height:1;margin-bottom:3px}
-.stat-label{font-size:12px;color:var(--muted)}
-.stat-sub{font-size:11px;color:var(--muted);margin-top:6px}
-.table-wrap{background:var(--s);border:0.5px solid var(--border);border-radius:var(--r);overflow:hidden;margin-bottom:1.5rem}
-.table-header{display:flex;align-items:center;justify-content:space-between;padding:1rem 1.5rem;border-bottom:0.5px solid var(--border);flex-wrap:wrap;gap:10px}
-.table-title{font-size:15px;font-weight:500}
-.table-search{background:var(--s2);border:0.5px solid var(--border);color:var(--text);padding:7px 12px;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;outline:none;width:200px}
-.table-search::placeholder{color:var(--muted)}
-table{width:100%;border-collapse:collapse}
-th{padding:10px 16px;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);text-align:left;border-bottom:0.5px solid var(--border);white-space:nowrap}
-td{padding:12px 16px;font-size:14px;border-bottom:0.5px solid rgba(255,255,255,0.04);vertical-align:middle}
-tr:last-child td{border-bottom:none}
-tr:hover td{background:rgba(255,255,255,0.02)}
-.avatar-sm{width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-size:13px;font-weight:700;flex-shrink:0;color:#fff}
-.broker-cell{display:flex;align-items:center;gap:10px}
-.broker-cell-name{font-weight:500}
-.broker-cell-email{font-size:12px;color:var(--muted)}
-.plan-chip{display:inline-flex;align-items:center;gap:4px;border-radius:6px;padding:3px 10px;font-size:12px;font-weight:500;white-space:nowrap}
-.plan-chip.premium{background:rgba(168,85,247,0.15);color:var(--purple)}
-.plan-chip.pro{background:rgba(245,166,35,0.15);color:var(--amber)}
-.plan-chip.standard{background:rgba(75,142,241,0.15);color:var(--blue)}
-.plan-chip.free{background:rgba(255,255,255,0.05);color:var(--muted)}
-.status-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:6px}
-.status-dot.new{background:var(--blue)}.status-dot.done{background:var(--green)}.status-dot.pending{background:var(--amber)}.status-dot.declined{background:var(--red)}
-.action-btn{background:var(--s2);border:0.5px solid var(--border);color:var(--muted);padding:5px 10px;border-radius:6px;font-size:12px;cursor:pointer;transition:all 0.2s;font-family:'DM Sans',sans-serif;white-space:nowrap}
-.action-btn:hover{color:var(--text);border-color:var(--blue)}
-.action-btn.danger:hover{color:var(--red);border-color:var(--red)}
-.action-btn.success:hover{color:var(--green);border-color:var(--green)}
+.login-card{background:var(--surface);border:.5px solid var(--border);border-radius:20px;padding:2.5rem;width:100%;max-width:380px}
+.rv{background:var(--surface);border:.5px solid var(--border);border-radius:var(--r);padding:1.15rem;margin-bottom:8px}
+.rv.pending{border-color:rgba(245,166,35,.4)}
+.info-box{background:var(--surface2);border-radius:var(--r-sm);padding:1.15rem;font-size:13px;color:var(--muted);line-height:1.7}
+.info-box code{background:rgba(0,0,0,.35);padding:2px 6px;border-radius:5px;font-size:12px;color:var(--text)}
 .row-actions{display:flex;gap:6px;flex-wrap:wrap}
-.section-page{display:none}
-.section-page.active{display:block}
-.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:300;backdrop-filter:blur(6px);align-items:center;justify-content:center;padding:1rem}
-.modal-overlay.open{display:flex}
-.modal{background:var(--s);border:0.5px solid var(--border);border-radius:20px;width:100%;max-width:480px;padding:2rem;position:relative;max-height:90vh;overflow-y:auto}
-.modal-close{position:absolute;top:1rem;right:1rem;background:var(--s2);border:none;color:var(--muted);width:32px;height:32px;border-radius:8px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center}
-.modal-title{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;margin-bottom:1.5rem}
-.btn-primary{background:var(--blue);color:#fff;border:none;padding:10px 20px;border-radius:9px;font-family:'Syne',sans-serif;font-size:14px;font-weight:700;cursor:pointer}
-.toast{position:fixed;bottom:2rem;right:2rem;background:var(--s);border:0.5px solid var(--green);border-radius:10px;padding:12px 18px;font-size:14px;color:var(--green);z-index:999;display:flex;align-items:center;gap:8px;transform:translateY(120px);opacity:0;transition:all 0.3s;max-width:320px;line-height:1.45}
-.toast.show{transform:translateY(0);opacity:1}
-.toast.err{border-color:var(--red);color:var(--red)}
-.empty-state{text-align:center;padding:3rem;color:var(--muted)}
-.empty-state i{font-size:32px;margin-bottom:0.75rem;display:block}
-.info-box{background:var(--s2);border-radius:10px;padding:1.15rem;font-size:13px;color:var(--muted);line-height:1.7}
-.info-box code{background:rgba(0,0,0,0.35);padding:2px 6px;border-radius:5px;font-size:12px;color:var(--text)}
-.info-row{display:flex;gap:1rem;margin-bottom:0.5rem;font-size:14px;flex-wrap:wrap}
-.info-row .k{color:var(--muted);min-width:150px}
-@media(max-width:768px){.sidebar{position:static;width:auto;flex-direction:row;flex-wrap:wrap;border-right:none;border-bottom:0.5px solid var(--border)}.sidebar-logo{width:100%;padding-bottom:1rem}.sidebar-footer{margin-top:0;border-top:none;display:flex;gap:4px}.sidebar-item{width:auto}.admin-email{display:none}.main-content{margin-left:0;padding:1.25rem}}
 </style>
 </head>
 <body>
 
-<!-- LOGIN -->
-<div id="login-screen" class="login-wrap">
+<!-- ЛОГІН -->
+<div class="login-wrap" id="loginScreen">
   <div class="login-card">
-    <div class="login-logo">Митний<span>Брокер</span><br><span style="font-size:13px;color:var(--muted);font-family:'DM Sans',sans-serif">Адмін панель</span></div>
-    <div class="form-group"><label class="form-label" for="admin-email">Email</label><input type="email" class="form-input" id="admin-email" autocomplete="username" placeholder="admin@forwardcarua.com"></div>
-    <div class="form-group"><label class="form-label" for="admin-pass">Пароль</label><input type="password" class="form-input" id="admin-pass" autocomplete="current-password" placeholder="••••••••" onkeydown="if(event.key==='Enter')adminLogin()"></div>
-    <button class="login-btn" id="login-submit" onclick="adminLogin()">Увійти</button>
-    <div class="login-error" id="login-error"></div>
-    <div class="login-hint">Доступ мають лише акаунти зі списку адміністраторів. Пароль перевіряє Supabase — у коді сторінки його немає.</div>
+    <div style="text-align:center;margin-bottom:1.75rem">
+      <div class="nav-brand" style="font-size:22px">Митний<span>Брокер</span></div>
+      <div class="text-sm text-muted" style="margin-top:4px">Адмін-панель</div>
+    </div>
+    <div class="field"><label class="label" for="a-email">Email</label>
+      <input class="input" type="email" id="a-email" autocomplete="username"></div>
+    <div class="field"><label class="label" for="a-pass">Пароль</label>
+      <input class="input" type="password" id="a-pass" autocomplete="current-password"
+             onkeydown="if(event.key==='Enter')doLogin()"></div>
+    <div class="msg" id="a-msg"></div>
+    <button class="btn btn-primary btn-block" id="a-btn" onclick="doLogin()">Увійти</button>
+    <p class="hint" style="text-align:center;margin-top:1.25rem">
+      Доступ мають лише акаунти зі списку адміністраторів. Пароль перевіряє Supabase — у коді сторінки його немає.</p>
   </div>
 </div>
 
-<!-- ADMIN PANEL -->
-<div id="admin-panel" style="display:none">
-  <div class="sidebar">
-    <div class="sidebar-logo">Митний<span>Брокер</span></div>
-    <button class="sidebar-item active" onclick="showSection('dashboard',this)"><i class="ti ti-layout-dashboard"></i>Дашборд</button>
-    <button class="sidebar-item" onclick="showSection('brokers',this)"><i class="ti ti-users"></i>Брокери <span class="sidebar-badge" id="brokers-count-badge">0</span></button>
-    <button class="sidebar-item" onclick="showSection('requests',this)"><i class="ti ti-inbox"></i>Заявки <span class="sidebar-badge" id="requests-count-badge">0</span></button>
-    <button class="sidebar-item" onclick="showSection('subscriptions',this)"><i class="ti ti-credit-card"></i>Підписки</button>
-    <button class="sidebar-item" onclick="showSection('settings',this)"><i class="ti ti-settings"></i>Налаштування</button>
-    <div class="sidebar-footer">
-      <div class="admin-email" id="admin-who"></div>
-      <button class="sidebar-item" onclick="window.open('https://forwardcarua.com','_blank')"><i class="ti ti-external-link"></i>Переглянути сайт</button>
-      <button class="sidebar-item" onclick="adminLogout()"><i class="ti ti-logout"></i>Вийти</button>
-    </div>
+<!-- ПАНЕЛЬ -->
+<div id="panel" style="display:none">
+<nav class="nav">
+  <a class="nav-brand" href="/">Митний<span>Брокер</span></a>
+  <div class="nav-links">
+    <button class="nav-link active" data-p="dash"     onclick="pane('dash',this)">Дашборд</button>
+    <button class="nav-link"        data-p="brokers"  onclick="pane('brokers',this)">Брокери</button>
+    <button class="nav-link"        data-p="requests" onclick="pane('requests',this)">Заявки</button>
+    <button class="nav-link"        data-p="reviews"  onclick="pane('reviews',this)">Відгуки <span class="cab-badge" id="modBadge" style="display:none">0</span></button>
+    <button class="nav-link"        data-p="billing"  onclick="pane('billing',this)">Платежі</button>
   </div>
+  <div class="nav-actions">
+    <span class="text-xs text-muted" id="who"></span>
+    <button class="btn btn-ghost btn-sm" onclick="doLogout()">Вийти</button>
+  </div>
+</nav>
 
-  <div class="main-content">
+<div class="page">
+  <div class="container" style="padding-top:1.5rem;padding-bottom:3rem">
 
-    <!-- DASHBOARD -->
-    <div class="section-page active" id="sec-dashboard">
-      <div class="page-header">
-        <h1 class="page-title">Дашборд</h1>
-        <div style="display:flex;gap:10px;align-items:center">
-          <span style="font-size:13px;color:var(--muted)" id="last-updated"></span>
-          <button class="action-btn" onclick="loadAll()"><i class="ti ti-refresh"></i> Оновити</button>
-        </div>
+    <!-- ДАШБОРД -->
+    <section class="cab-pane active" id="pane-dash">
+      <div class="spread" style="margin-bottom:1.25rem">
+        <h1 class="h-md">Дашборд</h1>
+        <button class="btn-quiet" onclick="loadAll()"><i class="ti ti-refresh"></i> Оновити</button>
       </div>
-      <div class="stats-grid">
-        <div class="stat-card">
-          <div class="stat-icon" style="background:rgba(75,142,241,0.1);color:var(--blue)"><i class="ti ti-users"></i></div>
-          <div class="stat-val" id="stat-brokers" style="color:var(--blue)">—</div>
-          <div class="stat-label">Брокерів у каталозі</div>
-          <div class="stat-sub" id="stat-brokers-sub"></div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-icon" style="background:rgba(45,217,143,0.1);color:var(--green)"><i class="ti ti-inbox"></i></div>
-          <div class="stat-val" id="stat-requests" style="color:var(--green)">—</div>
-          <div class="stat-label">Заявок усього</div>
-          <div class="stat-sub" id="stat-requests-sub"></div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-icon" style="background:rgba(245,166,35,0.1);color:var(--amber)"><i class="ti ti-bolt"></i></div>
-          <div class="stat-val" id="stat-paid" style="color:var(--amber)">—</div>
-          <div class="stat-label">Активних платних тарифів</div>
-          <div class="stat-sub" id="stat-paid-sub"></div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-icon" style="background:rgba(168,85,247,0.1);color:var(--purple)"><i class="ti ti-cash"></i></div>
-          <div class="stat-val" id="stat-revenue" style="color:var(--purple)">—</div>
-          <div class="stat-label">Надійшло за 30 днів</div>
-          <div class="stat-sub">За підтвердженими платежами WayForPay</div>
-        </div>
+      <div class="stat-grid" style="margin-bottom:1.5rem">
+        <div class="stat"><div class="stat-val" style="color:var(--blue)"   id="kBrokers">—</div><div class="stat-label">Брокерів у каталозі</div><div class="text-xs text-muted" id="kBrokersSub"></div></div>
+        <div class="stat"><div class="stat-val" style="color:var(--green)"  id="kReqs">—</div><div class="stat-label">Заявок усього</div><div class="text-xs text-muted" id="kReqsSub"></div></div>
+        <div class="stat"><div class="stat-val" style="color:var(--amber)"  id="kPaid">—</div><div class="stat-label">Активних платних тарифів</div><div class="text-xs text-muted" id="kPaidSub"></div></div>
+        <div class="stat"><div class="stat-val" style="color:var(--purple)" id="kRev">—</div><div class="stat-label">Надійшло за 30 днів</div><div class="text-xs text-muted">За підтвердженими платежами</div></div>
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
-        <div class="table-wrap">
-          <div class="table-header"><div class="table-title">Нові брокери</div></div>
-          <table><thead><tr><th>Брокер</th><th>План</th><th>Місто</th></tr></thead>
-          <tbody id="dash-brokers"></tbody></table>
-        </div>
-        <div class="table-wrap">
-          <div class="table-header"><div class="table-title">Нові заявки</div></div>
-          <table><thead><tr><th>Клієнт</th><th>Статус</th><th>Час</th></tr></thead>
-          <tbody id="dash-requests"></tbody></table>
-        </div>
-      </div>
-    </div>
-
-    <!-- BROKERS -->
-    <div class="section-page" id="sec-brokers">
-      <div class="page-header"><h1 class="page-title">Брокери</h1></div>
-      <div class="table-wrap">
-        <div class="table-header">
-          <div class="table-title">Всі брокери <span id="brokers-total" style="color:var(--muted);font-size:13px"></span></div>
-          <input type="text" class="table-search" placeholder="Пошук за іменем, email, містом" oninput="filterBrokersTable(this.value)">
-        </div>
-        <div style="overflow-x:auto">
+      <div class="table-wrap table-scroll">
         <table>
-          <thead><tr><th>Брокер</th><th>Місто</th><th>План</th><th>Рейтинг</th><th>Заявки</th><th>Статус</th><th>Дії</th></tr></thead>
-          <tbody id="brokers-table"></tbody>
+          <thead><tr><th>Останні заявки</th><th>Брокер</th><th>Статус</th><th>Час</th></tr></thead>
+          <tbody id="dashReqs"></tbody>
         </table>
-        </div>
       </div>
-    </div>
+    </section>
 
-    <!-- REQUESTS -->
-    <div class="section-page" id="sec-requests">
-      <div class="page-header"><h1 class="page-title">Заявки</h1></div>
-      <div class="table-wrap">
-        <div class="table-header">
-          <div class="table-title">Всі заявки <span id="requests-total" style="color:var(--muted);font-size:13px"></span></div>
-          <select class="table-search" onchange="filterRequestsTable(this.value)">
-            <option value="all">Всі статуси</option>
-            <option value="new">Нові</option>
-            <option value="done">Прийнято</option>
-            <option value="declined">Відхилено</option>
-          </select>
-        </div>
-        <div style="overflow-x:auto">
+    <!-- БРОКЕРИ -->
+    <section class="cab-pane" id="pane-brokers">
+      <div class="spread" style="margin-bottom:1rem">
+        <h1 class="h-md">Брокери <span class="text-sm text-muted" id="bTotal"></span></h1>
+        <input class="input" style="max-width:240px" placeholder="Пошук за іменем, email, містом" oninput="filterBrokers(this.value)">
+      </div>
+      <div class="table-wrap table-scroll">
         <table>
-          <thead><tr><th>Клієнт</th><th>Запит</th><th>Брокер</th><th>Статус</th><th>Час</th><th>Дії</th></tr></thead>
-          <tbody id="requests-table"></tbody>
+          <thead><tr><th>Брокер</th><th>Місто</th><th>Тариф</th><th>Рейтинг</th><th>Заявки</th><th>Статус</th><th>Дії</th></tr></thead>
+          <tbody id="bTable"></tbody>
         </table>
-        </div>
       </div>
-      <div class="info-box">Тут видно персональні дані клієнтів. Не експортуйте і не пересилайте цю таблицю третім особам — на неї поширюються зобов'язання з розділу «Конфіденційність» вашої оферти.</div>
-    </div>
+    </section>
 
-    <!-- SUBSCRIPTIONS -->
-    <div class="section-page" id="sec-subscriptions">
-      <div class="page-header"><h1 class="page-title">Підписки та платежі</h1></div>
-      <div class="stats-grid" style="margin-bottom:1.5rem">
-        <div class="stat-card"><div class="stat-icon" style="background:rgba(75,142,241,0.1);color:var(--blue)"><i class="ti ti-bolt"></i></div><div class="stat-val" id="sub-standard" style="color:var(--blue)">—</div><div class="stat-label">Стандарт · 299 грн</div></div>
-        <div class="stat-card"><div class="stat-icon" style="background:rgba(245,166,35,0.1);color:var(--amber)"><i class="ti ti-star"></i></div><div class="stat-val" id="sub-pro" style="color:var(--amber)">—</div><div class="stat-label">Про · 599 грн</div></div>
-        <div class="stat-card"><div class="stat-icon" style="background:rgba(168,85,247,0.1);color:var(--purple)"><i class="ti ti-diamond"></i></div><div class="stat-val" id="sub-premium" style="color:var(--purple)">—</div><div class="stat-label">Преміум · 999 грн</div></div>
-        <div class="stat-card"><div class="stat-icon" style="background:rgba(45,217,143,0.1);color:var(--green)"><i class="ti ti-cash"></i></div><div class="stat-val" id="sub-expiring" style="color:var(--green)">—</div><div class="stat-label">Спливають за 7 днів</div></div>
+    <!-- ЗАЯВКИ -->
+    <section class="cab-pane" id="pane-requests">
+      <div class="spread" style="margin-bottom:1rem">
+        <h1 class="h-md">Заявки <span class="text-sm text-muted" id="rTotal"></span></h1>
+        <select class="input" style="max-width:200px" onchange="filterRequests(this.value)">
+          <option value="all">Всі статуси</option>
+          <option value="new">Нові</option>
+          <option value="accepted">В роботі</option>
+          <option value="done">Завершені</option>
+          <option value="declined">Відхилені</option>
+        </select>
       </div>
-
-      <div class="table-wrap">
-        <div class="table-header"><div class="table-title">Останні платежі</div></div>
-        <div style="overflow-x:auto">
+      <div class="table-wrap table-scroll">
         <table>
-          <thead><tr><th>Дата</th><th>Брокер</th><th>Тариф</th><th>Сума</th><th>Статус</th><th>Номер замовлення</th></tr></thead>
-          <tbody id="payments-table"></tbody>
+          <thead><tr><th>Клієнт</th><th>Запит</th><th>Брокер</th><th>Статус</th><th>Час</th></tr></thead>
+          <tbody id="rTable"></tbody>
         </table>
-        </div>
       </div>
+      <p class="hint">Тут видно персональні дані клієнтів. Не експортуйте і не пересилайте цю таблицю третім особам —
+        на неї поширюються зобов'язання з розділу «Конфіденційність» вашої оферти.</p>
+    </section>
 
-      <div class="table-wrap">
-        <div class="table-header"><div class="table-title">Тарифи брокерів</div></div>
-        <div style="overflow-x:auto">
+    <!-- ВІДГУКИ -->
+    <section class="cab-pane" id="pane-reviews">
+      <div class="spread" style="margin-bottom:1rem">
+        <h1 class="h-md">Модерація відгуків</h1>
+        <div class="row" style="gap:6px" id="rvFilters"></div>
+      </div>
+      <div id="rvList"></div>
+    </section>
+
+    <!-- ПЛАТЕЖІ -->
+    <section class="cab-pane" id="pane-billing">
+      <h1 class="h-md" style="margin-bottom:1rem">Платежі</h1>
+      <div class="table-wrap table-scroll" style="margin-bottom:1.5rem">
         <table>
-          <thead><tr><th>Брокер</th><th>План</th><th>Діє до</th><th>Email</th><th>Телефон</th><th>Змінити вручну</th></tr></thead>
-          <tbody id="subs-table"></tbody>
+          <thead><tr><th>Дата</th><th>Брокер</th><th>Тариф</th><th>Сума</th><th>Статус</th><th>Замовлення</th></tr></thead>
+          <tbody id="pTable"></tbody>
         </table>
+      </div>
+      <div class="card">
+        <div class="card-title">Платіжна інтеграція</div>
+        <div class="info-box">
+          Ключі WayForPay зберігаються на сервері й у браузер не потрапляють. Змінити їх можна лише через CLI:<br><br>
+          <code>supabase secrets set WFP_MERCHANT=…</code><br>
+          <code>supabase secrets set WFP_SECRET=…</code><br><br>
+          Стан функції: <span id="wfpStatus" class="text-muted">перевіряємо…</span>
+        </div>
+        <div class="info-box" style="margin-top:12px;border:.5px solid rgba(241,101,75,.25)">
+          Ніколи не вводьте Secret Key у форму на сайті. Будь-яке поле в браузері означає, що ключ можна
+          прочитати з коду сторінки або з локального сховища.
         </div>
       </div>
-      <div class="info-box">Зміна тарифу вручну не створює запис про платіж і не подовжує оплачений період — використовуйте її лише для компенсацій і тестів.</div>
-    </div>
-
-    <!-- SETTINGS -->
-    <div class="section-page" id="sec-settings">
-      <div class="page-header"><h1 class="page-title">Налаштування</h1></div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
-
-        <div class="table-wrap" style="padding:1.5rem">
-          <div style="font-size:15px;font-weight:500;margin-bottom:1.25rem">Реквізити платформи</div>
-          <div class="info-row"><span class="k">Платформа</span><span>МитнийБрокер</span></div>
-          <div class="info-row"><span class="k">Юридична особа</span><span>ТОВ «ФОРВАРД КАР ЮА»</span></div>
-          <div class="info-row"><span class="k">ЄДРПОУ</span><span>45002097</span></div>
-          <div class="info-row"><span class="k">Email підтримки</span><span>custom@forwardcarua.com</span></div>
-          <div class="info-row"><span class="k">Телефон</span><span>+38 098 172 23 42</span></div>
-          <div class="info-box" style="margin-top:1rem">Реквізити редагуються у <code>terms.html</code> і футері <code>index.html</code> — вони мають збігатися в усіх трьох місцях, інакше еквайр поверне заявку на верифікацію.</div>
-        </div>
-
-        <div class="table-wrap" style="padding:1.5rem">
-          <div style="font-size:15px;font-weight:500;margin-bottom:1.25rem">Платіжна інтеграція</div>
-          <div class="info-box">
-            Ключі WayForPay зберігаються на сервері й у браузер не потрапляють. Змінити їх можна лише через CLI:<br><br>
-            <code>supabase secrets set WFP_MERCHANT=…</code><br>
-            <code>supabase secrets set WFP_SECRET=…</code><br><br>
-            Перевірити стан: <span id="wfp-status" style="color:var(--muted)">перевіряємо…</span>
-          </div>
-          <div class="info-box" style="margin-top:12px;border:0.5px solid rgba(241,101,75,0.25)">
-            Ніколи не вводьте Secret Key у форму на сайті. Будь-яке поле в браузері означає, що ключ можна прочитати з коду сторінки або з локального сховища.
-          </div>
-        </div>
-      </div>
-
-      <div class="table-wrap" style="padding:1.5rem;margin-top:16px">
-        <div style="font-size:15px;font-weight:500;margin-bottom:1rem">Шаблон повідомлення для залучення брокерів</div>
-        <div style="background:var(--s2);border-radius:10px;padding:1.25rem;font-size:14px;line-height:1.7;position:relative;white-space:pre-wrap" id="message-template">👋 Вітаю! Мене звати Дмитро.
-
-Я запустив forwardcarua.com — каталог митних брокерів України.
-
-🔹 Розміщення профілю безкоштовне
-🔹 Клієнти знаходять вас за регіоном і послугами
-🔹 Заявки приходять у кабінет на сайті
-🔹 Відгуки клієнтів у профілі
-
-Реєстрація — кілька хвилин:
-👉 https://forwardcarua.com
-
-Будь ласка, напишіть, якщо будуть питання.</div>
-        <button class="btn-primary" style="margin-top:12px" onclick="copyMessage()"><i class="ti ti-copy"></i> Копіювати</button>
-      </div>
-    </div>
+    </section>
 
   </div>
 </div>
-
-<!-- MODAL -->
-<div class="modal-overlay" id="admin-modal">
-  <div class="modal" role="dialog" aria-modal="true">
-    <button class="modal-close" onclick="closeModal('admin-modal')" aria-label="Закрити"><i class="ti ti-x"></i></button>
-    <div class="modal-title" id="admin-modal-title">—</div>
-    <div id="admin-modal-body"></div>
-  </div>
 </div>
 
-<div class="toast" id="toast"><i class="ti ti-check"></i><span id="toast-text"></span></div>
-
+<script src="/assets/js/config.js"></script>
+<script src="/assets/js/db.js"></script>
 <script>
-/* =========================================================
-   Автентифікація — через Supabase Auth.
-   Пароля в цьому файлі немає і бути не повинно.
-   Доступ мають лише user_id зі списку в таблиці public.admins
-   (див. db-admin.sql). Прав адміну надають політики RLS,
-   а не JavaScript — сховати кнопки недостатньо.
-   ========================================================= */
-const SUPABASE_URL = 'https://ecdfpqhbaqjqurzedunh.supabase.co';
-const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVjZGZwcWhiYXFqcXVyemVkdW5oIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyNzU3NTIsImV4cCI6MjA5NDg1MTc1Mn0.t0ry-slbPVwVHmF1KLzWX6EDonWBMC2Uu3KUobH8oFY';
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+let brokers = [], requests = [], payments = [], reviews = [], rvFilter = 'pending';
 
-const PLAN_PRICE = {standard:299, pro:599, premium:999};
-let allBrokersData = [], allRequestsData = [], allPaymentsData = [];
-
-/* ---------- HELPERS ---------- */
-function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
-function initials(n){return (n||'?').trim().split(/\s+/).map(w=>w[0]).join('').slice(0,2).toUpperCase();}
-function planLabel(p){return {premium:'💎 Преміум',pro:'⭐ Про',standard:'⚡ Стандарт',free:'Безкоштовний'}[p]||esc(p);}
-function statusLabel(s){return {new:'Нова',pending:'В процесі',done:'Прийнято',declined:'Відхилено',rejected:'Відхилено'}[s]||esc(s);}
-function statusClass(s){return s==='rejected'?'declined':(s||'new');}
-function fmtDate(d){return d?new Date(d).toLocaleDateString('uk-UA'):'—';}
-function timeAgo(d){
-  const diff=(Date.now()-new Date(d))/1000;
-  if(diff<60) return 'щойно';
-  if(diff<3600) return Math.floor(diff/60)+' хв тому';
-  if(diff<86400) return Math.floor(diff/3600)+' год тому';
-  return Math.floor(diff/86400)+' дн тому';
-}
-function showToast(msg,isErr=false){
-  const t=document.getElementById('toast');
-  document.getElementById('toast-text').textContent=msg;
-  t.className='toast'+(isErr?' err':'')+' show';
-  clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('show'),4000);
-}
-function closeModal(id){document.getElementById(id).classList.remove('open');}
-function showSection(name,btn){
-  document.querySelectorAll('.section-page').forEach(s=>s.classList.remove('active'));
-  document.querySelectorAll('.sidebar-item').forEach(b=>b.classList.remove('active'));
-  document.getElementById('sec-'+name).classList.add('active');
-  if(btn) btn.classList.add('active');
+function pane(name, btn){
+  document.querySelectorAll('.cab-pane').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-link').forEach(b => b.classList.remove('active'));
+  document.getElementById('pane-' + name).classList.add('active');
+  if (btn) btn.classList.add('active');
 }
 
-/* ---------- АВТЕНТИФІКАЦІЯ ---------- */
-async function isAdmin(userId){
-  const {data,error}=await sb.from('admins').select('user_id').eq('user_id',userId).maybeSingle();
-  if(error) return false;
-  return !!data;
-}
-
-async function adminLogin(){
-  const email=document.getElementById('admin-email').value.trim();
-  const password=document.getElementById('admin-pass').value;
-  const errEl=document.getElementById('login-error');
-  const btn=document.getElementById('login-submit');
-  errEl.textContent='';
-  if(!email||!password){ errEl.textContent='Введіть email і пароль'; return; }
-  btn.disabled=true; btn.textContent='Входимо…';
-  const {data,error}=await sb.auth.signInWithPassword({email,password});
-  btn.disabled=false; btn.textContent='Увійти';
-  if(error){ errEl.textContent = /Invalid login/i.test(error.message)?'Невірний email або пароль':error.message; return; }
-  if(!await isAdmin(data.user.id)){
-    await sb.auth.signOut();
-    errEl.textContent='Цей акаунт не має прав адміністратора.';
-    return;
+/* ---------- Вхід ---------- */
+async function doLogin(){
+  const btn = document.getElementById('a-btn');
+  const m = document.getElementById('a-msg');
+  btn.disabled = true; btn.textContent = 'Входимо…';
+  try{
+    await signIn(document.getElementById('a-email').value.trim(), document.getElementById('a-pass').value);
+    if (!await isAdmin()){
+      await signOut();
+      throw new Error('Цей акаунт не має прав адміністратора');
+    }
+    document.getElementById('a-pass').value = '';
+    enter();
+  }catch(e){
+    m.className = 'msg show msg-err'; m.textContent = e.message;
+    btn.disabled = false; btn.textContent = 'Увійти';
   }
-  document.getElementById('admin-pass').value='';
-  enterPanel(data.user);
 }
-
-function enterPanel(user){
-  document.getElementById('login-screen').style.display='none';
-  document.getElementById('admin-panel').style.display='block';
-  document.getElementById('admin-who').textContent=user.email;
+async function enter(){
+  const u = await currentUser();
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('panel').style.display = 'block';
+  document.getElementById('who').textContent = u.email;
   loadAll();
 }
+async function doLogout(){ await signOut(); location.reload(); }
 
-async function adminLogout(){
-  await sb.auth.signOut();
-  document.getElementById('admin-panel').style.display='none';
-  document.getElementById('login-screen').style.display='flex';
-}
-
-/* ---------- ЗАВАНТАЖЕННЯ ---------- */
+/* ---------- Завантаження ---------- */
 async function loadAll(){
-  document.getElementById('last-updated').textContent='Оновлено '+new Date().toLocaleTimeString('uk-UA');
-  await Promise.all([loadBrokers(), loadRequests(), loadPayments()]);
-  updateDashboard();
-  renderBrokersTable(allBrokersData);
-  renderSubsTable(allBrokersData);
-  updateSubStats(allBrokersData);
+  try{
+    [brokers, requests, payments, reviews] = await Promise.all([
+      adminBrokers(), adminRequests(), adminPayments(), adminReviews()
+    ]);
+  }catch(e){ showToast(e.message, 'error'); return; }
+  renderDash(); renderBrokers(brokers); renderRequests(requests); renderPayments(); renderReviews();
 }
 
-async function loadBrokers(){
-  const {data,error}=await sb.from('brokers').select('*').order('created_at',{ascending:false});
-  if(error){ showToast('Брокери не завантажились: '+error.message,true); return; }
-  allBrokersData=data||[];
-  document.getElementById('brokers-count-badge').textContent=allBrokersData.length;
-  document.getElementById('brokers-total').textContent='('+allBrokersData.length+')';
-}
+function renderDash(){
+  const now = Date.now();
+  const active = brokers.filter(b => b.is_active !== false);
+  document.getElementById('kBrokers').textContent = brokers.length;
+  document.getElementById('kBrokersSub').textContent = active.length + ' активних, ' + (brokers.length - active.length) + ' прихованих';
 
-async function loadRequests(){
-  const {data,error}=await sb.from('requests').select('*, brokers(name)').order('created_at',{ascending:false});
-  if(error){ showToast('Заявки не завантажились: '+error.message,true); return; }
-  allRequestsData=data||[];
-  const newCount=allRequestsData.filter(r=>r.status==='new').length;
-  const badge=document.getElementById('requests-count-badge');
-  badge.textContent=newCount;
-  badge.className='sidebar-badge'+(newCount?' alert':'');
-  document.getElementById('requests-total').textContent='('+allRequestsData.length+')';
-  renderRequestsTable(allRequestsData);
-}
+  document.getElementById('kReqs').textContent = requests.length;
+  document.getElementById('kReqsSub').textContent = 'За 7 днів: ' +
+    requests.filter(r => now - new Date(r.created_at) < 7 * 864e5).length;
 
-async function loadPayments(){
-  const {data}=await sb.from('payments').select('*, brokers(name)').order('created_at',{ascending:false}).limit(50);
-  allPaymentsData=data||[];
-  document.getElementById('payments-table').innerHTML = allPaymentsData.length
-    ? allPaymentsData.map(p=>`
-      <tr>
-        <td style="color:var(--muted);font-size:13px">${fmtDate(p.created_at)}</td>
-        <td>${esc(p.brokers?.name||'—')}</td>
-        <td><span class="plan-chip ${esc(p.plan)}">${planLabel(p.plan)}</span></td>
-        <td>${esc(p.amount)} грн</td>
-        <td>${p.status==='approved'?'<span style="color:var(--green)">Оплачено</span>':'<span style="color:var(--muted)">'+esc(p.status)+'</span>'}</td>
-        <td style="font-size:12px;color:var(--muted)">${esc(p.order_reference)}</td>
-      </tr>`).join('')
-    : '<tr><td colspan="6"><div class="empty-state"><i class="ti ti-cash"></i>Платежів ще не було</div></td></tr>';
-}
-
-/* ---------- ДАШБОРД ---------- */
-function updateDashboard(){
-  const now=Date.now();
-  const active=allBrokersData.filter(b=>b.is_active!==false);
-  document.getElementById('stat-brokers').textContent=allBrokersData.length;
-  document.getElementById('stat-brokers-sub').textContent=active.length+' активних, '+(allBrokersData.length-active.length)+' прихованих';
-
-  document.getElementById('stat-requests').textContent=allRequestsData.length;
-  const week=allRequestsData.filter(r=>now-new Date(r.created_at)<7*864e5).length;
-  document.getElementById('stat-requests-sub').textContent='За 7 днів: '+week;
-
-  const paid=allBrokersData.filter(b=>b.plan&&b.plan!=='free'&&(!b.plan_until||new Date(b.plan_until)>now));
-  document.getElementById('stat-paid').textContent=paid.length;
-  document.getElementById('stat-paid-sub').textContent = paid.length
-    ? 'Очікувано за місяць: '+paid.reduce((s,b)=>s+(PLAN_PRICE[b.plan]||0),0).toLocaleString('uk-UA')+' грн'
+  const paid = brokers.filter(b => b.plan && b.plan !== 'free' &&
+    (!b.plan_expires_at || new Date(b.plan_expires_at) > now));
+  document.getElementById('kPaid').textContent = paid.length;
+  document.getElementById('kPaidSub').textContent = paid.length
+    ? 'Очікувано за місяць: ' + fmtMoney(paid.reduce((s,b) => s + (PLANS[b.plan]?.month || 0), 0))
     : 'Платних підписок ще немає';
 
-  const rev=allPaymentsData
-    .filter(p=>p.status==='approved'&&now-new Date(p.created_at)<30*864e5)
-    .reduce((s,p)=>s+Number(p.amount||0),0);
-  document.getElementById('stat-revenue').textContent=rev.toLocaleString('uk-UA')+' грн';
+  document.getElementById('kRev').textContent = fmtMoney(payments
+    .filter(p => p.status === 'approved' && now - new Date(p.created_at) < 30 * 864e5)
+    .reduce((s,p) => s + Number(p.amount || 0), 0));
 
-  document.getElementById('dash-brokers').innerHTML = allBrokersData.slice(0,5).map(b=>`
-    <tr>
-      <td><div class="broker-cell"><div class="avatar-sm" style="background:linear-gradient(135deg,#4B8EF1,#2DD98F)">${esc(initials(b.name))}</div><div class="broker-cell-name">${esc(b.name)}</div></div></td>
-      <td><span class="plan-chip ${esc(b.plan||'free')}">${planLabel(b.plan)}</span></td>
-      <td style="color:var(--muted);font-size:13px">${esc(b.city||'—')}</td>
-    </tr>`).join('') || '<tr><td colspan="3"><div class="empty-state">Брокерів ще немає</div></td></tr>';
-
-  document.getElementById('dash-requests').innerHTML = allRequestsData.slice(0,5).map(r=>`
-    <tr>
-      <td>${esc(r.client_name||'—')}</td>
-      <td><span class="status-dot ${statusClass(r.status)}"></span>${statusLabel(r.status)}</td>
-      <td style="color:var(--muted);font-size:12px">${timeAgo(r.created_at)}</td>
-    </tr>`).join('') || '<tr><td colspan="3"><div class="empty-state">Заявок ще немає</div></td></tr>';
+  document.getElementById('dashReqs').innerHTML = requests.slice(0,6).map(r =>
+    '<tr><td>' + esc(r.client_name) + '<div class="text-xs text-muted">' + esc(r.service || '—') + '</div></td>' +
+    '<td class="text-sm">' + esc(r.brokers?.name || '— загальна') + '</td>' +
+    '<td>' + statusPill(r.status) + '</td>' +
+    '<td class="text-xs text-muted">' + timeAgo(r.created_at) + '</td></tr>').join('')
+    || '<tr><td colspan="4"><div class="empty">Заявок ще немає</div></td></tr>';
 }
 
-/* ---------- ТАБЛИЦІ ---------- */
-function reqCount(brokerId){return allRequestsData.filter(r=>r.broker_id===brokerId).length;}
-
-function renderBrokersTable(data){
-  document.getElementById('brokers-table').innerHTML = data.length ? data.map(b=>`
-    <tr>
-      <td><div class="broker-cell"><div class="avatar-sm" style="background:linear-gradient(135deg,#4B8EF1,#2DD98F)">${esc(initials(b.name))}</div><div><div class="broker-cell-name">${esc(b.name)}</div><div class="broker-cell-email">${esc(b.email||'')}</div></div></div></td>
-      <td style="color:var(--muted);font-size:13px">${esc([b.city,b.region].filter(Boolean).join(', ')||'—')}</td>
-      <td><span class="plan-chip ${esc(b.plan||'free')}">${planLabel(b.plan)}</span></td>
-      <td>${b.rating_avg?'⭐ '+Number(b.rating_avg).toFixed(1)+' <span style="color:var(--muted);font-size:12px">('+(b.rating_count||0)+')</span>':'<span style="color:var(--muted);font-size:13px">—</span>'}</td>
-      <td style="color:var(--muted)">${reqCount(b.id)}</td>
-      <td>${b.is_active===false?'<span style="color:var(--red)">Прихований</span>':(b.verified?'<span style="color:var(--green)"><i class="ti ti-rosette-discount-check"></i> Перевірений</span>':'<span style="color:var(--muted)">У каталозі</span>')}</td>
-      <td>
-        <div class="row-actions">
-          <button class="action-btn success" onclick="verifyBroker('${esc(b.id)}',${!b.verified})">${b.verified?'Зняти позначку':'Перевірений'}</button>
-          <button class="action-btn" onclick="toggleActive('${esc(b.id)}',${b.is_active===false})">${b.is_active===false?'Показати':'Сховати'}</button>
-          <button class="action-btn danger" onclick="deleteBroker('${esc(b.id)}','${esc(b.name)}')">Видалити</button>
-        </div>
-      </td>
-    </tr>`).join('') : '<tr><td colspan="7"><div class="empty-state"><i class="ti ti-users"></i>Брокерів немає</div></td></tr>';
+function statusPill(s){
+  const st = REQUEST_STATUS[s] || REQUEST_STATUS.new;
+  return '<span class="row" style="gap:6px"><span class="dot" style="background:' + st.color + '"></span>' + st.label + '</span>';
 }
 
-function renderRequestsTable(data){
-  document.getElementById('requests-table').innerHTML = data.length ? data.map(r=>`
-    <tr>
-      <td><div style="font-weight:500">${esc(r.client_name||'—')}</div><div style="font-size:12px;color:var(--muted)">${esc(r.client_phone||'')}</div></td>
-      <td style="max-width:260px;color:var(--muted);font-size:13px"><div style="color:var(--text)">${esc(r.service||'—')}</div>${esc(r.comment||'')}</td>
-      <td style="font-size:13px">${esc(r.brokers?.name||'—')}</td>
-      <td><span class="status-dot ${statusClass(r.status)}"></span>${statusLabel(r.status)}</td>
-      <td style="color:var(--muted);font-size:12px">${timeAgo(r.created_at)}</td>
-      <td>
-        <div class="row-actions">
-          <button class="action-btn success" onclick="updateRequestStatus('${esc(r.id)}','done')">Прийнято</button>
-          <button class="action-btn danger" onclick="updateRequestStatus('${esc(r.id)}','declined')">Відхилено</button>
-        </div>
-      </td>
-    </tr>`).join('') : '<tr><td colspan="6"><div class="empty-state"><i class="ti ti-inbox"></i>Заявок немає</div></td></tr>';
+/* ---------- Брокери ---------- */
+function reqCount(id){ return requests.filter(r => r.broker_id === id).length; }
+
+function renderBrokers(list){
+  document.getElementById('bTotal').textContent = '(' + list.length + ')';
+  document.getElementById('bTable').innerHTML = list.length ? list.map(b =>
+    '<tr>' +
+    '<td><div class="row" style="gap:10px;flex-wrap:nowrap"><div class="avatar avatar-sm av-' + esc(b.plan || 'free') + '">' +
+      esc(initials(b.name)) + '</div><div><div style="font-weight:500">' +
+      '<a href="/broker/' + esc(b.id) + '" target="_blank">' + esc(b.name) + '</a></div>' +
+      '<div class="text-xs text-muted">' + esc(b.email || '') + '</div></div></div></td>' +
+    '<td class="text-sm text-muted">' + esc([b.city, b.region].filter(Boolean).join(', ') || '—') + '</td>' +
+    '<td><span class="badge badge-' + esc(b.plan || 'free') + '">' + planLabel(b.plan) + '</span>' +
+      (b.plan_expires_at ? '<div class="text-xs text-muted">до ' + fmtDate(b.plan_expires_at) + '</div>' : '') + '</td>' +
+    '<td>' + (b.rating_avg ? '★ ' + Number(b.rating_avg).toFixed(1) + ' <span class="text-xs text-muted">(' + (b.rating_count||0) + ')</span>' : '<span class="text-muted">—</span>') + '</td>' +
+    '<td class="text-muted">' + reqCount(b.id) + '</td>' +
+    '<td>' + (b.is_active === false ? '<span style="color:var(--red)">Прихований</span>' :
+      b.is_verified ? '<span style="color:var(--green)">Перевірений</span>' : '<span class="text-muted">У каталозі</span>') + '</td>' +
+    '<td><div class="row-actions">' +
+      '<button class="btn-quiet" onclick="toggleVerified(\'' + esc(b.id) + '\',' + !b.is_verified + ')">' +
+        (b.is_verified ? 'Зняти позначку' : 'Перевірений') + '</button>' +
+      '<button class="btn-quiet" onclick="toggleActive(\'' + esc(b.id) + '\',' + (b.is_active === false) + ')">' +
+        (b.is_active === false ? 'Показати' : 'Сховати') + '</button>' +
+      '<select class="btn-quiet" onchange="changePlan(\'' + esc(b.id) + '\',this.value,\'' + esc(b.name) + '\')">' +
+        ['free','standard','pro','premium'].map(p =>
+          '<option value="' + p + '"' + (b.plan === p ? ' selected' : '') + '>' + PLANS[p].label + '</option>').join('') +
+      '</select>' +
+    '</div></td></tr>').join('')
+    : '<tr><td colspan="7"><div class="empty">Брокерів немає</div></td></tr>';
 }
 
-function renderSubsTable(data){
-  document.getElementById('subs-table').innerHTML = data.length ? data.map(b=>`
-    <tr>
-      <td><div class="broker-cell"><div class="avatar-sm" style="background:linear-gradient(135deg,#4B8EF1,#2DD98F)">${esc(initials(b.name))}</div><div class="broker-cell-name">${esc(b.name)}</div></div></td>
-      <td><span class="plan-chip ${esc(b.plan||'free')}">${planLabel(b.plan)}</span></td>
-      <td style="font-size:13px;color:var(--muted)">${b.plan==='free'?'—':fmtDate(b.plan_until)}</td>
-      <td style="font-size:13px;color:var(--muted)">${esc(b.email||'—')}</td>
-      <td style="font-size:13px;color:var(--muted)">${esc(b.phone||'—')}</td>
-      <td>
-        <select class="action-btn" onchange="confirmPlanChange('${esc(b.id)}','${esc(b.name)}',this)">
-          <option value="free" ${b.plan==='free'?'selected':''}>Безкоштовний</option>
-          <option value="standard" ${b.plan==='standard'?'selected':''}>Стандарт</option>
-          <option value="pro" ${b.plan==='pro'?'selected':''}>Про</option>
-          <option value="premium" ${b.plan==='premium'?'selected':''}>Преміум</option>
-        </select>
-      </td>
-    </tr>`).join('') : '<tr><td colspan="6"><div class="empty-state">Брокерів немає</div></td></tr>';
-}
-
-function updateSubStats(data){
-  const now=Date.now();
-  const cnt=p=>data.filter(b=>b.plan===p).length;
-  document.getElementById('sub-standard').textContent=cnt('standard');
-  document.getElementById('sub-pro').textContent=cnt('pro');
-  document.getElementById('sub-premium').textContent=cnt('premium');
-  document.getElementById('sub-expiring').textContent=data.filter(b=>b.plan_until&&new Date(b.plan_until)-now>0&&new Date(b.plan_until)-now<7*864e5).length;
-}
-
-/* ---------- ДІЇ ---------- */
-async function verifyBroker(id,val){
-  const {error}=await sb.from('brokers').update({verified:val}).eq('id',id);
-  if(error){ showToast('Не вдалося: '+error.message,true); return; }
-  showToast(val?'Позначку «Перевірений» додано':'Позначку знято');
-  await loadBrokers(); renderBrokersTable(allBrokersData);
-}
-
-async function toggleActive(id,makeActive){
-  const {error}=await sb.from('brokers').update({is_active:makeActive}).eq('id',id);
-  if(error){ showToast('Не вдалося: '+error.message,true); return; }
-  showToast(makeActive?'Профіль показано в каталозі':'Профіль прихований');
-  await loadBrokers(); renderBrokersTable(allBrokersData); updateDashboard();
-}
-
-function confirmPlanChange(id,name,select){
-  const plan=select.value;
-  if(!confirm(`Змінити тариф брокера «${name}» на «${plan}»? Це не створює запис про платіж.`)){
-    loadAll(); return;
-  }
-  changePlan(id,plan);
-}
-
-async function changePlan(id,plan){
-  const patch={plan};
-  if(plan==='free'){ patch.plan_until=null; }
-  else { const d=new Date(); d.setMonth(d.getMonth()+1); patch.plan_until=d.toISOString(); }
-  const {error}=await sb.from('brokers').update(patch).eq('id',id);
-  if(error){ showToast('Не вдалося: '+error.message,true); return; }
-  showToast('Тариф оновлено вручну');
-  loadAll();
-}
-
-async function deleteBroker(id,name){
-  if(!confirm(`Видалити «${name}» назавжди? Разом з профілем зникнуть його послуги та заявки. Відновити не вийде.\n\nЯкщо треба просто прибрати з каталогу — натисніть «Сховати».`)) return;
-  if(!confirm('Точно видалити? Це остаточно.')) return;
-  const {error}=await sb.from('brokers').delete().eq('id',id);
-  if(error){ showToast('Не вдалося: '+error.message,true); return; }
-  showToast('Брокера видалено');
-  loadAll();
-}
-
-async function updateRequestStatus(id,status){
-  const {error}=await sb.from('requests').update({status}).eq('id',id);
-  if(error){ showToast('Не вдалося: '+error.message,true); return; }
-  showToast('Статус оновлено');
-  loadRequests();
-}
-
-function filterBrokersTable(q){
-  const s=q.toLowerCase();
-  renderBrokersTable(allBrokersData.filter(b=>
+function filterBrokers(q){
+  const s = q.toLowerCase();
+  renderBrokers(brokers.filter(b =>
     (b.name||'').toLowerCase().includes(s) ||
     (b.email||'').toLowerCase().includes(s) ||
     (b.city||'').toLowerCase().includes(s)));
 }
-function filterRequestsTable(status){
-  renderRequestsTable(status==='all'?allRequestsData
-    :allRequestsData.filter(r=>statusClass(r.status)===status));
+
+async function toggleVerified(id, val){
+  try{ await adminSetVerified(id, val); showToast('Оновлено'); await refreshBrokers(); }
+  catch(e){ showToast(e.message, 'error'); }
+}
+async function toggleActive(id, val){
+  try{ await adminSetActive(id, val); showToast(val ? 'Профіль у каталозі' : 'Профіль прихований'); await refreshBrokers(); }
+  catch(e){ showToast(e.message, 'error'); }
+}
+async function changePlan(id, plan, name){
+  if (!confirm('Змінити тариф «' + name + '» на «' + PLANS[plan].label + '»?\n\nЦе не створює запис про платіж і не подовжує оплачений період.')){
+    await refreshBrokers(); return;
+  }
+  try{ await adminSetPlan(id, plan); showToast('Тариф змінено вручну'); await refreshBrokers(); }
+  catch(e){ showToast(e.message, 'error'); }
+}
+async function refreshBrokers(){ brokers = await adminBrokers(); renderBrokers(brokers); renderDash(); }
+
+/* ---------- Заявки ---------- */
+function renderRequests(list){
+  document.getElementById('rTotal').textContent = '(' + list.length + ')';
+  document.getElementById('rTable').innerHTML = list.length ? list.map(r => {
+    const car = [r.car_make, r.car_model, r.car_year].filter(Boolean).join(' ');
+    return '<tr>' +
+      '<td><div style="font-weight:500">' + esc(r.client_name) + '</div>' +
+        '<div class="text-xs text-muted"><a href="' + telHref(r.client_phone) + '">' + esc(r.client_phone) + '</a></div></td>' +
+      '<td style="max-width:280px"><div class="text-sm">' + esc(r.service || '—') + (car ? ' · ' + esc(car) : '') + '</div>' +
+        (r.comment ? '<div class="text-xs text-muted">' + esc(r.comment) + '</div>' : '') + '</td>' +
+      '<td class="text-sm">' + (r.broker_id ? esc(r.brokers?.name || '—') : '<span class="text-muted">загальна</span>') + '</td>' +
+      '<td>' + statusPill(r.status) + '</td>' +
+      '<td class="text-xs text-muted">' + timeAgo(r.created_at) + '</td></tr>';
+  }).join('') : '<tr><td colspan="5"><div class="empty">Заявок немає</div></td></tr>';
+}
+function filterRequests(v){ renderRequests(v === 'all' ? requests : requests.filter(r => r.status === v)); }
+
+/* ---------- Відгуки ---------- */
+function renderReviews(){
+  const pending = reviews.filter(r => r.status === 'pending').length;
+  const badge = document.getElementById('modBadge');
+  badge.textContent = pending; badge.style.display = pending ? 'inline' : 'none';
+
+  document.getElementById('rvFilters').innerHTML =
+    [['pending','На модерації'],['published','Опубліковані'],['rejected','Відхилені'],['all','Всі']]
+    .map(f => '<button class="chip ' + (rvFilter === f[0] ? 'active' : '') + '" onclick="setRvFilter(\'' + f[0] + '\')">' +
+      f[1] + '</button>').join('');
+
+  const list = rvFilter === 'all' ? reviews : reviews.filter(r => r.status === rvFilter);
+  document.getElementById('rvList').innerHTML = list.length ? list.map(r => {
+    const stars = [1,2,3,4,5].map(i =>
+      '<span style="color:' + (i <= r.rating ? 'var(--amber)' : 'rgba(255,255,255,.18)') + '">★</span>').join('');
+    return '<div class="rv ' + (r.status === 'pending' ? 'pending' : '') + '">' +
+      '<div class="spread" style="margin-bottom:8px">' +
+        '<div class="row" style="gap:10px">' +
+          '<div class="avatar avatar-sm av-standard">' + esc(initials(r.author_name)) + '</div>' +
+          '<div><div style="font-weight:500;font-size:14px">' + esc(r.author_name) + '</div>' +
+          '<div class="text-xs text-muted">' + timeAgo(r.created_at) + ' · про ' + esc(r.brokers?.name || '—') + '</div></div>' +
+        '</div><div>' + stars + '</div>' +
+      '</div>' +
+      (r.service ? '<span class="tag" style="display:inline-block;margin-bottom:8px">' + esc(r.service) + '</span>' : '') +
+      '<p class="text-sm" style="line-height:1.6">' + esc(r.body) + '</p>' +
+      (r.rejection_reason ? '<div class="text-xs" style="color:var(--red);margin-top:6px">Причина: ' + esc(r.rejection_reason) + '</div>' : '') +
+      '<div class="row" style="gap:8px;margin-top:12px">' +
+        (r.status !== 'published' ? '<button class="btn btn-primary btn-sm" onclick="moderate(\'' + esc(r.id) + '\',\'published\')">Опублікувати</button>' : '') +
+        (r.status !== 'rejected'  ? '<button class="btn-quiet" onclick="reject(\'' + esc(r.id) + '\')">Відхилити</button>' : '') +
+        (r.status === 'published' ? '<button class="btn-quiet" onclick="moderate(\'' + esc(r.id) + '\',\'pending\')">Зняти з публікації</button>' : '') +
+      '</div></div>';
+  }).join('') : '<div class="empty"><strong>Відгуків у цій категорії немає</strong></div>';
+}
+function setRvFilter(v){ rvFilter = v; renderReviews(); }
+
+async function moderate(id, status){
+  try{
+    await moderateReview(id, status);
+    reviews = await adminReviews();
+    renderReviews();
+    showToast(status === 'published' ? 'Відгук опубліковано' : 'Статус змінено');
+  }catch(e){ showToast(e.message, 'error'); }
+}
+async function reject(id){
+  const reason = prompt('Причина відхилення (побачить лише адміністратор):\n\nСпам або реклама / Образливий зміст / Фейковий відгук / Не стосується брокера');
+  if (reason === null) return;
+  try{
+    await moderateReview(id, 'rejected', reason);
+    reviews = await adminReviews();
+    renderReviews();
+    showToast('Відгук відхилено');
+  }catch(e){ showToast(e.message, 'error'); }
 }
 
-function copyMessage(){
-  navigator.clipboard.writeText(document.getElementById('message-template').innerText)
-    .then(()=>showToast('Скопійовано'))
-    .catch(()=>showToast('Не вдалося скопіювати',true));
+/* ---------- Платежі ---------- */
+function renderPayments(){
+  document.getElementById('pTable').innerHTML = payments.length ? payments.map(p =>
+    '<tr><td class="text-sm text-muted">' + fmtDate(p.created_at) + '</td>' +
+    '<td>' + esc(p.brokers?.name || '—') + '</td>' +
+    '<td><span class="badge badge-' + esc(p.plan) + '">' + planLabel(p.plan) + '</span></td>' +
+    '<td>' + fmtMoney(p.amount) + '</td>' +
+    '<td>' + (p.status === 'approved' ? '<span style="color:var(--green)">Оплачено</span>' :
+      '<span class="text-muted">' + esc(p.status) + '</span>') + '</td>' +
+    '<td class="text-xs text-muted">' + esc(p.wayforpay_order_id || '—') + '</td></tr>').join('')
+    : '<tr><td colspan="6"><div class="empty">Платежів ще не було</div></td></tr>';
 }
 
 async function checkWfp(){
-  const el=document.getElementById('wfp-status');
+  const el = document.getElementById('wfpStatus');
   try{
-    const r=await fetch(SUPABASE_URL+'/functions/v1/wayforpay-checkout',{method:'OPTIONS'});
+    const r = await fetch(CHECKOUT_FN, { method:'OPTIONS' });
     el.textContent = r.ok ? 'функція розгорнута' : 'функція недоступна';
     el.style.color = r.ok ? 'var(--green)' : 'var(--red)';
-  }catch{
-    el.textContent='функція недоступна'; el.style.color='var(--red)';
-  }
+  }catch{ el.textContent = 'функція недоступна'; el.style.color = 'var(--red)'; }
 }
 
-/* ---------- СТАРТ ---------- */
-document.querySelectorAll('.modal-overlay').forEach(o=>
-  o.addEventListener('click',function(e){ if(e.target===this) this.classList.remove('open'); }));
-document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeModal('admin-modal'); });
-
-window.addEventListener('DOMContentLoaded', async ()=>{
-  const {data:{session}}=await sb.auth.getSession();
-  if(session && await isAdmin(session.user.id)) enterPanel(session.user);
-  checkWfp();
+/* ---------- Старт ---------- */
+window.addEventListener('DOMContentLoaded', async () => {
+  const user = await currentUser();
+  if (user && await isAdmin()){ await enter(); checkWfp(); }
 });
 </script>
 </body>

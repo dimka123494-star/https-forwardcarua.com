@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, follow">
+<title>Вхід і реєстрація — МитнийБрокер</title>
+<meta name="description" content="Вхід у кабінет митного брокера або клієнта на платформі МитнийБрокер.">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.7.0/dist/tabler-icons.min.css">
+<link rel="stylesheet" href="/assets/css/app.css">
+<style>
+.auth-wrap{max-width:460px;margin:0 auto;padding:3rem 1.25rem 4rem}
+.tabs{display:flex;background:var(--surface);border:.5px solid var(--border);border-radius:12px;padding:4px;margin-bottom:2rem}
+.tab{flex:1;padding:10px;border-radius:var(--r-sm);border:none;font-family:var(--display);font-size:15px;
+  font-weight:700;cursor:pointer;background:transparent;color:var(--muted);transition:all .2s}
+.tab.active{background:var(--blue);color:#fff}
+.role-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:1.25rem}
+.role{background:var(--surface);border:.5px solid var(--border);border-radius:12px;padding:14px 12px;cursor:pointer;
+  text-align:center;transition:all .2s}
+.role.on{background:var(--blue-glow);border-color:var(--blue)}
+.role i{font-size:22px;color:var(--blue);display:block;margin-bottom:6px}
+.role-t{font-size:14px;font-weight:500}
+.role-d{font-size:11px;color:var(--muted);margin-top:2px;line-height:1.4}
+.steps{display:flex;gap:0;margin-bottom:1.75rem;background:var(--surface);border-radius:10px;padding:4px}
+.step{flex:1;text-align:center;padding:9px;border-radius:7px;font-size:12px;font-weight:500;color:var(--muted)}
+.step.active{background:var(--blue);color:#fff}
+.step.done{color:var(--green)}
+.svc-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.svc{display:flex;align-items:center;gap:8px;background:var(--surface);border:.5px solid var(--border);
+  border-radius:var(--r-sm);padding:10px 12px;cursor:pointer;font-size:13px;transition:all .2s}
+.svc.on{background:var(--blue-glow);border-color:var(--blue)}
+.alt{text-align:center;margin-top:1.25rem;font-size:14px;color:var(--muted)}
+.alt button{background:none;border:none;color:var(--blue);cursor:pointer;font-family:var(--body);font-size:14px}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <a class="nav-brand" href="/">Митний<span>Брокер</span></a>
+  <div class="nav-actions">
+    <a class="btn btn-ghost btn-sm" href="/"><i class="ti ti-arrow-left"></i> На головну</a>
+  </div>
+</nav>
+
+<div class="page">
+  <div class="auth-wrap">
+
+    <div class="tabs">
+      <button class="tab active" id="tabLogin" onclick="setMode('login')">Вхід</button>
+      <button class="tab" id="tabReg" onclick="setMode('register')">Реєстрація</button>
+    </div>
+
+    <!-- ===== ВХІД ===== -->
+    <div id="paneLogin">
+      <div style="text-align:center;margin-bottom:1.75rem">
+        <h1 class="h-sm" style="font-size:24px;margin-bottom:.5rem">Вхід у кабінет</h1>
+        <p class="text-sm text-muted">Один акаунт для брокера і для клієнта</p>
+      </div>
+      <div class="field"><label class="label" for="li-email">Email</label>
+        <input class="input" type="email" id="li-email" autocomplete="email" placeholder="you@email.com"></div>
+      <div class="field"><label class="label" for="li-pass">Пароль</label>
+        <input class="input" type="password" id="li-pass" autocomplete="current-password" placeholder="••••••••"
+               onkeydown="if(event.key==='Enter')doLogin()"></div>
+      <div class="msg" id="li-msg"></div>
+      <button class="btn btn-primary btn-block" id="li-btn" onclick="doLogin()">Увійти</button>
+      <button class="btn btn-ghost btn-block" style="margin-top:8px" onclick="doReset()">Забули пароль?</button>
+      <div class="alt">Ще немає акаунту? <button onclick="setMode('register')">Зареєструватись</button></div>
+    </div>
+
+    <!-- ===== РЕЄСТРАЦІЯ ===== -->
+    <div id="paneReg" style="display:none">
+      <div style="text-align:center;margin-bottom:1.5rem">
+        <h1 class="h-sm" style="font-size:24px;margin-bottom:.5rem">Реєстрація</h1>
+        <p class="text-sm text-muted">Оберіть, для чого вам платформа</p>
+      </div>
+
+      <div class="role-grid">
+        <div class="role on" id="roleClient" onclick="setRole('client')">
+          <i class="ti ti-user"></i>
+          <div class="role-t">Я клієнт</div>
+          <div class="role-d">Шукаю брокера для розмитнення</div>
+        </div>
+        <div class="role" id="roleBroker" onclick="setRole('broker')">
+          <i class="ti ti-briefcase"></i>
+          <div class="role-t">Я брокер</div>
+          <div class="role-d">Хочу отримувати заявки</div>
+        </div>
+      </div>
+
+      <!-- Кроки показуються тільки брокеру -->
+      <div class="steps" id="regSteps" style="display:none">
+        <div class="step active" id="st1">1. Акаунт</div>
+        <div class="step" id="st2">2. Профіль</div>
+        <div class="step" id="st3">3. Послуги</div>
+      </div>
+
+      <!-- Крок 1: акаунт (спільний) -->
+      <div id="reg1">
+        <div class="field"><label class="label" for="rg-name">Ім'я <span id="nameHint" class="text-muted"></span></label>
+          <input class="input" id="rg-name" placeholder="Іван Петренко" autocomplete="name"></div>
+        <div class="field"><label class="label" for="rg-phone">Телефон</label>
+          <input class="input" type="tel" id="rg-phone" placeholder="+380 98 123 45 67" autocomplete="tel"></div>
+        <div class="field"><label class="label" for="rg-email">Email *</label>
+          <input class="input" type="email" id="rg-email" placeholder="you@email.com" autocomplete="email"></div>
+        <div class="field"><label class="label" for="rg-pass">Пароль * (мінімум 8 символів)</label>
+          <input class="input" type="password" id="rg-pass" placeholder="••••••••" autocomplete="new-password"></div>
+        <div class="check-row">
+          <input type="checkbox" id="rg-agree">
+          <label for="rg-agree">Погоджуюсь з <a href="/terms" target="_blank" rel="noopener">публічною офертою</a>
+            та <a href="/terms#privacy" target="_blank" rel="noopener">обробкою персональних даних</a></label>
+        </div>
+        <div class="msg" id="rg-msg"></div>
+        <button class="btn btn-primary btn-block" id="rg-btn" onclick="step1()">Створити акаунт</button>
+        <div class="alt">Вже є акаунт? <button onclick="setMode('login')">Увійти</button></div>
+      </div>
+
+      <!-- Крок 2: профіль брокера -->
+      <div id="reg2" style="display:none">
+        <p class="text-sm text-muted" style="margin-bottom:1.25rem">Ці дані побачать клієнти в каталозі.</p>
+        <div class="field"><label class="label" for="bp-name">Ім'я або назва компанії *</label>
+          <input class="input" id="bp-name" placeholder="Іван Петренко або ТОВ «МитБрок»"></div>
+        <div class="field-row">
+          <div class="field"><label class="label" for="bp-city">Місто</label>
+            <input class="input" id="bp-city" placeholder="Київ"></div>
+          <div class="field"><label class="label" for="bp-region">Область</label>
+            <select class="input" id="bp-region"></select></div>
+        </div>
+        <div class="field"><label class="label" for="bp-exp">Досвід, років</label>
+          <input class="input" type="number" id="bp-exp" min="0" max="60" placeholder="5"></div>
+        <div class="field"><label class="label" for="bp-about">Про себе</label>
+          <textarea class="input" id="bp-about" placeholder="Коротко про досвід і спеціалізацію…"></textarea></div>
+        <div class="field-row">
+          <div class="field"><label class="label" for="bp-phone">Телефон</label>
+            <input class="input" id="bp-phone" placeholder="+380…"></div>
+          <div class="field"><label class="label" for="bp-tg">Telegram</label>
+            <input class="input" id="bp-tg" placeholder="@username"></div>
+        </div>
+        <div class="msg" id="bp-msg"></div>
+        <button class="btn btn-primary btn-block" onclick="step2()">Далі</button>
+      </div>
+
+      <!-- Крок 3: послуги -->
+      <div id="reg3" style="display:none">
+        <p class="text-sm text-muted" style="margin-bottom:1rem">Оберіть послуги і вкажіть ціну «від» — так клієнти краще розуміють, до кого звертатись.</p>
+        <div class="svc-grid" id="svcGrid"></div>
+        <div class="field-row" style="margin-top:1.25rem">
+          <div class="field"><label class="label" for="bp-from">Ціна від, грн</label>
+            <input class="input" type="number" id="bp-from" min="0" placeholder="500"></div>
+          <div class="field"><label class="label" for="bp-to">Ціна до, грн</label>
+            <input class="input" type="number" id="bp-to" min="0" placeholder="5000"></div>
+        </div>
+        <div class="msg" id="sv-msg"></div>
+        <button class="btn btn-primary btn-block" id="sv-btn" onclick="step3()">Завершити реєстрацію</button>
+        <button class="btn btn-ghost btn-block" style="margin-top:8px" onclick="skipServices()">Пропустити — додам пізніше</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script src="/assets/js/config.js"></script>
+<script src="/assets/js/db.js"></script>
+<script>
+let role = 'client';
+const params = new URLSearchParams(location.search);
+const nextUrl = params.get('next');
+
+function setMode(m){
+  const login = m === 'login';
+  document.getElementById('paneLogin').style.display = login ? 'block' : 'none';
+  document.getElementById('paneReg').style.display   = login ? 'none' : 'block';
+  document.getElementById('tabLogin').classList.toggle('active', login);
+  document.getElementById('tabReg').classList.toggle('active', !login);
+}
+function setRole(r){
+  role = r;
+  document.getElementById('roleClient').classList.toggle('on', r === 'client');
+  document.getElementById('roleBroker').classList.toggle('on', r === 'broker');
+  document.getElementById('regSteps').style.display = r === 'broker' ? 'flex' : 'none';
+  document.getElementById('nameHint').textContent = r === 'broker' ? '' : '';
+  document.getElementById('rg-btn').textContent = r === 'broker' ? 'Створити акаунт' : 'Зареєструватись';
+}
+function setStep(n){
+  [1,2,3].forEach(i => {
+    document.getElementById('reg' + i).style.display = i === n ? 'block' : 'none';
+    const s = document.getElementById('st' + i);
+    s.classList.remove('active','done');
+    if (i < n) s.classList.add('done');
+    if (i === n) s.classList.add('active');
+  });
+  window.scrollTo(0,0);
+}
+function msg(id, text, type){
+  const el = document.getElementById(id);
+  el.textContent = text;
+  el.className = 'msg show ' + (type === 'ok' ? 'msg-ok' : 'msg-err');
+}
+
+/* ---------- Куди вести після входу ---------- */
+async function landing(){
+  if (nextUrl) return nextUrl;
+  const r = await userRole();
+  return r === 'admin' ? '/admin' : r === 'broker' ? '/kabinet' : '/moi-zayavky';
+}
+
+/* ---------- Вхід ---------- */
+async function doLogin(){
+  const btn = document.getElementById('li-btn');
+  btn.disabled = true; btn.textContent = 'Входимо…';
+  try{
+    await signIn(document.getElementById('li-email').value.trim(),
+                 document.getElementById('li-pass').value);
+    location.href = await landing();
+  }catch(e){
+    msg('li-msg', e.message, 'err');
+    btn.disabled = false; btn.textContent = 'Увійти';
+  }
+}
+
+async function doReset(){
+  try{
+    await resetPassword(document.getElementById('li-email').value.trim());
+    msg('li-msg', 'Лист для відновлення пароля надіслано. Перевірте пошту.', 'ok');
+  }catch(e){
+    msg('li-msg', e.message, 'err');
+  }
+}
+
+/* ---------- Реєстрація ---------- */
+async function step1(){
+  const name  = document.getElementById('rg-name').value.trim();
+  const phone = document.getElementById('rg-phone').value.trim();
+  const email = document.getElementById('rg-email').value.trim();
+  const pass  = document.getElementById('rg-pass').value;
+
+  if (name.length < 2)                  return msg('rg-msg', 'Вкажіть ім\'я', 'err');
+  if (!isValidEmail(email))             return msg('rg-msg', 'Вкажіть коректний email', 'err');
+  if (pass.length < 8)                  return msg('rg-msg', 'Пароль має містити щонайменше 8 символів', 'err');
+  if (!document.getElementById('rg-agree').checked)
+    return msg('rg-msg', 'Підтвердьте згоду з офертою', 'err');
+
+  const btn = document.getElementById('rg-btn');
+  btn.disabled = true; btn.textContent = 'Реєструємо…';
+  try{
+    await signUp({ email, password: pass, name, phone, role });
+
+    if (role === 'client'){
+      msg('rg-msg', 'Готово! Відкриваємо кабінет…', 'ok');
+      setTimeout(async () => { location.href = nextUrl || '/moi-zayavky'; }, 900);
+      return;
+    }
+    // Брокеру одразу заповнюємо профіль
+    document.getElementById('bp-name').value  = name;
+    document.getElementById('bp-phone').value = phone;
+    setStep(2);
+  }catch(e){
+    msg('rg-msg', e.message, 'err');
+    btn.disabled = false; btn.textContent = 'Створити акаунт';
+  }
+}
+
+let newBrokerId = null;
+
+async function step2(){
+  const name = document.getElementById('bp-name').value.trim();
+  if (name.length < 2) return msg('bp-msg', 'Вкажіть ім\'я або назву компанії', 'err');
+  try{
+    const broker = await createBrokerProfile({
+      name,
+      city:       document.getElementById('bp-city').value.trim() || null,
+      region:     document.getElementById('bp-region').value || null,
+      experience: Number(document.getElementById('bp-exp').value) || 0,
+      about:      document.getElementById('bp-about').value.trim() || null,
+      phone:      document.getElementById('bp-phone').value.trim() || null,
+      telegram:   document.getElementById('bp-tg').value.trim() || null
+    });
+    newBrokerId = broker.id;
+    setStep(3);
+  }catch(e){
+    // Якщо профіль уже є — просто йдемо в кабінет
+    if (/вже існує/.test(e.message)){ location.href = '/kabinet'; return; }
+    msg('bp-msg', e.message, 'err');
+  }
+}
+
+async function step3(){
+  const chosen = [...document.querySelectorAll('.svc.on')].map(el => el.dataset.name);
+  if (!chosen.length) return msg('sv-msg', 'Оберіть хоча б одну послугу або натисніть «Пропустити»', 'err');
+  const btn = document.getElementById('sv-btn');
+  btn.disabled = true; btn.textContent = 'Зберігаємо…';
+  try{
+    const from = Number(document.getElementById('bp-from').value) || null;
+    const to   = Number(document.getElementById('bp-to').value) || null;
+    await setMyServices(newBrokerId, chosen.map(n => ({ name:n, price_from:from, price_to:to })));
+    location.href = '/kabinet';
+  }catch(e){
+    msg('sv-msg', e.message, 'err');
+    btn.disabled = false; btn.textContent = 'Завершити реєстрацію';
+  }
+}
+function skipServices(){ location.href = '/kabinet'; }
+
+/* ---------- Старт ---------- */
+window.addEventListener('DOMContentLoaded', async () => {
+  document.getElementById('bp-region').innerHTML =
+    '<option value="">Оберіть область</option>' + REGIONS.map(r => '<option>' + r + '</option>').join('');
+  document.getElementById('svcGrid').innerHTML = SERVICES.map(s =>
+    '<div class="svc" data-name="' + s.name + '" onclick="this.classList.toggle(\'on\')">' +
+    '<span>' + s.icon + '</span><span>' + s.name + '</span></div>').join('');
+
+  if (params.get('role') === 'broker'){ setMode('register'); setRole('broker'); }
+  else setRole('client');
+
+  // Уже увійшли — не показуємо форму вдруге
+  const user = await currentUser();
+  if (user) location.href = await landing();
+});
+</script>
+</body>
+</html>

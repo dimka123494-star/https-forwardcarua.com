@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Профіль брокера — МитнийБрокер</title>
+<meta name="description" content="Профіль митного брокера: послуги, ціни, контакти та відгуки клієнтів.">
+<link rel="canonical" href="https://forwardcarua.com/">
+<meta property="og:type" content="profile">
+<meta property="og:site_name" content="МитнийБрокер">
+<meta property="og:title" content="Профіль брокера — МитнийБрокер">
+<meta property="og:description" content="Послуги, ціни, контакти та відгуки клієнтів.">
+
+<script async src="https://www.googletagmanager.com/gtag/js?id=AW-18171698074"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date()); gtag('config', 'AW-18171698074');
+</script>
+
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.7.0/dist/tabler-icons.min.css">
+<link rel="stylesheet" href="/assets/css/app.css">
+<style>
+.b-hero{display:grid;grid-template-columns:auto 1fr auto;gap:18px;align-items:flex-start}
+.b-name{font-family:var(--display);font-size:26px;font-weight:800;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.b-meta{display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:13px;color:var(--muted);margin-top:6px}
+.b-cta{display:flex;flex-direction:column;gap:8px;min-width:170px}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.svc-line{display:flex;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:.5px solid var(--border);font-size:14px}
+.svc-line:last-child{border:none}
+.svc-price{color:var(--amber);font-weight:500;white-space:nowrap}
+.contact-line{display:flex;align-items:center;gap:10px;padding:9px 0;font-size:14px;border-bottom:.5px solid var(--border)}
+.contact-line:last-child{border:none}
+.contact-line i{color:var(--blue);font-size:18px;width:20px;text-align:center}
+.rating-box{display:grid;grid-template-columns:auto 1fr;gap:24px;align-items:center}
+.big-score{font-family:var(--display);font-size:46px;font-weight:800;color:var(--amber);line-height:1}
+.bar-line{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);margin-bottom:5px}
+.bar-track{flex:1;height:6px;background:var(--surface2);border-radius:3px;overflow:hidden}
+.bar-fill{height:100%;background:var(--amber);border-radius:3px}
+.rv{background:var(--surface);border:.5px solid var(--border);border-radius:var(--r);padding:1.25rem;margin-bottom:10px}
+.rv-head{display:flex;justify-content:space-between;gap:10px;margin-bottom:8px}
+.rv-reply{margin-top:10px;padding:10px 12px;background:var(--surface2);border-left:2px solid var(--green);
+  border-radius:0 var(--r-sm) var(--r-sm) 0}
+.star-pick{display:flex;gap:6px;margin-bottom:1rem}
+.sp{font-size:30px;cursor:pointer;color:rgba(255,255,255,.18);user-select:none;transition:color .1s;line-height:1}
+.sp.lit{color:var(--amber)}
+@media(max-width:768px){.b-hero{grid-template-columns:auto 1fr}.b-cta{grid-column:1/-1;min-width:0}.two-col{grid-template-columns:1fr}.rating-box{grid-template-columns:1fr;gap:12px}}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <a class="nav-brand" href="/">Митний<span>Брокер</span></a>
+  <div class="nav-links">
+    <a class="nav-link" href="/">Каталог</a>
+    <a class="nav-link" href="/zayavka">Залишити заявку</a>
+  </div>
+  <div class="nav-actions">
+    <a class="btn btn-ghost btn-sm" href="/">← Каталог</a>
+  </div>
+</nav>
+
+<div class="page">
+  <div class="container" style="padding-top:2rem;padding-bottom:3rem">
+    <div id="content"><div class="empty">Завантаження профілю…</div></div>
+  </div>
+</div>
+
+<footer class="footer">
+  <div class="footer-inner">
+    <div>
+      <div class="footer-brand">Митний<span>Брокер</span></div>
+      <p class="footer-text">Каталог митних брокерів України. Послуги надає обраний вами брокер.</p>
+    </div>
+    <div><div class="footer-col-title">Документи</div>
+      <div class="footer-links"><a href="/terms">Публічна оферта</a><a href="/terms#privacy">Конфіденційність</a></div></div>
+    <div><div class="footer-col-title">Контакти</div><div class="footer-links" id="footerContacts"></div></div>
+  </div>
+  <div class="footer-bottom" id="footerBottom"></div>
+</footer>
+
+<script src="/assets/js/config.js"></script>
+<script src="/assets/js/db.js"></script>
+<script>
+let broker = null, reviews = [], filterStars = 'all', myStars = 0;
+
+function brokerIdFromUrl(){
+  const parts = location.pathname.split('/').filter(Boolean);
+  const i = parts.indexOf('broker');
+  if (i >= 0 && parts[i+1]) return parts[i+1];
+  return new URLSearchParams(location.search).get('id');
+}
+
+function starRow(n, size = 14){
+  let h = '';
+  for (let i = 1; i <= 5; i++)
+    h += '<span style="font-size:' + size + 'px;color:' + (i <= n ? 'var(--amber)' : 'rgba(255,255,255,.18)') + '">★</span>';
+  return h;
+}
+
+async function load(){
+  const id = brokerIdFromUrl();
+  const el = document.getElementById('content');
+  if (!id){ el.innerHTML = notFound(); return; }
+
+  broker = await getBroker(id);
+  if (!broker){ el.innerHTML = notFound(); return; }
+
+  document.title = broker.name + ' — митний брокер' + (broker.city ? ', ' + broker.city : '') + ' | МитнийБрокер';
+  const desc = 'Митний брокер ' + broker.name + (broker.city ? ' у місті ' + broker.city : '') +
+    '. Послуги, ціни, контакти та відгуки клієнтів.';
+  document.querySelector('meta[name=description]').content = desc;
+  document.querySelector('link[rel=canonical]').href = 'https://forwardcarua.com/broker/' + broker.id;
+  document.querySelector('meta[property="og:title"]').content = document.title;
+  document.querySelector('meta[property="og:description"]').content = desc;
+
+  reviews = await listReviews(broker.id);
+  render();
+  addSchema();
+  incrementViews(broker.id);
+}
+
+function notFound(){
+  return '<div class="empty"><strong>Профіль не знайдено</strong>' +
+    'Можливо, брокер прибрав профіль із каталогу.<br><a href="/">Повернутись до каталогу</a></div>';
+}
+
+function render(){
+  const plan = broker.plan || 'free';
+  const svcs = broker.broker_services || [];
+  const s = ratingSummary(reviews);
+
+  const contacts = [
+    broker.phone    && ['ti-phone', telHref(broker.phone), broker.phone],
+    broker.telegram && ['ti-brand-telegram', tgHref(broker.telegram), broker.telegram],
+    broker.whatsapp && ['ti-brand-whatsapp', waHref(broker.whatsapp), broker.whatsapp],
+    broker.viber    && ['ti-brand-viber', 'viber://chat?number=' + encodeURIComponent(broker.viber), broker.viber],
+    broker.instagram&& ['ti-brand-instagram', 'https://instagram.com/' + String(broker.instagram).replace(/^@/,''), broker.instagram],
+    broker.facebook && ['ti-brand-facebook', String(broker.facebook).startsWith('http') ? broker.facebook : 'https://' + broker.facebook, broker.facebook]
+  ].filter(Boolean);
+
+  document.getElementById('content').innerHTML =
+    '<p class="text-sm" style="margin-bottom:1rem"><a href="/">← Каталог брокерів</a></p>' +
+
+    '<div class="card" style="margin-bottom:16px">' +
+      '<div class="b-hero">' +
+        '<div class="avatar avatar-lg av-' + esc(plan) + '">' + esc(initials(broker.name)) + '</div>' +
+        '<div>' +
+          '<h1 class="b-name">' + esc(broker.name) +
+            '<span class="badge badge-' + esc(plan) + '">' + planEmoji(plan) + ' ' + planLabel(plan) + '</span>' +
+            (broker.is_verified ? '<span class="badge badge-verified"><i class="ti ti-rosette-discount-check"></i> Контакти перевірено</span>' : '') +
+          '</h1>' +
+          '<div class="b-meta">' +
+            '<span><i class="ti ti-map-pin"></i> ' + esc([broker.city, broker.region].filter(Boolean).join(', ') || 'Україна') + '</span>' +
+            (broker.experience ? '<span>Досвід ' + esc(broker.experience) + ' р.</span>' : '') +
+            (s.total ? '<span style="color:var(--amber)">★ ' + s.avg.toFixed(1) + ' (' + s.total + ')</span>' : '<span>Ще без відгуків</span>') +
+          '</div>' +
+          (broker.about ? '<p class="text-sm text-muted" style="margin-top:12px;line-height:1.65">' + esc(broker.about) + '</p>' : '') +
+        '</div>' +
+        '<div class="b-cta">' +
+          '<a class="btn btn-primary" href="/zayavka?broker=' + esc(broker.id) + '"><i class="ti ti-message-2"></i> Залишити заявку</a>' +
+          (broker.phone ? '<a class="btn btn-ghost" href="' + telHref(broker.phone) + '" onclick="track(\'contact_click\',{type:\'phone\'})"><i class="ti ti-phone"></i> Подзвонити</a>' : '') +
+          (broker.telegram ? '<a class="btn btn-ghost" href="' + tgHref(broker.telegram) + '" target="_blank" rel="noopener" onclick="track(\'contact_click\',{type:\'telegram\'})"><i class="ti ti-brand-telegram"></i> Telegram</a>' : '') +
+        '</div>' +
+      '</div>' +
+    '</div>' +
+
+    '<div class="two-col" style="margin-bottom:16px">' +
+      '<div class="card"><div class="card-title">Послуги та ціни</div>' +
+        (svcs.length
+          ? svcs.map(x => '<div class="svc-line"><span>' + esc(x.name) + '</span><span class="svc-price">' +
+              (x.price_from ? 'від ' + fmtMoney(x.price_from) : 'за домовленістю') + '</span></div>').join('')
+          : '<p class="text-sm text-muted">Брокер ще не додав перелік послуг.</p>') +
+      '</div>' +
+      '<div class="card"><div class="card-title">Контакти</div>' +
+        (contacts.length
+          ? contacts.map(c => '<a class="contact-line" href="' + c[1] + '" target="_blank" rel="noopener">' +
+              '<i class="ti ' + c[0] + '"></i><span>' + esc(c[2]) + '</span></a>').join('')
+          : '<p class="text-sm text-muted">Контакти доступні після заявки.</p>') +
+      '</div>' +
+    '</div>' +
+
+    '<div class="card" style="margin-bottom:16px">' +
+      '<div class="rating-box">' +
+        '<div style="text-align:center">' +
+          '<div class="big-score">' + (s.total ? s.avg.toFixed(1) : '—') + '</div>' +
+          '<div style="margin:6px 0">' + starRow(Math.round(s.avg), 16) + '</div>' +
+          '<div class="text-xs text-muted">' + s.total + ' ' + plural(s.total,'відгук','відгуки','відгуків') + '</div>' +
+        '</div>' +
+        '<div>' + [5,4,3,2,1].map(v => {
+            const pct = s.total ? Math.round(s.counts[v] / s.total * 100) : 0;
+            return '<div class="bar-line"><span style="min-width:22px">' + v + '★</span>' +
+                   '<div class="bar-track"><div class="bar-fill" style="width:' + pct + '%"></div></div>' +
+                   '<span style="min-width:16px;text-align:right">' + s.counts[v] + '</span></div>';
+          }).join('') + '</div>' +
+      '</div>' +
+    '</div>' +
+
+    '<div class="spread" style="margin-bottom:12px">' +
+      '<h2 class="h-md">Відгуки</h2>' +
+      '<div class="row" style="gap:6px">' +
+        ['all','5','4','3','2','1'].map(v =>
+          '<button class="chip ' + (filterStars === v ? 'active' : '') + '" onclick="setStars(\'' + v + '\')">' +
+          (v === 'all' ? 'Всі' : v + '★') + '</button>').join('') +
+      '</div>' +
+    '</div>' +
+    '<div id="rvList"></div>' +
+
+    '<div class="card" style="margin-top:1.5rem">' +
+      '<h3 class="h-sm" style="margin-bottom:1rem">Залишити відгук</h3>' +
+      '<p class="text-sm text-muted" style="margin-bottom:1rem">Відгук з\'явиться на сторінці після перевірки модератором.</p>' +
+      '<div class="star-pick" id="spRow">' +
+        [1,2,3,4,5].map(v => '<span class="sp" data-v="' + v + '">★</span>').join('') +
+      '</div>' +
+      '<div class="field-row">' +
+        '<div class="field"><label class="label" for="rv-name">Ваше ім\'я *</label><input class="input" id="rv-name" placeholder="Андрій В."></div>' +
+        '<div class="field"><label class="label" for="rv-svc">Послуга *</label><select class="input" id="rv-svc">' +
+          '<option value="">Оберіть…</option>' + SERVICE_NAMES.map(n => '<option>' + n + '</option>').join('') +
+        '</select></div>' +
+      '</div>' +
+      '<div class="field"><label class="label" for="rv-text">Ваш досвід *</label>' +
+        '<textarea class="input" id="rv-text" placeholder="Що замовляли, як пройшло, скільки часу зайняло…"></textarea>' +
+        '<div class="hint">Мінімум 20 символів</div></div>' +
+      '<div class="msg" id="rv-msg"></div>' +
+      '<button class="btn btn-primary" id="rv-btn" onclick="sendReview()">Надіслати відгук</button>' +
+    '</div>';
+
+  bindStars();
+  renderReviews();
+}
+
+function setStars(v){ filterStars = v; render(); }
+
+function renderReviews(){
+  const list = filterStars === 'all' ? reviews : reviews.filter(r => r.rating === Number(filterStars));
+  const el = document.getElementById('rvList');
+  if (!list.length){
+    el.innerHTML = '<div class="empty"><strong>Відгуків поки немає</strong>Станьте першим, хто розповість про свій досвід.</div>';
+    return;
+  }
+  el.innerHTML = list.map(r => {
+    const reply = (r.review_replies || [])[0];
+    return '<div class="rv">' +
+      '<div class="rv-head">' +
+        '<div class="row" style="gap:10px">' +
+          '<div class="avatar avatar-sm av-standard">' + esc(initials(r.author_name)) + '</div>' +
+          '<div><div style="font-size:14px;font-weight:500">' + esc(r.author_name) + '</div>' +
+          '<div class="text-xs text-muted">' + timeAgo(r.created_at) + '</div></div>' +
+        '</div>' +
+        '<div>' + starRow(r.rating) + '</div>' +
+      '</div>' +
+      (r.service ? '<span class="tag" style="margin-bottom:8px;display:inline-block">' + esc(r.service) + '</span>' : '') +
+      '<p class="text-sm" style="line-height:1.6">' + esc(r.body) + '</p>' +
+      (reply ? '<div class="rv-reply"><div class="text-xs" style="color:var(--green);margin-bottom:4px">Відповідь брокера</div>' +
+               '<p class="text-sm">' + esc(reply.body) + '</p></div>' : '') +
+      '<button class="btn-quiet" style="margin-top:10px" onclick="helpful(\'' + esc(r.id) + '\',this)">' +
+        '<i class="ti ti-thumb-up"></i> Корисно · <span>' + (r.helpful_count || 0) + '</span></button>' +
+    '</div>';
+  }).join('');
+}
+
+async function helpful(id, btn){
+  try{
+    const n = await markHelpful(id);
+    btn.querySelector('span').textContent = n;
+    btn.style.color = 'var(--green)';
+  }catch(e){ showToast(e.message, 'error'); }
+}
+
+function bindStars(){
+  const sps = document.querySelectorAll('.sp');
+  sps.forEach(sp => {
+    sp.addEventListener('mouseover', () => {
+      const v = Number(sp.dataset.v);
+      sps.forEach(p => p.classList.toggle('lit', Number(p.dataset.v) <= v));
+    });
+    sp.addEventListener('click', () => {
+      myStars = Number(sp.dataset.v);
+      sps.forEach(p => p.classList.toggle('lit', Number(p.dataset.v) <= myStars));
+    });
+  });
+  document.getElementById('spRow').addEventListener('mouseleave', () =>
+    sps.forEach(p => p.classList.toggle('lit', Number(p.dataset.v) <= myStars)));
+}
+
+async function sendReview(){
+  const btn = document.getElementById('rv-btn');
+  const m = document.getElementById('rv-msg');
+  btn.disabled = true; btn.textContent = 'Надсилаємо…';
+  try{
+    await submitReview({
+      brokerId: broker.id,
+      authorName: document.getElementById('rv-name').value,
+      rating: myStars,
+      service: document.getElementById('rv-svc').value,
+      body: document.getElementById('rv-text').value
+    });
+    m.className = 'msg show msg-ok';
+    m.textContent = 'Дякуємо! Відгук з\'явиться після перевірки модератором.';
+    document.getElementById('rv-name').value = '';
+    document.getElementById('rv-text').value = '';
+    document.getElementById('rv-svc').value = '';
+    myStars = 0;
+    document.querySelectorAll('.sp').forEach(p => p.classList.remove('lit'));
+  }catch(e){
+    m.className = 'msg show msg-err';
+    m.textContent = e.message;
+  }
+  btn.disabled = false; btn.textContent = 'Надіслати відгук';
+}
+
+function addSchema(){
+  const s = ratingSummary(reviews);
+  const data = {
+    '@context':'https://schema.org',
+    '@type':'ProfessionalService',
+    name: broker.name,
+    description: broker.about || ('Митний брокер' + (broker.city ? ', ' + broker.city : '')),
+    url: 'https://forwardcarua.com/broker/' + broker.id,
+    areaServed: broker.region || 'Україна',
+    address: { '@type':'PostalAddress', addressLocality: broker.city || '', addressCountry:'UA' }
+  };
+  if (broker.phone) data.telephone = broker.phone;
+  if (s.total > 0) data.aggregateRating = {
+    '@type':'AggregateRating', ratingValue: s.avg.toFixed(1), reviewCount: s.total, bestRating:5, worstRating:1
+  };
+  const tag = document.createElement('script');
+  tag.type = 'application/ld+json';
+  tag.textContent = JSON.stringify(data);
+  document.head.appendChild(tag);
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('footerContacts').innerHTML =
+    '<a href="mailto:' + CONTACTS.email + '">' + CONTACTS.email + '</a>' +
+    '<a href="tel:' + CONTACTS.phone + '">' + CONTACTS.phoneLabel + '</a>' +
+    '<span>' + CONTACTS.hours + '</span>';
+  document.getElementById('footerBottom').innerHTML =
+    '© ' + new Date().getFullYear() + ' ' + CONTACTS.company + ' · ЄДРПОУ ' + CONTACTS.edrpou + '<br>' + CONTACTS.address;
+  load();
+});
+</script>
+</body>
+</html>

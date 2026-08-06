@@ -2,169 +2,175 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://forwardcarua.com/</loc>
-    <lastmod>2026-08-04</lastmod>
+    <lastmod>2026-08-06</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://forwardcarua.com/taryfy</loc>
-    <lastmod>2026-08-04</lastmod>
+    <lastmod>2026-08-06</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
+    <loc>https://forwardcarua.com/zayavka</loc>
+    <lastmod>2026-08-06</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
     <loc>https://forwardcarua.com/terms</loc>
-    <lastmod>2026-08-04</lastmod>
+    <lastmod>2026-08-06</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
   </url>
   <url>
     <loc>https://forwardcarua.com/brokery/vinnytska</loc>
-    <lastmod>2026-08-04</lastmod>
+    <lastmod>2026-08-06</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://forwardcarua.com/brokery/volynska</loc>
-    <lastmod>2026-08-04</lastmod>
+    <lastmod>2026-08-06</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://forwardcarua.com/brokery/dnipropetrovska</loc>
-    <lastmod>2026-08-04</lastmod>
+    <lastmod>2026-08-06</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://forwardcarua.com/brokery/donetska</loc>
-    <lastmod>2026-08-04</lastmod>
+    <lastmod>2026-08-06</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://forwardcarua.com/brokery/zhytomyrska</loc>
-    <lastmod>2026-08-04</lastmod>
+    <lastmod>2026-08-06</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://forwardcarua.com/brokery/zakarpatska</loc>
-    <lastmod>2026-08-04</lastmod>
+    <lastmod>2026-08-06</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://forwardcarua.com/brokery/zaporizka</loc>
-    <lastmod>2026-08-04</lastmod>
+    <lastmod>2026-08-06</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://forwardcarua.com/brokery/ivano-frankivska</loc>
-    <lastmod>2026-08-04</lastmod>
+    <lastmod>2026-08-06</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://forwardcarua.com/brokery/kyivska</loc>
-    <lastmod>2026-08-04</lastmod>
+    <lastmod>2026-08-06</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://forwardcarua.com/brokery/kirovohradska</loc>
-    <lastmod>2026-08-04</lastmod>
+    <lastmod>2026-08-06</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://forwardcarua.com/brokery/luhanska</loc>
-    <lastmod>2026-08-04</lastmod>
+    <lastmod>2026-08-06</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://forwardcarua.com/brokery/lvivska</loc>
-    <lastmod>2026-08-04</lastmod>
+    <lastmod>2026-08-06</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://forwardcarua.com/brokery/mykolaivska</loc>
-    <lastmod>2026-08-04</lastmod>
+    <lastmod>2026-08-06</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://forwardcarua.com/brokery/odeska</loc>
-    <lastmod>2026-08-04</lastmod>
+    <lastmod>2026-08-06</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://forwardcarua.com/brokery/poltavska</loc>
-    <lastmod>2026-08-04</lastmod>
+    <lastmod>2026-08-06</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://forwardcarua.com/brokery/rivnenska</loc>
-    <lastmod>2026-08-04</lastmod>
+    <lastmod>2026-08-06</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://forwardcarua.com/brokery/sumska</loc>
-    <lastmod>2026-08-04</lastmod>
+    <lastmod>2026-08-06</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://forwardcarua.com/brokery/ternopilska</loc>
-    <lastmod>2026-08-04</lastmod>
+    <lastmod>2026-08-06</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://forwardcarua.com/brokery/kharkivska</loc>
-    <lastmod>2026-08-04</lastmod>
+    <lastmod>2026-08-06</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://forwardcarua.com/brokery/khersonska</loc>
-    <lastmod>2026-08-04</lastmod>
+    <lastmod>2026-08-06</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://forwardcarua.com/brokery/khmelnytska</loc>
-    <lastmod>2026-08-04</lastmod>
+    <lastmod>2026-08-06</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://forwardcarua.com/brokery/cherkaska</loc>
-    <lastmod>2026-08-04</lastmod>
+    <lastmod>2026-08-06</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://forwardcarua.com/brokery/chernivetska</loc>
-    <lastmod>2026-08-04</lastmod>
+    <lastmod>2026-08-06</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://forwardcarua.com/brokery/chernihivska</loc>
-    <lastmod>2026-08-04</lastmod>
+    <lastmod>2026-08-06</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://forwardcarua.com/brokery/kyiv</loc>
-    <lastmod>2026-08-04</lastmod>
+    <lastmod>2026-08-06</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>

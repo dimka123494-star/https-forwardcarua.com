@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Кабінет брокера — МитнийБрокер</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.7.0/dist/tabler-icons.min.css">
+<link rel="stylesheet" href="/assets/css/app.css">
+<style>
+.profile-card{background:var(--surface);border:.5px solid var(--border);border-radius:var(--r);padding:1.25rem;text-align:center;margin-bottom:12px}
+.req{background:var(--surface);border:.5px solid var(--border);border-radius:var(--r);padding:1.15rem;margin-bottom:8px}
+.req.new{border-color:rgba(75,142,241,.4)}
+.req-head{display:flex;align-items:flex-start;gap:12px}
+.req-body{flex:1;min-width:0}
+.svc-line{display:flex;justify-content:space-between;align-items:center;gap:10px;
+  background:var(--surface);border:.5px solid var(--border);border-radius:var(--r-sm);padding:12px 14px;margin-bottom:8px}
+.rv{background:var(--surface);border:.5px solid var(--border);border-radius:var(--r);padding:1.15rem;margin-bottom:8px}
+.rv-reply{margin-top:10px;padding:10px 12px;background:var(--surface2);border-left:2px solid var(--green);border-radius:0 var(--r-sm) var(--r-sm) 0}
+.plan-box{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.plan-pick{background:var(--surface);border:.5px solid var(--border);border-radius:12px;padding:1rem;text-align:center;cursor:pointer;transition:all .2s}
+.plan-pick:hover{border-color:var(--border-strong)}
+.plan-pick.current{border-color:var(--green);background:rgba(45,217,143,.06)}
+.svc-pick{display:flex;align-items:center;gap:8px;background:var(--surface);border:.5px solid var(--border);
+  border-radius:var(--r-sm);padding:10px 12px;cursor:pointer;font-size:13px}
+.svc-pick.on{background:var(--blue-glow);border-color:var(--blue)}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <a class="nav-brand" href="/">Митний<span>Брокер</span></a>
+  <div class="nav-links">
+    <a class="nav-link" href="/">Каталог</a>
+    <a class="nav-link" id="myPublicLink" href="#">Мій публічний профіль</a>
+  </div>
+  <div class="nav-actions">
+    <button class="btn btn-ghost btn-sm" onclick="doLogout()"><i class="ti ti-logout"></i> Вийти</button>
+    <button class="nav-burger" onclick="document.getElementById('menu').classList.toggle('open')" aria-label="Меню"><i class="ti ti-menu-2"></i></button>
+  </div>
+</nav>
+<div class="mobile-menu" id="menu">
+  <a href="/">Каталог</a>
+  <a href="#" id="myPublicLink2">Мій публічний профіль</a>
+  <button onclick="doLogout()">Вийти</button>
+</div>
+
+<div class="page">
+  <div class="cab-layout">
+    <aside>
+      <div class="profile-card">
+        <div class="avatar" id="cabAvatar" style="margin:0 auto 10px">—</div>
+        <div style="font-weight:500;font-size:15px" id="cabName">Завантаження…</div>
+        <div style="margin-top:8px"><span class="badge badge-free" id="cabPlan">Безкоштовний</span></div>
+      </div>
+      <div class="cab-menu">
+        <button class="cab-item active" data-pane="dash"     onclick="pane('dash',this)"><i class="ti ti-layout-dashboard"></i>Дашборд</button>
+        <button class="cab-item"        data-pane="requests" onclick="pane('requests',this)"><i class="ti ti-inbox"></i>Заявки <span class="cab-badge" id="reqBadge" style="display:none">0</span></button>
+        <button class="cab-item"        data-pane="reviews"  onclick="pane('reviews',this)"><i class="ti ti-star"></i>Відгуки <span class="cab-badge" id="rvBadge" style="display:none">0</span></button>
+        <button class="cab-item"        data-pane="services" onclick="pane('services',this)"><i class="ti ti-list-check"></i>Послуги</button>
+        <button class="cab-item"        data-pane="billing"  onclick="pane('billing',this)"><i class="ti ti-credit-card"></i>Підписка</button>
+        <button class="cab-item"        data-pane="profile"  onclick="pane('profile',this)"><i class="ti ti-user"></i>Профіль</button>
+      </div>
+    </aside>
+
+    <main>
+      <!-- ДАШБОРД -->
+      <section class="cab-pane active" id="pane-dash">
+        <h1 class="h-md" style="margin-bottom:1.25rem">Дашборд</h1>
+        <div id="upsell"></div>
+        <div class="stat-grid" style="margin-bottom:1.25rem">
+          <div class="stat"><div class="stat-val" style="color:var(--blue)" id="sViews">0</div><div class="stat-label">Переглядів профілю</div></div>
+          <div class="stat"><div class="stat-val" style="color:var(--green)" id="sMonth">0</div><div class="stat-label">Заявок цього місяця</div></div>
+          <div class="stat"><div class="stat-val" style="color:var(--amber)" id="sRating">—</div><div class="stat-label">Рейтинг</div></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Останні заявки</div>
+          <div id="dashReqs"><div class="text-sm text-muted">Заявок ще немає</div></div>
+        </div>
+      </section>
+
+      <!-- ЗАЯВКИ -->
+      <section class="cab-pane" id="pane-requests">
+        <div class="spread" style="margin-bottom:1rem">
+          <h1 class="h-md">Заявки</h1>
+          <div class="row" style="gap:6px" id="reqFilters"></div>
+        </div>
+        <div id="reqList"><div class="text-sm text-muted">Завантаження…</div></div>
+      </section>
+
+      <!-- ВІДГУКИ -->
+      <section class="cab-pane" id="pane-reviews">
+        <h1 class="h-md" style="margin-bottom:1rem">Відгуки</h1>
+        <p class="text-sm text-muted" style="margin-bottom:1.25rem">Відповідь на відгук видно всім відвідувачам вашого профілю.</p>
+        <div id="rvList"><div class="text-sm text-muted">Завантаження…</div></div>
+      </section>
+
+      <!-- ПОСЛУГИ -->
+      <section class="cab-pane" id="pane-services">
+        <h1 class="h-md" style="margin-bottom:1rem">Мої послуги</h1>
+        <div id="svcCurrent" style="margin-bottom:1.5rem"></div>
+        <div class="card">
+          <div class="card-title">Редагувати перелік</div>
+          <div class="svc-grid" id="svcPicker" style="display:grid;grid-template-columns:1fr 1fr;gap:8px"></div>
+          <div class="field-row" style="margin-top:1rem">
+            <div class="field"><label class="label" for="sv-from">Ціна від, грн</label><input class="input" type="number" id="sv-from" min="0"></div>
+            <div class="field"><label class="label" for="sv-to">Ціна до, грн</label><input class="input" type="number" id="sv-to" min="0"></div>
+          </div>
+          <div class="msg" id="svMsg"></div>
+          <button class="btn btn-primary" onclick="saveServices()">Зберегти послуги</button>
+        </div>
+      </section>
+
+      <!-- ПІДПИСКА -->
+      <section class="cab-pane" id="pane-billing">
+        <h1 class="h-md" style="margin-bottom:1rem">Підписка</h1>
+        <div class="card" style="margin-bottom:1.25rem">
+          <div class="text-sm text-muted">Поточний тариф</div>
+          <div class="h-sm" style="color:var(--blue);margin:4px 0" id="billPlan">Безкоштовний</div>
+          <div class="text-sm text-muted" id="billUntil"></div>
+        </div>
+        <div class="row" style="margin-bottom:1rem">
+          <span class="text-sm">Період:</span>
+          <button class="chip active" id="perMonth" onclick="setPeriod('month')">Щомісяця</button>
+          <button class="chip" id="perYear" onclick="setPeriod('year')">Щороку (−20%)</button>
+        </div>
+        <div class="plan-box" id="planBox" style="margin-bottom:1.5rem"></div>
+        <div class="card">
+          <div class="card-title">Історія платежів</div>
+          <div id="payList"><div class="text-sm text-muted">Платежів ще не було</div></div>
+        </div>
+        <p class="hint" style="margin-top:1rem">Підписка не поновлюється автоматично. Щоб скасувати або повернути кошти —
+          напишіть на <a href="mailto:custom@forwardcarua.com">custom@forwardcarua.com</a>, умови в <a href="/terms#refund">оферті</a>.</p>
+      </section>
+
+      <!-- ПРОФІЛЬ -->
+      <section class="cab-pane" id="pane-profile">
+        <h1 class="h-md" style="margin-bottom:1rem">Профіль</h1>
+        <div class="card">
+          <div class="field-row">
+            <div class="field"><label class="label" for="p-name">Ім'я або компанія *</label><input class="input" id="p-name"></div>
+            <div class="field"><label class="label" for="p-city">Місто</label><input class="input" id="p-city"></div>
+          </div>
+          <div class="field-row">
+            <div class="field"><label class="label" for="p-region">Область</label><select class="input" id="p-region"></select></div>
+            <div class="field"><label class="label" for="p-exp">Досвід, років</label><input class="input" type="number" id="p-exp" min="0" max="60"></div>
+          </div>
+          <div class="field"><label class="label" for="p-about">Про себе</label><textarea class="input" id="p-about"></textarea></div>
+
+          <div class="card-title" style="margin-top:1.5rem">Контакти</div>
+          <div class="field-row">
+            <div class="field"><label class="label" for="p-phone">Телефон</label><input class="input" id="p-phone" placeholder="+380…"></div>
+            <div class="field"><label class="label" for="p-tg">Telegram</label><input class="input" id="p-tg" placeholder="@username"></div>
+          </div>
+          <div class="field-row">
+            <div class="field"><label class="label" for="p-wa">WhatsApp</label><input class="input" id="p-wa" placeholder="+380…"></div>
+            <div class="field"><label class="label" for="p-vb">Viber</label><input class="input" id="p-vb" placeholder="+380…"></div>
+          </div>
+
+          <div class="card-title" style="margin-top:1.5rem">Соцмережі</div>
+          <div class="field-row">
+            <div class="field"><label class="label" for="p-ig">Instagram</label><input class="input" id="p-ig" placeholder="@username"></div>
+            <div class="field"><label class="label" for="p-fb">Facebook</label><input class="input" id="p-fb" placeholder="facebook.com/…"></div>
+          </div>
+          <div class="field-row">
+            <div class="field"><label class="label" for="p-tt">TikTok</label><input class="input" id="p-tt" placeholder="@username"></div>
+            <div class="field"><label class="label" for="p-yt">YouTube</label><input class="input" id="p-yt" placeholder="youtube.com/…"></div>
+          </div>
+          <div class="msg" id="pMsg"></div>
+          <button class="btn btn-primary" onclick="saveProfile()">Зберегти зміни</button>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+
+<script src="/assets/js/config.js"></script>
+<script src="/assets/js/db.js"></script>
+<script>
+let broker = null, requests = [], myRevs = [], period = 'month', reqFilter = 'all';
+
+function pane(name, btn){
+  document.querySelectorAll('.cab-pane').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.cab-item').forEach(b => b.classList.remove('active'));
+  document.getElementById('pane-' + name).classList.add('active');
+  if (btn) btn.classList.add('active');
+  location.hash = name;
+}
+async function doLogout(){ await signOut(); location.href = '/'; }
+
+/* ---------- Заявки ---------- */
+function reqCard(r){
+  const st = REQUEST_STATUS[r.status] || REQUEST_STATUS.new;
+  const car = [r.car_make, r.car_model, r.car_year].filter(Boolean).join(' ');
+  return '<div class="req ' + (r.status === 'new' ? 'new' : '') + '">' +
+    '<div class="req-head">' +
+      '<span class="dot" style="background:' + st.color + ';margin-top:7px"></span>' +
+      '<div class="req-body">' +
+        '<div style="font-weight:500;font-size:14px">' + esc(r.client_name) +
+          (r.status === 'new' ? ' <span class="badge badge-new">Нова</span>' : '') + '</div>' +
+        '<div class="text-sm text-muted" style="margin-top:2px">' + esc(r.service || 'Загальний запит') +
+          (car ? ' · ' + esc(car) : '') + (r.car_country ? ' · ' + esc(r.car_country) : '') + '</div>' +
+        (r.comment ? '<div class="text-sm" style="margin-top:6px;line-height:1.55">' + esc(r.comment) + '</div>' : '') +
+        (r.urgency ? '<div class="text-xs text-muted" style="margin-top:4px">Терміновість: ' + esc(r.urgency) + '</div>' : '') +
+        '<div class="row" style="gap:10px;margin-top:8px">' +
+          '<a class="btn-quiet" href="' + telHref(r.client_phone) + '"><i class="ti ti-phone"></i> ' + esc(r.client_phone) + '</a>' +
+          (r.client_telegram ? '<a class="btn-quiet" href="' + tgHref(r.client_telegram) + '" target="_blank" rel="noopener"><i class="ti ti-brand-telegram"></i> ' + esc(r.client_telegram) + '</a>' : '') +
+          (r.client_email ? '<a class="btn-quiet" href="mailto:' + esc(r.client_email) + '"><i class="ti ti-mail"></i> ' + esc(r.client_email) + '</a>' : '') +
+        '</div>' +
+      '</div>' +
+      '<span class="text-xs text-muted" style="white-space:nowrap">' + timeAgo(r.created_at) + '</span>' +
+    '</div>' +
+    '<div class="row" style="gap:8px;margin-top:10px">' +
+      (r.status === 'new'
+        ? '<button class="btn btn-primary btn-sm" onclick="setStatus(\'' + esc(r.id) + '\',\'accepted\')">Взяти в роботу</button>' +
+          '<button class="btn-quiet" onclick="setStatus(\'' + esc(r.id) + '\',\'declined\')">Відхилити</button>'
+        : r.status === 'accepted'
+          ? '<span class="text-xs" style="color:var(--amber)">В роботі</span>' +
+            '<button class="btn btn-ghost btn-sm" onclick="setStatus(\'' + esc(r.id) + '\',\'done\')">Завершити</button>'
+          : '<span class="text-xs text-muted">Статус: ' + st.label + '</span>') +
+    '</div></div>';
+}
+
+function renderRequests(){
+  const list = reqFilter === 'all' ? requests : requests.filter(r => r.status === reqFilter);
+  document.getElementById('reqList').innerHTML = list.length
+    ? list.map(reqCard).join('')
+    : '<div class="empty"><strong>Заявок у цій категорії немає</strong>Коли клієнт залишить заявку, вона з\'явиться тут.</div>';
+
+  document.getElementById('reqFilters').innerHTML =
+    [['all','Всі'],['new','Нові'],['accepted','В роботі'],['done','Завершені'],['declined','Відхилені']]
+    .map(f => '<button class="chip ' + (reqFilter === f[0] ? 'active' : '') + '" onclick="setReqFilter(\'' + f[0] + '\')">' +
+      f[1] + '</button>').join('');
+}
+function setReqFilter(v){ reqFilter = v; renderRequests(); }
+
+async function setStatus(id, status){
+  try{
+    await updateRequestStatus(id, status);
+    const r = requests.find(x => x.id === id);
+    if (r) r.status = status;
+    renderRequests(); renderDash();
+    showToast('Статус оновлено');
+  }catch(e){ showToast(e.message, 'error'); }
+}
+
+/* ---------- Дашборд ---------- */
+async function renderDash(){
+  const stats = await brokerStats(broker.id);
+  document.getElementById('sViews').textContent  = broker.views_count || 0;
+  document.getElementById('sMonth').textContent  = stats.month;
+  document.getElementById('sRating').textContent = broker.rating_avg ? Number(broker.rating_avg).toFixed(1) : '—';
+
+  const fresh = requests.filter(r => r.status === 'new').length;
+  const badge = document.getElementById('reqBadge');
+  badge.textContent = fresh; badge.style.display = fresh ? 'inline' : 'none';
+
+  document.getElementById('dashReqs').innerHTML = requests.length
+    ? requests.slice(0,3).map(reqCard).join('')
+    : '<div class="text-sm text-muted">Заявок ще немає. Клієнти бачитимуть вас у каталозі.</div>';
+
+  document.getElementById('upsell').innerHTML = broker.plan === 'free'
+    ? '<div class="card" style="margin-bottom:1.25rem;background:linear-gradient(135deg,rgba(245,166,35,.1),rgba(241,101,75,.06));border-color:rgba(245,166,35,.3)">' +
+      '<div class="spread"><div><div style="font-weight:600;margin-bottom:3px">Розширити тариф</div>' +
+      '<div class="text-sm text-muted">Показ по всій Україні, більший ліміт заявок і вища позиція в списку</div></div>' +
+      '<button class="btn btn-primary btn-sm" onclick="pane(\'billing\',document.querySelector(\'[data-pane=billing]\'))">Переглянути тарифи</button></div></div>'
+    : '';
+}
+
+/* ---------- Відгуки ---------- */
+function renderReviews(){
+  const el = document.getElementById('rvList');
+  if (!myRevs.length){
+    el.innerHTML = '<div class="empty"><strong>Відгуків ще немає</strong>Попросіть клієнтів залишити відгук на сторінці вашого профілю.</div>';
+    return;
+  }
+  const noReply = myRevs.filter(r => r.status === 'published' && !(r.review_replies || []).length).length;
+  const b = document.getElementById('rvBadge');
+  b.textContent = noReply; b.style.display = noReply ? 'inline' : 'none';
+
+  el.innerHTML = myRevs.map(r => {
+    const reply = (r.review_replies || [])[0];
+    const stars = [1,2,3,4,5].map(i =>
+      '<span style="color:' + (i <= r.rating ? 'var(--amber)' : 'rgba(255,255,255,.18)') + '">★</span>').join('');
+    return '<div class="rv">' +
+      '<div class="spread" style="margin-bottom:8px">' +
+        '<div class="row" style="gap:10px">' +
+          '<div class="avatar avatar-sm av-standard">' + esc(initials(r.author_name)) + '</div>' +
+          '<div><div style="font-size:14px;font-weight:500">' + esc(r.author_name) + '</div>' +
+          '<div class="text-xs text-muted">' + timeAgo(r.created_at) +
+            (r.status !== 'published' ? ' · ' + (REVIEW_STATUS[r.status]?.label || r.status) : '') + '</div></div>' +
+        '</div><div>' + stars + '</div>' +
+      '</div>' +
+      (r.service ? '<span class="tag" style="display:inline-block;margin-bottom:8px">' + esc(r.service) + '</span>' : '') +
+      '<p class="text-sm" style="line-height:1.6">' + esc(r.body) + '</p>' +
+      (reply
+        ? '<div class="rv-reply"><div class="text-xs" style="color:var(--green);margin-bottom:4px">Ваша відповідь</div>' +
+          '<p class="text-sm">' + esc(reply.body) + '</p>' +
+          '<button class="btn-quiet" style="margin-top:8px" onclick="openReply(\'' + esc(r.id) + '\')">Редагувати</button></div>'
+        : r.status === 'published'
+          ? '<button class="btn-quiet" style="margin-top:10px" onclick="openReply(\'' + esc(r.id) + '\')"><i class="ti ti-message-2"></i> Відповісти</button>'
+          : '<div class="text-xs text-muted" style="margin-top:8px">Відгук ще на модерації — відповісти можна після публікації</div>') +
+      '<div id="rf-' + esc(r.id) + '" style="display:none;margin-top:10px">' +
+        '<textarea class="input" id="rt-' + esc(r.id) + '" placeholder="Подякуйте або поясніть ситуацію…">' +
+          (reply ? esc(reply.body) : '') + '</textarea>' +
+        '<div class="row" style="gap:8px;margin-top:8px">' +
+          '<button class="btn btn-primary btn-sm" onclick="sendReply(\'' + esc(r.id) + '\')">Зберегти</button>' +
+          '<button class="btn-quiet" onclick="document.getElementById(\'rf-' + esc(r.id) + '\').style.display=\'none\'">Скасувати</button>' +
+        '</div></div>' +
+    '</div>';
+  }).join('');
+}
+function openReply(id){
+  const box = document.getElementById('rf-' + id);
+  box.style.display = 'block';
+  document.getElementById('rt-' + id).focus();
+}
+async function sendReply(id){
+  try{
+    await replyToReview(id, broker.id, document.getElementById('rt-' + id).value);
+    myRevs = await myReviews(broker.id);
+    renderReviews();
+    showToast('Відповідь збережено');
+  }catch(e){ showToast(e.message, 'error'); }
+}
+
+/* ---------- Послуги ---------- */
+function renderServices(){
+  const svcs = broker.broker_services || [];
+  document.getElementById('svcCurrent').innerHTML = svcs.length
+    ? svcs.map(s => '<div class="svc-line"><span>' + esc(s.name) + '</span>' +
+        '<span class="text-sm" style="color:var(--amber)">' +
+        (s.price_from ? 'від ' + fmtMoney(s.price_from) : 'ціна не вказана') + '</span></div>').join('')
+    : '<div class="empty"><strong>Послуг ще немає</strong>Оберіть їх нижче — без цього клієнти не знайдуть вас за фільтром.</div>';
+
+  document.getElementById('svcPicker').innerHTML = SERVICES.map(s => {
+    const on = svcs.some(x => x.name === s.name);
+    return '<div class="svc-pick ' + (on ? 'on' : '') + '" data-name="' + s.name + '" onclick="this.classList.toggle(\'on\')">' +
+      '<span>' + s.icon + '</span><span>' + s.name + '</span></div>';
+  }).join('');
+
+  const first = svcs[0];
+  if (first){
+    document.getElementById('sv-from').value = first.price_from || '';
+    document.getElementById('sv-to').value   = first.price_to || '';
+  }
+}
+async function saveServices(){
+  const chosen = [...document.querySelectorAll('#svcPicker .svc-pick.on')].map(el => el.dataset.name);
+  const m = document.getElementById('svMsg');
+  const from = Number(document.getElementById('sv-from').value) || null;
+  const to   = Number(document.getElementById('sv-to').value) || null;
+  try{
+    await setMyServices(broker.id, chosen.map(n => ({ name:n, price_from:from, price_to:to })));
+    broker = await getMyBroker();
+    renderServices();
+    m.className = 'msg show msg-ok'; m.textContent = 'Послуги збережено';
+  }catch(e){ m.className = 'msg show msg-err'; m.textContent = e.message; }
+}
+
+/* ---------- Підписка ---------- */
+function setPeriod(p){
+  period = p;
+  document.getElementById('perMonth').classList.toggle('active', p === 'month');
+  document.getElementById('perYear').classList.toggle('active', p === 'year');
+  renderBilling();
+}
+function renderBilling(){
+  document.getElementById('billPlan').textContent = planEmoji(broker.plan) + ' ' + planLabel(broker.plan);
+  document.getElementById('billUntil').textContent = broker.plan === 'free'
+    ? 'Безстроково'
+    : (broker.plan_expires_at ? 'Діє до ' + fmtDate(broker.plan_expires_at) : '');
+
+  document.getElementById('planBox').innerHTML = ['standard','pro','premium'].map(k => {
+    const p = PLANS[k];
+    const price = period === 'year' ? p.year : p.month;
+    const cur = broker.plan === k;
+    return '<div class="plan-pick ' + (cur ? 'current' : '') + '"' +
+      (cur ? '' : ' onclick="buy(\'' + k + '\')"') + '>' +
+      '<div style="font-size:20px;margin-bottom:6px">' + p.emoji + '</div>' +
+      '<div style="font-weight:600;font-size:14px">' + p.label + '</div>' +
+      '<div class="text-sm text-muted" style="margin-top:4px">' + fmtMoney(price) +
+        (period === 'year' ? ' / рік' : ' / міс') + '</div>' +
+      '<div class="text-xs" style="margin-top:8px;color:' + (cur ? 'var(--green)' : 'var(--blue)') + '">' +
+        (cur ? 'Поточний тариф' : 'Обрати') + '</div></div>';
+  }).join('');
+}
+async function buy(planKey){
+  try{ showToast('Готуємо оплату…'); await startCheckout(planKey, period); }
+  catch(e){ showToast(e.message, 'error'); }
+}
+async function renderPayments(){
+  const list = await myPayments(broker.id);
+  document.getElementById('payList').innerHTML = list.length
+    ? list.map(p => '<div class="svc-line"><div><div style="font-size:14px">' + planLabel(p.plan) + ' · ' + fmtDate(p.created_at) + '</div>' +
+        '<div class="text-xs text-muted">' + (p.status === 'approved' ? 'Оплачено' : esc(p.status)) + '</div></div>' +
+        '<span style="font-weight:500">' + fmtMoney(p.amount) + '</span></div>').join('')
+    : '<div class="text-sm text-muted">Платежів ще не було</div>';
+}
+
+/* ---------- Профіль ---------- */
+function fillProfile(){
+  const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v ?? ''; };
+  set('p-name', broker.name); set('p-city', broker.city); set('p-exp', broker.experience);
+  set('p-about', broker.about); set('p-phone', broker.phone); set('p-tg', broker.telegram);
+  set('p-wa', broker.whatsapp); set('p-vb', broker.viber); set('p-ig', broker.instagram);
+  set('p-fb', broker.facebook); set('p-tt', broker.tiktok); set('p-yt', broker.youtube);
+  document.getElementById('p-region').value = broker.region || '';
+}
+async function saveProfile(){
+  const v = id => document.getElementById(id).value.trim();
+  const m = document.getElementById('pMsg');
+  try{
+    await updateMyBroker({
+      name:v('p-name'), city:v('p-city'), region:document.getElementById('p-region').value,
+      experience:Number(v('p-exp')) || 0, about:v('p-about'), phone:v('p-phone'), telegram:v('p-tg'),
+      whatsapp:v('p-wa'), viber:v('p-vb'), instagram:v('p-ig'), facebook:v('p-fb'),
+      tiktok:v('p-tt'), youtube:v('p-yt')
+    });
+    broker = await getMyBroker();
+    renderHeader();
+    m.className = 'msg show msg-ok'; m.textContent = 'Зміни збережено';
+  }catch(e){ m.className = 'msg show msg-err'; m.textContent = e.message; }
+}
+
+function renderHeader(){
+  document.getElementById('cabAvatar').textContent = initials(broker.name);
+  document.getElementById('cabAvatar').className = 'avatar av-' + (broker.plan || 'free');
+  document.getElementById('cabName').textContent = broker.name || 'Брокер';
+  const pb = document.getElementById('cabPlan');
+  pb.textContent = planEmoji(broker.plan) + ' ' + planLabel(broker.plan);
+  pb.className = 'badge badge-' + (broker.plan || 'free');
+  const link = '/broker/' + broker.id;
+  document.getElementById('myPublicLink').href = link;
+  document.getElementById('myPublicLink2').href = link;
+}
+
+/* ---------- Старт ---------- */
+window.addEventListener('DOMContentLoaded', async () => {
+  const user = await requireAuth();
+  if (!user) return;
+
+  broker = await getMyBroker();
+  if (!broker){
+    document.querySelector('.cab-layout').innerHTML =
+      '<div class="empty" style="grid-column:1/-1"><strong>Профіль брокера не створено</strong>' +
+      'Цей кабінет для брокерів. Якщо ви клієнт — <a href="/moi-zayavky">перейдіть у свій кабінет</a>.<br>' +
+      'Якщо ви брокер — <a href="/vhid?role=broker">створіть профіль</a>.</div>';
+    return;
+  }
+
+  document.getElementById('p-region').innerHTML =
+    '<option value="">Оберіть область</option>' + REGIONS.map(r => '<option>' + r + '</option>').join('');
+
+  renderHeader();
+  fillProfile();
+  renderServices();
+  renderBilling();
+  renderPayments();
+
+  requests = await brokerRequests(broker.id);
+  renderRequests();
+  await renderDash();
+
+  myRevs = await myReviews(broker.id);
+  renderReviews();
+
+  const hash = location.hash.replace('#','');
+  if (hash) {
+    const btn = document.querySelector('[data-pane=' + hash + ']');
+    if (btn) pane(hash, btn);
+  }
+});
+</script>
+</body>
+</html>

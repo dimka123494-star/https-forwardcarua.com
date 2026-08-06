@@ -4,8 +4,14 @@
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: geolocation=(), microphone=(), camera=()
 
+/assets/*
+  Cache-Control: public, max-age=3600
+
 /admin
   X-Robots-Tag: noindex, nofollow
 
 /kabinet
+  X-Robots-Tag: noindex, nofollow
+
+/moi-zayavky
   X-Robots-Tag: noindex, nofollow
