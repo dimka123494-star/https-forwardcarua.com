@@ -1,0 +1,30 @@
+# ── Видалені сторінки: старі шляхи ведемо на нові ──
+/subscription.html          /kabinet#billing   301
+/cabinet/subscription.html  /kabinet#billing   301
+/cabinet/dashboard.html     /kabinet           301
+/cabinet/analytics.html     /kabinet           301
+/cabinet/reviews.html       /kabinet#reviews   301
+/dashboard.html             /kabinet           301
+/analytics.html             /kabinet           301
+/broker-dashboard.html      /kabinet           301
+/profile.html               /kabinet#profile   301
+/client-dashboard.html      /moi-zayavky       301
+/catalog.html               /                  301
+/broker-profile.html        /                  301
+/admin-reviews.html         /admin             301
+/login.html                 /vhid              301
+
+# ── Чисті адреси ──
+/vhid            /vhid.html          200
+/kabinet         /kabinet.html       200
+/moi-zayavky     /moi-zayavky.html   200
+/zayavka         /request.html       200
+/zaproshennya    /zaproshennya.html  200
+/broker/*        /broker.html        200
+/terms           /terms.html         200
+/admin           /admin.html         200
+/taryfy          /index.html         200
+/brokery/*       /index.html         200
+
+# ── Все інше ──
+/*               /index.html         404
