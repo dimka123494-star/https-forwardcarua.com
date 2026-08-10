@@ -128,6 +128,17 @@ async function publish(){
     const { error: passErr } = await sb.auth.updateUser({ password: pass });
     if (passErr) throw new Error('Не вдалося зберегти пароль: ' + passErr.message);
 
+    // Послуги записуємо ДО публікації профілю: якщо тут щось піде не так,
+    // картка не опублікується порожньою, а користувач побачить помилку.
+    const chosen = [...document.querySelectorAll('#svcGrid .svc-pick.on')].map(el => el.dataset.name);
+    if (chosen.length){
+      try{
+        await setMyServices(broker.id, chosen.map(n => ({ name:n })));
+      }catch(svcErr){
+        throw new Error('Не вдалося зберегти послуги: ' + svcErr.message);
+      }
+    }
+
     const { error: updErr } = await sb.from('brokers').update({
       name:       v('f-name'),
       city:       v('f-city') || null,
@@ -140,9 +151,6 @@ async function publish(){
       claimed_at: new Date().toISOString()
     }).eq('id', broker.id);
     if (updErr) throw new Error('Не вдалося зберегти профіль: ' + updErr.message);
-
-    const chosen = [...document.querySelectorAll('#svcGrid .svc-pick.on')].map(el => el.dataset.name);
-    if (chosen.length) await setMyServices(broker.id, chosen.map(n => ({ name:n })));
 
     track('sign_up', { method:'invite' });
     location.href = '/kabinet';
@@ -161,19 +169,59 @@ function decline(){
     encodeURIComponent('Прошу видалити підготовлений профіль та мої дані з платформи МитнийБрокер.');
 }
 
-window.addEventListener('DOMContentLoaded', async () => {
-  await sbReady();
-  // Сесія приходить із посилання в листі — SDK обробляє її сам,
-  // але на це потрібна мить після завантаження.
-  await new Promise(r => setTimeout(r, 600));
+/* Чекаємо, доки SDK обробить сесію з магічного посилання.
+   Раніше тут стояла фіксована пауза 600 мс — на повільному мобільному
+   інтернеті сесія не встигала піднятись, і людина бачила «Посилання
+   не спрацювало» замість форми. Тепер чекаємо реальну подію авторизації
+   з запасним таймаутом. */
+function waitForSession(sb, timeoutMs){
+  return new Promise(resolve => {
+    let settled = false;
+    let unsub = null;
 
-  const user = await currentUser();
+    const finish = u => {
+      if (settled) return;
+      settled = true;
+      if (unsub) { try { unsub(); } catch(_){} }
+      resolve(u || null);
+    };
+
+    try{
+      const { data } = sb.auth.onAuthStateChange((_event, session) => {
+        if (session && session.user) finish(session.user);
+      });
+      if (data && data.subscription) unsub = () => data.subscription.unsubscribe();
+    }catch(_){ /* якщо SDK не дав підписку — покладаємось на опитування нижче */ }
+
+    // Сесія могла піднятись ще до підписки
+    currentUser().then(u => { if (u) finish(u); }).catch(() => {});
+
+    // Підстраховка: коротке опитування кожні 300 мс
+    const poll = setInterval(() => {
+      if (settled) { clearInterval(poll); return; }
+      currentUser().then(u => { if (u) { clearInterval(poll); finish(u); } }).catch(() => {});
+    }, 300);
+
+    setTimeout(() => { clearInterval(poll); finish(null); }, timeoutMs);
+  });
+}
+
+window.addEventListener('DOMContentLoaded', async () => {
+  const sb = await sbReady();
+
+  const user = await waitForSession(sb, 8000);
   if (!user){
     invalid('Посилання діє обмежений час і лише один раз. Якщо воно застаріло — напишіть нам, надішлемо нове.');
     return;
   }
 
-  broker = await getMyBroker();
+  try{
+    broker = await getMyBroker();
+  }catch(e){
+    invalid('Не вдалося завантажити профіль. Спробуйте оновити сторінку або напишіть нам.');
+    return;
+  }
+
   if (!broker){
     invalid('Для цього акаунта немає підготовленого профілю. Можливо, ви вже зареєстровані — спробуйте <a href="/vhid">увійти</a>.');
     return;
