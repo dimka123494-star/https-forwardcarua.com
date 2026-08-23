@@ -7,10 +7,18 @@
 
 /* ================= АВТОРИЗАЦІЯ ================= */
 
+/**
+ * Читає сесію з локального сховища — БЕЗ мережевого запиту.
+ * Раніше тут був sb.auth.getUser(), який ходив на /auth/v1/user
+ * при кожному виклику і брав лок на сесію. Через це кілька
+ * послідовних викликів (напр. currentUser + isAdmin + signIn)
+ * ставали в чергу й зависали.
+ * Права все одно перевіряє RLS на сервері, а не браузер.
+ */
 async function currentUser(){
   const sb = await sbReady();
-  const { data:{ user } } = await sb.auth.getUser();
-  return user || null;
+  const { data:{ session } } = await sb.auth.getSession();
+  return session?.user || null;
 }
 
 async function currentSession(){
@@ -58,11 +66,22 @@ async function resetPassword(email){
   if (error) throw new Error('Не вдалося надіслати лист');
 }
 
-async function isAdmin(){
-  const user = await currentUser();
-  if (!user) return false;
+/**
+ * @param {object} [user] — якщо користувач уже відомий (напр. щойно
+ *   повернувся з signIn), передайте його, щоб не шукати вдруге.
+ * Помилку запиту більше не ковтаємо: раніше збій select повертав
+ * false, і користувач бачив «немає прав» замість справжньої причини.
+ */
+async function isAdmin(user){
+  const u = user || await currentUser();
+  if (!u) return false;
   const sb = await sbReady();
-  const { data } = await sb.from('admins').select('user_id').eq('user_id', user.id).maybeSingle();
+  const { data, error } = await sb.from('admins')
+    .select('user_id').eq('user_id', u.id).maybeSingle();
+  if (error){
+    console.error('isAdmin:', error);
+    throw new Error('Не вдалося перевірити права: ' + error.message);
+  }
   return !!data;
 }
 
@@ -71,7 +90,7 @@ async function isAdmin(){
 async function userRole(){
   const user = await currentUser();
   if (!user) return 'guest';
-  if (await isAdmin()) return 'admin';
+  if (await isAdmin(user)) return 'admin';
   const broker = await getMyBroker();
   return broker ? 'broker' : 'client';
 }
