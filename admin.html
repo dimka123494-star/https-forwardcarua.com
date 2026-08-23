@@ -214,25 +214,34 @@ function pane(name, btn){
 }
 
 /* ---------- Вхід ---------- */
+/* Користувач, якого повернув signIn, передається далі в isAdmin і enter —
+   щоб не шукати його заново трьома окремими викликами. */
 async function doLogin(){
   const btn = document.getElementById('a-btn');
   const m = document.getElementById('a-msg');
   btn.disabled = true; btn.textContent = 'Входимо…';
   try{
-    await signIn(document.getElementById('a-email').value.trim(), document.getElementById('a-pass').value);
-    if (!await isAdmin()){
+    const user = await signIn(
+      document.getElementById('a-email').value.trim(),
+      document.getElementById('a-pass').value);
+    if (!await isAdmin(user)){
       await signOut();
       throw new Error('Цей акаунт не має прав адміністратора');
     }
     document.getElementById('a-pass').value = '';
-    enter();
+    await enter(user);
   }catch(e){
-    m.className = 'msg show msg-err'; m.textContent = e.message;
+    m.className = 'msg show msg-err';
+    m.textContent = e.message || 'Не вдалося увійти';
+  }finally{
+    // Кнопка повертається завжди — інакше при будь-якій помилці
+    // сторінка назавжди залишалась у стані «Входимо…»
     btn.disabled = false; btn.textContent = 'Увійти';
   }
 }
-async function enter(){
-  const u = await currentUser();
+
+async function enter(user){
+  const u = user || await currentUser();
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('panel').style.display = 'block';
   document.getElementById('who').textContent = u.email;
@@ -373,8 +382,9 @@ async function sendInvite(){
     await refreshBrokers();
   }catch(e){
     m.className = 'msg show msg-err'; m.textContent = e.message;
+  }finally{
+    btn.disabled = false; btn.textContent = 'Надіслати запрошення';
   }
-  btn.disabled = false; btn.textContent = 'Надіслати запрошення';
 }
 
 function renderPending(){
@@ -491,8 +501,15 @@ async function checkWfp(){
 
 /* ---------- Старт ---------- */
 window.addEventListener('DOMContentLoaded', async () => {
-  const user = await currentUser();
-  if (user && await isAdmin()){ await enter(); checkWfp(); }
+  try{
+    const user = await currentUser();
+    if (user && await isAdmin(user)){ await enter(user); checkWfp(); }
+  }catch(e){
+    // Помилку старту показуємо на екрані входу, а не мовчки ковтаємо
+    const m = document.getElementById('a-msg');
+    m.className = 'msg show msg-err';
+    m.textContent = e.message || 'Не вдалося перевірити сесію';
+  }
 });
 </script>
 </body>
