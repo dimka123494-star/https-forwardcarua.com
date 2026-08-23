@@ -1,17 +1,19 @@
-/*
-  X-Frame-Options: SAMEORIGIN
-  X-Content-Type-Options: nosniff
-  Referrer-Policy: strict-origin-when-cross-origin
-  Permissions-Policy: geolocation=(), microphone=(), camera=()
+# Netlify: правила кешування.
+# Файл кладеться в корінь сайту, поруч з index.html.
 
-/assets/*
-  Cache-Control: public, max-age=3600
+# JS і CSS браузер має перевіряти на свіжість при кожному завантаженні.
+# Якщо файл не змінився — сервер відповість 304 і віддасть копію з кешу,
+# трафіку це майже не додає. Якщо змінився — прилетить нова версія одразу.
+/assets/js/*
+  Cache-Control: public, max-age=0, must-revalidate
 
-/admin
-  X-Robots-Tag: noindex, nofollow
+/assets/css/*
+  Cache-Control: public, max-age=0, must-revalidate
 
-/kabinet
-  X-Robots-Tag: noindex, nofollow
+# Картинки й шрифти навпаки — хай лежать у кеші довго,
+# вони змінюються рідко і важать більше.
+/assets/img/*
+  Cache-Control: public, max-age=2592000
 
-/moi-zayavky
-  X-Robots-Tag: noindex, nofollow
+/assets/fonts/*
+  Cache-Control: public, max-age=31536000, immutable
