@@ -27,4 +27,4 @@
 /brokery/*       /index.html         200
 
 # ── Все інше ──
-/*               /index.html         404
+/*               /404.html           404
