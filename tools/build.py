@@ -91,7 +91,7 @@ def page(path, title, desc, body, ld_graph, active=None):
             '<title>' + E(title) + '</title>\n'
             '<meta name="description" content="' + E(desc) + '">\n'
             '<link rel="canonical" href="' + SITE + path + '">\n'
-            '<meta name="theme-color" content="#0d0e14">\n'
+            '<meta name="theme-color" content="#0a0f0d">\n'
             '<meta property="og:type" content="article">\n<meta property="og:site_name" content="МитнийБрокер">\n'
             '<meta property="og:locale" content="uk_UA">\n'
             '<meta property="og:title" content="' + E(title) + '">\n'

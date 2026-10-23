@@ -7,7 +7,7 @@
 <meta name="description" content="Митні брокери у Миколаївській області: Миколаїв, Первомайськ, Южноукраїнськ. Розмитнення авто, авто зі США, оцінка, митне оформлення вантажів. Порівняйте послуги й ціни та залиште заявку онлайн.">
 <link rel="canonical" href="https://forwardcarua.com/brokery/mykolaivska">
 <meta name="google-site-verification" content="t1sLPqO3Q_8OKKsgMwkEEl0sRYBbYNIB7VxLTPcCYdc">
-<meta name="theme-color" content="#0d0e14">
+<meta name="theme-color" content="#0a0f0d">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="МитнийБрокер">
 <meta property="og:locale" content="uk_UA">
@@ -34,7 +34,7 @@
 <style>
 .hero{padding:5rem 2rem 3rem;text-align:center;position:relative;overflow:hidden}
 .hero-glow{position:absolute;top:0;left:50%;transform:translateX(-50%);width:800px;height:400px;
-  background:radial-gradient(ellipse,rgba(75,142,241,.12) 0%,transparent 70%);pointer-events:none}
+  background:radial-gradient(ellipse,rgba(16,185,129,.12) 0%,transparent 70%);pointer-events:none}
 .hero-badge{display:inline-flex;align-items:center;gap:8px;background:var(--surface);border:.5px solid var(--border);
   border-radius:20px;padding:6px 14px;font-size:12px;color:var(--muted);margin-bottom:2rem;letter-spacing:1px;text-transform:uppercase}
 .hero-badge i{color:var(--green);font-size:13px}
@@ -225,7 +225,7 @@
       <div class="faq" onclick="this.classList.toggle('open')"><div class="faq-q">Хто перевіряє брокерів? <i class="ti ti-chevron-down"></i></div><div class="faq-a">Профілі створюють самі брокери. Ми перевіряємо контактні дані та реагуємо на скарги, але не є стороною договору між брокером і клієнтом.</div></div>
     </div>
 
-    <div class="card" style="text-align:center;padding:3rem 1.5rem;background:linear-gradient(135deg,rgba(75,142,241,.15),rgba(45,217,143,.08));border-color:rgba(75,142,241,.2);border-radius:20px">
+    <div class="card" style="text-align:center;padding:3rem 1.5rem;background:linear-gradient(135deg,rgba(16,185,129,.15),rgba(45,217,143,.08));border-color:rgba(16,185,129,.2);border-radius:20px">
       <h3 class="h-sm" style="font-size:26px;margin-bottom:.75rem">Розмістіть профіль безкоштовно</h3>
       <p class="text-muted" style="margin-bottom:2rem">Реєстрація займає кілька хвилин. Платіжна картка не потрібна.</p>
       <a class="btn btn-primary" href="/vhid?role=broker" style="padding:13px 28px;font-size:15px"><i class="ti ti-user-plus"></i>Зареєструватись</a>
@@ -414,7 +414,7 @@ function renderPlans(){
     const perMonth = key === 'free' ? 0 : (yearly ? Math.round(p.year / 12) : p.month);
     const cls = key === 'standard' ? 'popular' : key === 'pro' ? 'featured' : '';
     const tag = key === 'standard'
-      ? '<span class="plan-tag" style="background:var(--blue)">★ Популярний</span>'
+      ? '<span class="plan-tag" style="background:var(--blue);color:var(--on-accent)">★ Популярний</span>'
       : key === 'pro'
         ? '<span class="plan-tag" style="background:linear-gradient(90deg,var(--amber),#F1654B)">🔥 Найкраще</span>'
         : '';
