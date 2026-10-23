@@ -61,6 +61,7 @@
         <button class="cab-item active" data-pane="dash"     onclick="pane('dash',this)"><i class="ti ti-layout-dashboard"></i>Дашборд</button>
         <button class="cab-item"        data-pane="requests" onclick="pane('requests',this)"><i class="ti ti-inbox"></i>Заявки <span class="cab-badge" id="reqBadge" style="display:none">0</span></button>
         <button class="cab-item"        data-pane="reviews"  onclick="pane('reviews',this)"><i class="ti ti-star"></i>Відгуки <span class="cab-badge" id="rvBadge" style="display:none">0</span></button>
+        <button class="cab-item"        data-pane="calc"     onclick="pane('calc',this)"><i class="ti ti-calculator"></i>Калькулятор</button>
         <button class="cab-item"        data-pane="services" onclick="pane('services',this)"><i class="ti ti-list-check"></i>Послуги</button>
         <button class="cab-item"        data-pane="billing"  onclick="pane('billing',this)"><i class="ti ti-credit-card"></i>Підписка</button>
         <button class="cab-item"        data-pane="profile"  onclick="pane('profile',this)"><i class="ti ti-user"></i>Профіль</button>
@@ -97,6 +98,14 @@
         <h1 class="h-md" style="margin-bottom:1rem">Відгуки</h1>
         <p class="text-sm text-muted" style="margin-bottom:1.25rem">Відповідь на відгук видно всім відвідувачам вашого профілю.</p>
         <div id="rvList"><div class="text-sm text-muted">Завантаження…</div></div>
+      </section>
+
+      <!-- КАЛЬКУЛЯТОР -->
+      <section class="cab-pane" id="pane-calc">
+        <h1 class="h-md" style="margin-bottom:.5rem">Митний калькулятор</h1>
+        <p class="text-sm text-muted" style="margin-bottom:1.25rem">Порахуйте митні платежі й надішліть клієнту PDF з вашими контактами.
+          Легкові авто — на всіх тарифах, будь-який товар за групами УКТ ЗЕД — на платних.</p>
+        <div id="calcMount"></div>
       </section>
 
       <!-- ПОСЛУГИ -->
@@ -180,6 +189,8 @@
 
 <script src="/assets/js/config.js"></script>
 <script src="/assets/js/db.js"></script>
+<script src="/assets/js/uktzed.js"></script>
+<script src="/assets/js/customs-calc.js"></script>
 <script>
 let broker = null, requests = [], myRevs = [], period = 'month', reqFilter = 'all';
 
@@ -458,6 +469,9 @@ window.addEventListener('DOMContentLoaded', async () => {
 
   renderHeader();
   fillProfile();
+  const paidPlan = broker.plan && broker.plan !== 'free' &&
+    (!broker.plan_expires_at || new Date(broker.plan_expires_at) > new Date());
+  CustomsCalc.mount(document.getElementById('calcMount'), { broker, paid: paidPlan });
   renderServices();
   renderBilling();
   renderPayments();
