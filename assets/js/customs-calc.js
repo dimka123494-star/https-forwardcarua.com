@@ -121,12 +121,21 @@
       '<input type="hidden" id="cc-duty-per" value="1">' +
       '<label class="check-row"><input type="checkbox" id="cc-duty-min"> Специфічне мито — як мінімум («але не менш як»), а не додається до відсоткового</label>' +
       '<div class="field-row">' +
-        '<div class="field"><label class="label" for="cc-exc-type">Акциз</label><select class="input" id="cc-exc-type"><option value="none">Не підакцизний</option><option value="pct">% від вартості</option><option value="unit">€ за одиницю</option><option value="uah">грн за одиницю</option></select></div>' +
-        '<div class="field"><label class="label" for="cc-exc">Ставка акцизу</label><input class="input" id="cc-exc" type="number" min="0" step="0.01" value="0"></div>' +
+        '<div class="field"><label class="label" for="cc-exc-type">Акциз</label><select class="input" id="cc-exc-type" onchange="CustomsCalc.excUi()"><option value="none">Не підакцизний</option><option value="auto" disabled>За Податковим кодексом</option><option value="pct">% від вартості</option><option value="unit">€ за одиницю</option><option value="uah">грн за одиницю</option></select></div>' +
+        '<div class="field" id="cc-exc-f"><label class="label" for="cc-exc">Ставка акцизу</label><input class="input" id="cc-exc" type="number" min="0" step="0.01" value="0"></div>' +
+      '</div>' +
+      '<div id="cc-exc-auto" style="display:none;margin-bottom:1rem">' +
+        '<div class="field"><label class="label" for="cc-exc-var">Ставка акцизу (ПКУ, ст. 215 і перехідні положення на 2026 р.)</label><select class="input" id="cc-exc-var" onchange="CustomsCalc.excUi()"></select></div>' +
+        '<div class="field-row">' +
+          '<div class="field"><label class="label" for="cc-exc-qty" id="cc-exc-qty-l">Кількість для акцизу</label><input class="input" id="cc-exc-qty" type="number" min="0" step="any"></div>' +
+          '<div class="field" id="cc-exc-abv-f" style="display:none"><label class="label" for="cc-exc-abv">Міцність, % об.</label><input class="input" id="cc-exc-abv" type="number" min="0" max="100" step="0.1"></div>' +
+          '<div class="field" id="cc-exc-new-f" style="display:none"><label class="label" for="cc-exc-new">Стан</label><select class="input" id="cc-exc-new" onchange="CustomsCalc.excUi()"><option value="new">Новий</option><option value="used">Що використовувався</option></select></div>' +
+        '</div>' +
+        '<div class="hint" id="cc-exc-hint"></div>' +
       '</div>' +
       '<div class="field"><label class="label" for="cc-vat">ПДВ</label><select class="input" id="cc-vat"><option value="20">20%</option><option value="14">14%</option><option value="7">7%</option><option value="0">0% (звільнення)</option></select></div>' +
       '<div class="hint">Ставки ввізного мита підставляються з Митного тарифу України (Закон № 2697-IX) і їх можна змінити вручну. ' +
-        'Ставки за угодами про вільну торгівлю, акциз і пільги з ПДВ перевіряйте окремо. Для легкових авто зручніше вкладка «Легкове авто».</div>' +
+        'Акциз підставляється з Податкового кодексу (ст. 215, для тютюну й пального — ставки 2026 р.). Ставки за угодами про вільну торгівлю і пільги з ПДВ перевіряйте окремо. Для легкових авто зручніше вкладка «Легкове авто».</div>' +
     '</div>' +
 
     '<div class="msg msg-err" id="cc-err"></div>' +
@@ -203,6 +212,22 @@
     const duty = minMode ? Math.max(dutyAdv, dutySp) : dutyAdv + dutySp;
     const et = $('cc-exc-type').value, er = num('cc-exc') || 0;
     let excise = 0, excNote = 'товар не підакцизний';
+    if (et === 'auto'){
+      const x = excNow();
+      if (!x) return fail('Оберіть ставку акцизу або вкажіть її вручну.');
+      const q = num('cc-exc-qty') || 0;
+      if (x.base !== 'pct' && !(q > 0)) return fail('Вкажіть кількість для розрахунку акцизу (' + x.label + ').');
+      if (x.base === 'pure' && !(num('cc-exc-abv') > 0)) return fail('Вкажіть міцність напою, % об.');
+      const units = x.base === 'pure' ? q * num('cc-exc-abv') / 100 : q;
+      if (x.base === 'pct'){ excise = base * x.rate / 100; excNote = x.rate + '% від митної вартості'; }
+      else {
+        excise = x.rate * units / x.per * (x.cur === 'EUR' ? eurRate : 1);
+        excNote = String(x.rate).replace('.', ',') + (x.cur === 'EUR' ? ' €' : ' грн') + ' за ' + (x.per !== 1 ? x.per + ' ' : '') + x.short + ' × ' +
+                  (x.base === 'pure' ? q + ' л × ' + num('cc-exc-abv') + '% = ' + (+units.toFixed(3)) : units) +
+                  (x.cur === 'EUR' ? ' = ' + eurFmt(x.rate * units / x.per) : '');
+      }
+      if (x.note) excNote += ' · ' + x.note;
+    }
     if (et === 'pct'){ excise = base * er / 100; excNote = er + '% від митної вартості'; }
     if (et === 'unit'){ excise = er * qty * eurRate; excNote = er + ' € × ' + qty + ' ' + ($('cc-unit').value || 'од.'); }
     if (et === 'uah'){ excise = er * qty; excNote = er + ' грн × ' + qty + ' ' + ($('cc-unit').value || 'од.'); }
@@ -488,7 +513,81 @@
     const generic = /^(інш|інші|інша|інше)\b/i.test(r.name) || r.name.length < 18;
     $('cc-goods-name').value = generic && parts.length > 1 ? parts.slice(-2).join(', ') : r.name;
     applyRate();
+    applyExcise(r.code);
   }
+  /* ---------------- Акциз (таблиця excise_rates) ---------------- */
+  let exciseAll = null, excMatches = [];
+  async function loadExcise(){
+    if (exciseAll) return exciseAll;
+    const sb = await sbReady();
+    const { data, error } = await sb.from('excise_rates').select('codes,excl,descr,unit,rate,src').order('id');
+    if (error) throw error;
+    return (exciseAll = data || []);
+  }
+  function parseExcise(row, isNew){
+    let txt = (row.rate + ' ' + (row.unit || '')).replace(/\*/g, '').replace(/\s+/g, ' ').trim();
+    if (/^нові\s/.test(row.rate)){
+      const m = row.rate.match(/нові\s+(.+?),\s*що використовувалися\s+(.+)$/);
+      if (m) txt = (isNew ? m[1] : m[2]).trim();
+    }
+    if ((row.unit || '') === 'відсотків') return { base:'pct', rate: parseFloat(row.rate.replace(',', '.')), per:1, cur:'PCT', label:'', short:'' };
+    const m = txt.match(/^(\d+(?:,\d+)?)\s*(євро|гривень)\s*за\s*(\d+)?\s*(.+)$/);
+    if (!m) return null;
+    const unitTxt = m[4];
+    const x = { rate: parseFloat(m[1].replace(',', '.')), cur: m[2] === 'євро' ? 'EUR' : 'UAH', per: m[3] ? parseFloat(m[3]) : 1 };
+    if (/100-відсоткового спирту/.test(unitTxt)) Object.assign(x, { base:'pure', label:'об\'єм, л', short:'л 100% спирту' });
+    else if (/куб\.?\s*см/.test(unitTxt)) Object.assign(x, { base:'cc', label:'об\'єм двигуна, см³ (× кількість ТЗ)', short:'см³' });
+    else if (/кілограм/.test(unitTxt)) Object.assign(x, { base:'qty', label:'кг нетто', short:'кг' });
+    else if (/літр/.test(unitTxt)) Object.assign(x, { base:'qty', label: x.per === 1000 ? 'літрів (при 15 °C)' : 'літрів', short:'л' });
+    else if (/штук/.test(unitTxt)) Object.assign(x, { base:'qty', label:'штук', short:'шт' });
+    else Object.assign(x, { base:'qty', label: unitTxt, short: unitTxt });
+    if (/^2402/.test(row.codes[0] || '')) x.note = 'плюс адвалорна частина 12% від максимальної роздрібної ціни, але не менше мінімального акцизного зобов\'язання';
+    if (row.src && /розд/.test(row.src)) x.note = (x.note ? x.note + '; ' : '') + 'ставка 2026 р.';
+    return x;
+  }
+  async function findExcise(code){
+    let all; try{ all = await loadExcise(); }catch(e){ console.error(e); return []; }
+    const hits = all.filter(r => r.codes.some(c => code.startsWith(c)) && !(r.excl || []).some(c => code.startsWith(c)));
+    const best = r => Math.max(...r.codes.filter(c => code.startsWith(c)).map(c => c.length));
+    return hits.sort((a, b) => best(b) - best(a));
+  }
+  function excNow(){
+    const i = parseInt($('cc-exc-var').value, 10);
+    const row = excMatches[i]; if (!row) return null;
+    return parseExcise(row, $('cc-exc-new').value === 'new');
+  }
+  function excUi(){
+    const auto = $('cc-exc-type').value === 'auto';
+    $('cc-exc-auto').style.display = auto ? '' : 'none';
+    $('cc-exc-f').style.display = auto || $('cc-exc-type').value === 'none' ? 'none' : '';
+    if (!auto) return;
+    const row = excMatches[parseInt($('cc-exc-var').value, 10)];
+    $('cc-exc-new-f').style.display = row && /^нові\s/.test(row.rate) ? '' : 'none';
+    const x = excNow();
+    $('cc-exc-abv-f').style.display = x && x.base === 'pure' ? '' : 'none';
+    $('cc-exc-qty').parentElement.style.display = x && x.base === 'pct' ? 'none' : '';
+    $('cc-exc-qty-l').textContent = x ? 'Кількість для акцизу — ' + x.label : 'Кількість для акцизу';
+    $('cc-exc-hint').innerHTML = row ? esc(row.descr) + (x && x.note ? '<br>' + esc(x.note) : '') : '';
+    if (x && x.base === 'qty' && !num('cc-exc-qty')){
+      const u = ($('cc-unit').value || '').toLowerCase();
+      if ((x.short === 'л' && u === 'л') || (x.short === 'кг' && u === 'кг') || (x.short === 'шт' && u === 'шт' && x.per === 1)) $('cc-exc-qty').value = $('cc-qty').value;
+    }
+  }
+  async function applyExcise(code){
+    excMatches = await findExcise(code);
+    $('cc-exc-qty').value = ''; $('cc-exc-abv').value = '';
+    const sel = $('cc-exc-type'), opt = sel.querySelector('option[value=auto]');
+    if (excMatches.length){
+      opt.disabled = false; sel.value = 'auto';
+      $('cc-exc-var').innerHTML = excMatches.map((r, i) =>
+        '<option value="' + i + '">' + esc((/^нові\s/.test(r.rate) ? 'нові / що використовувалися' : r.rate.replace(/\*/g, '') + ' ' + (r.unit || '').replace(/\*/g, '')).trim()) +
+        ' — ' + esc(r.descr.slice(0, 90)) + '</option>').join('');
+    } else {
+      opt.disabled = true; if (sel.value === 'auto') sel.value = 'none';
+    }
+    excUi();
+  }
+
   function applyRate(){
     const r = st.tariff; if (!r) return;
     const origin = $('cc-origin').value;
@@ -542,7 +641,7 @@
       $('cc-hybrid-f').style.display = f === 'hybrid' ? '' : 'none';
       $('cc-eu-f').style.display = ev ? 'none' : '';
     },
-    calc, shareFile, copy, retry: preparePdf, group: onGroup, find, pick, applyRate,
+    calc, shareFile, copy, retry: preparePdf, group: onGroup, find, pick, applyRate, excUi,
     _state: st
   };
 })();
