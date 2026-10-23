@@ -123,9 +123,8 @@
     '<div id="cc-res" style="display:none;margin-top:1.25rem">' +
       '<div class="card"><div class="card-title">Результат</div><div id="cc-lines"></div>' +
         '<div class="row" style="margin-top:1rem;gap:8px">' +
-          '<button class="btn btn-primary" onclick="CustomsCalc.pdf(\'save\')"><i class="ti ti-file-download"></i>Завантажити PDF</button>' +
-          '<button class="btn btn-ghost" id="cc-share" style="display:none" onclick="CustomsCalc.pdf(\'share\')"><i class="ti ti-share"></i>Надіслати клієнту</button>' +
         '</div>' +
+        '<div id="cc-send" style="margin-top:1rem"></div>' +
         '<div class="hint">PDF містить ваше ім\'я, телефон і Telegram — клієнт одразу знає, кому дзвонити.</div>' +
       '</div>' +
     '</div>' +
@@ -231,7 +230,7 @@
       (r.fee ? row('Послуги брокера', '', r.fee) : '') +
       row('Разом до сплати', 'орієнтовно', r.total, true);
     $('cc-res').style.display = 'block';
-    $('cc-share').style.display = (navigator.canShare && navigator.share) ? '' : 'none';
+    preparePdf();
     $('cc-res').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }
 
@@ -279,36 +278,103 @@
     '</div>';
   }
 
-  async function pdf(action){
-    if (!st.last) return;
+  /* PDF готуємо одразу після розрахунку і завантажуємо в сховище — тоді клієнту
+     можна надіслати посилання в будь-який месенджер, а кнопки спрацьовують миттєво. */
+  let prepId = 0;
+  async function buildBlob(r){
+    await loadPdfLib();
+    const host = $('cc-pdf-host');
+    host.innerHTML = pdfHtml(r);
     try{
-      showToast('Готуємо PDF…');
-      await loadPdfLib();
-      const host = $('cc-pdf-host');
-      host.innerHTML = pdfHtml(st.last);
-      const name = 'rozrakhunok-' + (st.last.client || 'mytni-platezhi').replace(/[^\wа-яіїєґ-]+/gi, '-').slice(0, 40) + '-' +
-                   new Date().toISOString().slice(0, 10) + '.pdf';
-      const worker = html2pdf().set({
-        margin: 8, filename: name, image: { type: 'jpeg', quality: 0.95 },
+      return await html2pdf().set({
+        margin: 8, image: { type: 'jpeg', quality: 0.95 },
         html2canvas: { scale: 2, backgroundColor: '#ffffff', scrollX: 0, scrollY: 0, windowWidth: 800,
-          onclone: d => { const h = d.getElementById('cc-pdf-host'); if (h) h.style.opacity = '1'; } }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-      }).from(host.firstChild);
-      if (action === 'share'){
-        const blob = await worker.outputPdf('blob');
-        const file = new File([blob], name, { type: 'application/pdf' });
-        if (navigator.canShare && navigator.canShare({ files: [file] })){
-          await navigator.share({ files: [file], title: st.last.title });
-        } else {
-          await worker.save();
-        }
-      } else {
-        await worker.save();
-      }
-      host.innerHTML = '';
-    }catch(e){
-      if (e && e.name === 'AbortError') return;
-      showToast(e.message || 'Не вдалося створити PDF', 'error');
+          onclone: d => { const h = d.getElementById('cc-pdf-host'); if (h) h.style.opacity = '1'; } },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      }).from(host.firstChild).outputPdf('blob');
+    } finally { host.innerHTML = ''; }
+  }
+
+  async function upload(blob){
+    const sb = await sbReady();
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) throw new Error('Увійдіть у кабінет');
+    const id = (crypto.randomUUID ? crypto.randomUUID() : Date.now() + '-' + Math.random().toString(36).slice(2));
+    const path = session.user.id + '/' + id + '.pdf';
+    const { error } = await sb.storage.from('rozrakhunky').upload(path, blob, { contentType: 'application/pdf', upsert: false });
+    if (error) throw error;
+    return sb.storage.from('rozrakhunky').getPublicUrl(path).data.publicUrl;
+  }
+
+  function fileName(r){
+    return 'rozrakhunok-' + (r.client || 'mytni-platezhi').replace(/[^\wа-яіїєґ-]+/gi, '-').slice(0, 40) + '-' +
+           new Date().toISOString().slice(0, 10) + '.pdf';
+  }
+
+  function renderSend(state){
+    const box = $('cc-send');
+    if (state === 'busy'){ box.innerHTML = '<div class="text-sm text-muted"><i class="ti ti-loader-2"></i> Готуємо PDF для клієнта…</div>'; return; }
+    if (state === 'error'){
+      box.innerHTML = '<div class="msg msg-err show">Не вдалося підготувати PDF. <a href="#" onclick="CustomsCalc.retry();return false">Спробувати ще раз</a></div>'; return;
     }
+    const b = st.broker || {};
+    const text = 'Розрахунок митних платежів' + (st.last.client ? ' для ' + st.last.client : '') + ' — ' + (b.name || 'митний брокер') +
+                 '. Разом орієнтовно: ' + money(st.last.total) + '. PDF: ';
+    const url = st.url || '';
+    const enc = encodeURIComponent;
+    const canFile = !!(navigator.canShare && st.file && navigator.canShare({ files: [st.file] }));
+    box.innerHTML =
+      '<div class="text-sm" style="margin-bottom:.6rem">Надіслати клієнту:</div>' +
+      '<div class="row" style="gap:8px">' +
+        '<a class="btn btn-primary" href="' + esc(st.objUrl) + '" download="' + esc(st.fname) + '"><i class="ti ti-file-download"></i>Завантажити PDF</a>' +
+        (canFile ? '<button class="btn btn-ghost" onclick="CustomsCalc.shareFile()"><i class="ti ti-share"></i>Поділитися файлом</button>' : '') +
+        (url ? (
+          '<a class="btn btn-ghost" target="_blank" rel="noopener" href="https://t.me/share/url?url=' + enc(url) + '&text=' + enc(text) + '"><i class="ti ti-brand-telegram"></i>Telegram</a>' +
+          '<a class="btn btn-ghost" href="viber://forward?text=' + enc(text + url) + '"><i class="ti ti-brand-viber"></i>Viber</a>' +
+          '<a class="btn btn-ghost" target="_blank" rel="noopener" href="https://wa.me/?text=' + enc(text + url) + '"><i class="ti ti-brand-whatsapp"></i>WhatsApp</a>' +
+          '<a class="btn btn-ghost" href="mailto:?subject=' + enc(st.last.title) + '&body=' + enc(text + url) + '"><i class="ti ti-mail"></i>Email</a>' +
+          '<button class="btn btn-ghost" onclick="CustomsCalc.copy()"><i class="ti ti-link"></i>Копіювати посилання</button>'
+        ) : '') +
+      '</div>' +
+      (url ? '' : st.uploading
+        ? '<div class="hint"><i class="ti ti-loader-2"></i> Створюємо посилання для Telegram, Viber і WhatsApp…</div>'
+        : '<div class="hint">Посилання для месенджерів не створилось — завантажте PDF і надішліть файлом.</div>');
+  }
+
+  async function preparePdf(){
+    const my = ++prepId;
+    st.url = ''; st.file = null;
+    if (st.objUrl){ URL.revokeObjectURL(st.objUrl); st.objUrl = ''; }
+    renderSend('busy');
+    try{
+      const blob = await buildBlob(st.last);
+      if (my !== prepId) return;
+      st.fname = fileName(st.last);
+      st.objUrl = URL.createObjectURL(blob);
+      st.file = new File([blob], st.fname, { type: 'application/pdf' });
+      st.uploading = true;
+      renderSend('ready');
+      try{
+        st.url = await Promise.race([upload(blob),
+          new Promise((_, rej) => setTimeout(() => rej(new Error('upload timeout')), 20000))]);
+      }catch(e){ console.error('upload pdf:', e); st.url = ''; }
+      st.uploading = false;
+      if (my !== prepId) return;
+      renderSend('ready');
+    }catch(e){
+      console.error('pdf:', e);
+      if (my === prepId) renderSend('error');
+    }
+  }
+
+  async function shareFile(){
+    try{ await navigator.share({ files: [st.file], title: st.last.title }); }
+    catch(e){ if (e.name !== 'AbortError') showToast('Не вдалося поділитися — завантажте PDF', 'error'); }
+  }
+
+  async function copy(){
+    try{ await navigator.clipboard.writeText(st.url); showToast('Посилання скопійовано'); }
+    catch(e){ prompt('Скопіюйте посилання:', st.url); }
   }
 
   /* ---------------- публічне API ---------------- */
@@ -341,7 +407,7 @@
       $('cc-hybrid-f').style.display = f === 'hybrid' ? '' : 'none';
       $('cc-eu-f').style.display = ev ? 'none' : '';
     },
-    calc, pdf,
+    calc, shareFile, copy, retry: preparePdf,
     _state: st
   };
 })();
