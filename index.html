@@ -120,6 +120,8 @@
     <button class="nav-link active" id="navCatalog" onclick="go('/')">Каталог</button>
     <button class="nav-link" id="navPricing" onclick="go('/taryfy')">Тарифи</button>
     <a class="nav-link" href="/zayavka">Залишити заявку</a>
+    <a class="nav-link" href="/dlya-brokeriv">Для брокерів</a>
+    <a class="nav-link" href="/statti/">Статті</a>
   </div>
   <div class="nav-actions">
     <a class="btn btn-ghost btn-sm" id="loginBtn" href="/vhid">Увійти</a>
@@ -132,6 +134,8 @@
   <button onclick="go('/');toggleMenu()">Каталог брокерів</button>
   <button onclick="go('/taryfy');toggleMenu()">Тарифи для брокерів</button>
   <a href="/zayavka">Залишити заявку</a>
+  <a href="/dlya-brokeriv">Для брокерів</a>
+  <a href="/statti/">Корисні статті</a>
   <a href="/vhid" id="menuAuth">Увійти в кабінет</a>
   <a href="/terms">Публічна оферта</a>
 </div>
@@ -145,7 +149,7 @@
     <p class="hero-sub">Оберіть область і місто, порівняйте послуги та ціни, залиште заявку — брокер зв'яжеться з вами напряму.</p>
 
     <div class="search-box">
-      <select class="input" id="fRegion" onchange="applyFilters()" aria-label="Область"></select>
+      <select class="input" id="fRegion" onchange="onRegionChange(this.value)" aria-label="Область"></select>
       <input class="input" id="fCity" placeholder="Місто" oninput="debouncedFilter()" aria-label="Місто">
       <input class="input" id="fSearch" placeholder="Послуга або ім'я" oninput="debouncedFilter()" aria-label="Пошук">
       <button class="btn btn-primary" onclick="applyFilters()">Знайти</button>
@@ -176,6 +180,8 @@
       <div class="empty" style="grid-column:1/-1">Завантаження каталогу…</div>
     </div>
   </div>
+
+<section class="seo container"><h2>Митні брокери за областями</h2><div class="region-links"><a href="/brokery/vinnytska">Вінницька область</a><a href="/brokery/volynska">Волинська область</a><a href="/brokery/dnipropetrovska">Дніпропетровська область</a><a href="/brokery/donetska">Донецька область</a><a href="/brokery/zhytomyrska">Житомирська область</a><a href="/brokery/zakarpatska">Закарпатська область</a><a href="/brokery/zaporizka">Запорізька область</a><a href="/brokery/ivano-frankivska">Івано-Франківська область</a><a href="/brokery/kyivska">Київська область</a><a href="/brokery/kirovohradska">Кіровоградська область</a><a href="/brokery/luhanska">Луганська область</a><a href="/brokery/lvivska">Львівська область</a><a href="/brokery/mykolaivska">Миколаївська область</a><a href="/brokery/odeska">Одеська область</a><a href="/brokery/poltavska">Полтавська область</a><a href="/brokery/rivnenska">Рівненська область</a><a href="/brokery/sumska">Сумська область</a><a href="/brokery/ternopilska">Тернопільська область</a><a href="/brokery/kharkivska">Харківська область</a><a href="/brokery/khersonska">Херсонська область</a><a href="/brokery/khmelnytska">Хмельницька область</a><a href="/brokery/cherkaska">Черкаська область</a><a href="/brokery/chernivetska">Чернівецька область</a><a href="/brokery/chernihivska">Чернігівська область</a><a href="/brokery/kyiv">Київ</a></div></section>
 </div>
 
 <!-- ========== ТАРИФИ ========== -->
@@ -236,6 +242,15 @@
       <p class="footer-text">Каталог митних брокерів України. Платформа з'єднує клієнтів і брокерів; послуги надає обраний вами брокер.</p>
     </div>
     <div>
+      <div class="footer-col-title">Платформа</div>
+      <div class="footer-links">
+        <a href="/dlya-brokeriv">Для брокерів</a>
+        <a href="/taryfy">Тарифи</a>
+        <a href="/statti/">Статті</a>
+        <a href="/zayavka">Залишити заявку</a>
+      </div>
+    </div>
+    <div>
       <div class="footer-col-title">Документи</div>
       <div class="footer-links">
         <a href="/terms">Публічна оферта</a>
@@ -283,8 +298,18 @@ function go(path, silent){
   if (!silent) history.pushState({ path }, '', path);
   window.scrollTo(0, 0);
 }
+function onRegionChange(region){
+  /* Кожна область має власну сторінку — переходимо на неї */
+  if (region !== (window.PAGE_REGION || '')){ const slug = regionSlug(region); location.href = slug ? '/brokery/' + slug : '/'; return; }
+  applyFilters();
+}
 function applyRegionMeta(region){
   const slug = regionSlug(region);
+  /* Статичні сторінки областей мають власні title/опис — не перезаписуємо їх,
+     а при виборі іншої області переходимо на її сторінку. */
+  const pageRegion = window.PAGE_REGION || '';
+  if (region !== pageRegion){ location.href = slug ? '/brokery/' + slug : '/'; return; }
+  if (pageRegion){ history.replaceState({}, '', '/brokery/' + slug); return; }
   if (!slug){ setMeta(META.catalog.t, META.catalog.d, '/'); history.replaceState({}, '', '/'); return; }
   const place = region === 'м. Київ' ? 'Києві' : region + ' області';
   setMeta('Митний брокер — ' + region + ' | Каталог брокерів | МитнийБрокер',

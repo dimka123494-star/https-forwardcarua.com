@@ -24,7 +24,9 @@
 /terms           /terms.html         200
 /admin           /admin.html         200
 /taryfy          /index.html         200
-/brokery/*       /index.html         200
+
+# ── Службові файли генератора ──
+/tools/*         /404.html           404!
 
 # ── Все інше ──
 /*               /404.html           404
