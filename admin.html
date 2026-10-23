@@ -16,6 +16,14 @@
 .info-box{background:var(--surface2);border-radius:var(--r-sm);padding:1.15rem;font-size:13px;color:var(--muted);line-height:1.7}
 .info-box code{background:rgba(0,0,0,.35);padding:2px 6px;border-radius:5px;font-size:12px;color:var(--text)}
 .row-actions{display:flex;gap:6px;flex-wrap:wrap}
+/* адмінка без бургер-меню: вкладки завжди видно, на вузьких екранах — прокрутка */
+#panel .nav-links{display:flex!important;overflow-x:auto;max-width:calc(100vw - 260px)}
+#panel .nav-burger{display:none!important}
+@media(max-width:768px){#panel .nav{flex-wrap:wrap;height:auto;padding:8px 1rem;gap:8px}#panel .nav-links{order:3;max-width:100%;width:100%}#panel .page{padding-top:120px}}
+.o-grid{display:grid;grid-template-columns:1fr 300px;gap:16px;align-items:start}
+@media(max-width:1000px){.o-grid{grid-template-columns:1fr}}
+#cmpText{min-height:300px;font-size:14px;line-height:1.55}
+.row-actions .btn-sm{padding:6px 10px}
 </style>
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="icon" href="/favicon.ico" sizes="any">
@@ -49,6 +57,7 @@
   <div class="nav-links">
     <button class="nav-link active" data-p="dash"     onclick="pane('dash',this)">Дашборд</button>
     <button class="nav-link"        data-p="brokers"  onclick="pane('brokers',this)">Брокери</button>
+    <button class="nav-link"        data-p="outreach" onclick="pane('outreach',this)">Залучення</button>
     <button class="nav-link"        data-p="requests" onclick="pane('requests',this)">Заявки</button>
     <button class="nav-link"        data-p="reviews"  onclick="pane('reviews',this)">Відгуки <span class="cab-badge" id="modBadge" style="display:none">0</span></button>
     <button class="nav-link"        data-p="billing"  onclick="pane('billing',this)">Платежі</button>
@@ -107,6 +116,51 @@
           <thead><tr><th>Брокер</th><th>Місто</th><th>Тариф</th><th>Рейтинг</th><th>Заявки</th><th>Статус</th><th>Дії</th></tr></thead>
           <tbody id="bTable"></tbody>
         </table>
+      </div>
+    </section>
+
+    <!-- ЗАЛУЧЕННЯ -->
+    <section class="cab-pane" id="pane-outreach">
+      <div class="spread" style="margin-bottom:1rem">
+        <h1 class="h-md">Залучення брокерів <span class="text-sm text-muted" id="oCount"></span></h1>
+        <div class="row" style="gap:8px">
+          <button class="btn btn-ghost btn-sm" onclick="Outreach.tplOpen()"><i class="ti ti-template"></i> Шаблони</button>
+          <button class="btn btn-ghost btn-sm" onclick="Outreach.importOpen()"><i class="ti ti-table-import"></i> Імпорт списку</button>
+          <button class="btn btn-ghost btn-sm" onclick="Outreach.compose(null)"><i class="ti ti-message"></i> Текст без контакту</button>
+          <button class="btn btn-primary btn-sm" onclick="Outreach.edit(null)"><i class="ti ti-user-plus"></i> Додати контакт</button>
+        </div>
+      </div>
+      <div class="stat-grid" id="oStats" style="margin-bottom:1.25rem"></div>
+      <div class="o-grid">
+        <div>
+          <div class="row" style="gap:8px;margin-bottom:10px">
+            <input class="input" style="max-width:260px" placeholder="Пошук: назва, телефон, email, нотатки" oninput="Outreach.filter('q',this.value)">
+            <select class="input" style="width:auto" id="oStatus" onchange="Outreach.filter('status',this.value)"></select>
+            <select class="input" style="width:auto" id="oRegion" onchange="Outreach.filter('region',this.value)"></select>
+          </div>
+          <div class="table-wrap table-scroll">
+            <table>
+              <thead><tr><th>Компанія</th><th>Регіон</th><th>Контакти</th><th>Статус</th><th>Останній контакт</th><th></th></tr></thead>
+              <tbody id="oTable"><tr><td colspan="6" class="text-sm text-muted">Завантаження…</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+        <aside>
+          <div class="card" style="margin-bottom:12px">
+            <div class="card-title">Матеріали для брокерів</div>
+            <div id="oLinks"></div>
+            <p class="hint">Посилання з UTM-мітками — у Google Analytics видно, що брокер прийшов із запрошення.</p>
+          </div>
+          <div class="card">
+            <div class="card-title">Як працювати</div>
+            <ol class="text-sm text-muted" style="margin-left:1.1rem;line-height:1.7">
+              <li>Додайте брокерів — вручну або списком.</li>
+              <li>«Написати» → оберіть шаблон → канал: WhatsApp, Viber, Telegram, Email.</li>
+              <li>Статус і дата контакту оновлюються самі.</li>
+              <li>Коли брокер зареєструється з тим самим email чи телефоном — статус стане «Зареєструвався».</li>
+            </ol>
+          </div>
+        </aside>
       </div>
     </section>
 
@@ -169,6 +223,74 @@
 </div>
 </div>
 
+<!-- ЗАЛУЧЕННЯ: написати -->
+<div class="overlay" id="cmpModal">
+  <div class="modal modal-wide" role="dialog" aria-modal="true" style="max-width:760px;max-height:92vh;overflow-y:auto">
+    <button class="modal-close" onclick="document.getElementById('cmpModal').classList.remove('open')" aria-label="Закрити"><i class="ti ti-x"></i></button>
+    <div class="modal-title">Написати брокеру</div>
+    <div id="cmpTo" style="margin-bottom:1rem"></div>
+    <div class="row" style="gap:6px;margin-bottom:.75rem" id="cmpTpl"></div>
+    <div class="field"><label class="label" for="cmpSubject">Тема (для email)</label><input class="input" id="cmpSubject"></div>
+    <div class="field"><label class="label" for="cmpText">Текст — можна редагувати перед надсиланням</label><textarea class="input" id="cmpText"></textarea></div>
+    <div class="row" style="gap:8px" id="cmpCh"></div>
+    <p class="hint" id="cmpHint"></p>
+    <div id="cmpHist"></div>
+  </div>
+</div>
+
+<!-- ЗАЛУЧЕННЯ: контакт -->
+<div class="overlay" id="peModal">
+  <div class="modal modal-wide" role="dialog" aria-modal="true" style="max-height:92vh;overflow-y:auto">
+    <button class="modal-close" onclick="document.getElementById('peModal').classList.remove('open')" aria-label="Закрити"><i class="ti ti-x"></i></button>
+    <div class="modal-title" id="peTitle">Контакт</div>
+    <div class="field-row">
+      <div class="field"><label class="label" for="pe-name">Компанія або ім'я *</label><input class="input" id="pe-name"></div>
+      <div class="field"><label class="label" for="pe-contact_person">Контактна особа</label><input class="input" id="pe-contact_person" placeholder="Як звертатися: Олександр"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label class="label" for="pe-phone">Телефон</label><input class="input" id="pe-phone" placeholder="+380…"></div>
+      <div class="field"><label class="label" for="pe-email">Email</label><input class="input" id="pe-email" type="email"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label class="label" for="pe-telegram">Telegram</label><input class="input" id="pe-telegram" placeholder="@username"></div>
+      <div class="field"><label class="label" for="pe-source">Звідки контакт</label><input class="input" id="pe-source" placeholder="Сайт, реєстр, знайомі…"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label class="label" for="pe-city">Місто</label><input class="input" id="pe-city"></div>
+      <div class="field"><label class="label" for="pe-region">Область</label><select class="input" id="pe-region"></select></div>
+    </div>
+    <div class="field"><label class="label" for="pe-notes">Нотатки</label><textarea class="input" id="pe-notes" placeholder="Домовленості, коли передзвонити…"></textarea></div>
+    <div class="row"><button class="btn btn-primary" onclick="Outreach.saveEdit()">Зберегти</button>
+      <button class="btn-quiet" id="pe-del" onclick="Outreach.del()">Видалити</button></div>
+  </div>
+</div>
+
+<!-- ЗАЛУЧЕННЯ: імпорт -->
+<div class="overlay" id="impModal">
+  <div class="modal modal-wide" role="dialog" aria-modal="true">
+    <button class="modal-close" onclick="document.getElementById('impModal').classList.remove('open')" aria-label="Закрити"><i class="ti ti-x"></i></button>
+    <div class="modal-title">Імпорт списку</div>
+    <div class="modal-sub">По одному брокеру в рядку. Поля розділяйте табуляцією (вставка з Excel / Google Таблиць) або крапкою з комою.
+      Телефон, email, Telegram і область розпізнаються автоматично; перше текстове поле — назва, друге — місто.</div>
+    <div class="field"><textarea class="input" id="impText" style="min-height:200px;font-family:monospace;font-size:13px" oninput="Outreach.importPreview()"
+      placeholder="ТОВ Митний Партнер; +380671234567; info@partner.ua; Львів; Львівська&#10;Іван Петренко; @ivan_broker; Одеса"></textarea></div>
+    <div class="field"><label class="label" for="impSource">Джерело (для всіх рядків)</label><input class="input" id="impSource" placeholder="Напр. реєстр брокерів, жовтень"></div>
+    <div class="hint" id="impPrev" style="margin-bottom:1rem"></div>
+    <button class="btn btn-primary btn-block" onclick="Outreach.doImport()">Імпортувати</button>
+  </div>
+</div>
+
+<!-- ЗАЛУЧЕННЯ: шаблони -->
+<div class="overlay" id="tplModal">
+  <div class="modal modal-wide" role="dialog" aria-modal="true" style="max-width:760px;max-height:92vh;overflow-y:auto">
+    <button class="modal-close" onclick="document.getElementById('tplModal').classList.remove('open')" aria-label="Закрити"><i class="ti ti-x"></i></button>
+    <div class="modal-title">Шаблони повідомлень</div>
+    <div class="modal-sub">Підстановки: <code>{, імʼя}</code> — «, Олександр» або нічого; <code>{імʼя}</code>; <code>{компанія}</code>; <code>{місто}</code>;
+      <code>{речення_про_регіон}</code>; <code>{презентація}</code>; <code>{інструкція}</code>; <code>{реєстрація}</code>; <code>{сторінка_області}</code>.</div>
+    <div id="tplList"></div>
+  </div>
+</div>
+
 <!-- МОДАЛКА ЗАПРОШЕННЯ -->
 <div class="overlay" id="inviteModal">
   <div class="modal modal-wide" role="dialog" aria-modal="true">
@@ -206,6 +328,8 @@
 
 <script src="/assets/js/config.js"></script>
 <script src="/assets/js/db.js"></script>
+<script src="/assets/js/regions-loc.js"></script>
+<script src="/assets/js/outreach.js"></script>
 <script>
 let brokers = [], requests = [], payments = [], reviews = [], rvFilter = 'pending';
 
@@ -249,6 +373,7 @@ async function enter(user){
   document.getElementById('panel').style.display = 'block';
   document.getElementById('who').textContent = u.email;
   loadAll();
+  Outreach.init();
 }
 async function doLogout(){ await signOut(); location.reload(); }
 
@@ -380,6 +505,7 @@ async function sendInvite(){
     });
     m.className = 'msg show msg-ok';
     m.textContent = 'Запрошення надіслано на ' + v('i-email');
+    if (window.Outreach) Outreach.afterInvite();
     ['i-name','i-email','i-city','i-phone','i-tg','i-about'].forEach(id => document.getElementById(id).value = '');
     document.querySelectorAll('#iSvc .on').forEach(el => el.classList.remove('on'));
     await refreshBrokers();

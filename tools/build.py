@@ -229,7 +229,8 @@ def brokers_page():
         '<p class="lead">МитнийБрокер — каталог митних брокерів України. Клієнти знаходять вас за областю, містом і послугою '
         'та надсилають заявки прямо в кабінет. Базове розміщення — 0 грн, без картки.</p>'
         '<div class="row" style="margin-top:1.75rem"><a class="btn btn-primary" href="/vhid?role=broker" style="padding:13px 26px;font-size:15px">'
-        '<i class="ti ti-user-plus"></i>Зареєструватись безкоштовно</a><a class="btn btn-ghost" href="/taryfy" style="padding:13px 22px">Тарифи</a></div>'
+        '<i class="ti ti-user-plus"></i>Зареєструватись безкоштовно</a><a class="btn btn-ghost" href="/prezentatsiya" style="padding:13px 22px">Презентація</a>'
+        '<a class="btn btn-ghost" href="/instruktsiya" style="padding:13px 22px">Інструкція</a></div>'
         '</section>'
         '<section class="seo container"><h2>Що ви отримуєте</h2><div class="seo-grid">' + cards + '</div></section>'
         '<section class="seo container"><div class="prose" style="max-width:820px">'
@@ -254,7 +255,7 @@ def brokers_page():
         '<div class="cta-band"><h3>Розмістіть профіль безкоштовно</h3>'
         '<p>Реєстрація займає кілька хвилин. Платіжна картка не потрібна.</p>'
         '<div class="row"><a class="btn btn-primary" href="/vhid?role=broker"><i class="ti ti-user-plus"></i>Зареєструватись</a>'
-        '<a class="btn btn-ghost" href="/statti/yak-mytnomu-brokeru-znaity-kliientiv/">Як знайти клієнтів онлайн</a></div></div>'
+        '<a class="btn btn-ghost" href="/prezentatsiya">Презентація</a><a class="btn btn-ghost" href="/instruktsiya">Інструкція</a></div></div>'
         '</section>' + region_links()
     )
     ld = [crumbs_ld([('Каталог', '/'), ('Для брокерів', '/dlya-brokeriv')]), faq_ld(BROKERS_FAQ)]
@@ -309,8 +310,17 @@ def articles():
 
 articles()
 
+# ---------------------------------------------------------------- довідник областей для адмінки
+write('assets/js/regions-loc.js', '/* Генерується tools/build.py */\nconst REGION_LOC = ' +
+      json.dumps({r['name']: [r['slug'], r['loc']] for r in REGIONS}, ensure_ascii=False) + ';\n')
+
+# ---------------------------------------------------------------- презентація та інструкція
+from broker_docs import presentation, instruction
+presentation(write, COMMON_HEAD, ICONS)
+instruction(write, page, crumbs_ld)
+
 # ---------------------------------------------------------------- sitemap
-urls = [('/', '1.0'), ('/taryfy', '0.6'), ('/zayavka', '0.8'), ('/dlya-brokeriv', '0.9'), ('/statti/', '0.6'), ('/terms', '0.3')]
+urls = [('/', '1.0'), ('/taryfy', '0.6'), ('/zayavka', '0.8'), ('/dlya-brokeriv', '0.9'), ('/prezentatsiya', '0.6'), ('/instruktsiya', '0.6'), ('/statti/', '0.6'), ('/terms', '0.3')]
 urls += [('/brokery/' + r['slug'], '0.8') for r in REGIONS]
 urls += [('/statti/%s/' % a['slug'], '0.7') for a in ARTICLES]
 write('sitemap.xml', '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' +
