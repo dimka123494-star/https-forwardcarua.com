@@ -288,8 +288,7 @@
     try{
       return await html2pdf().set({
         margin: 8, image: { type: 'jpeg', quality: 0.95 },
-        html2canvas: { scale: 2, backgroundColor: '#ffffff', scrollX: 0, scrollY: 0, windowWidth: 800,
-          onclone: d => { const h = d.getElementById('cc-pdf-host'); if (h) h.style.opacity = '1'; } },
+        html2canvas: { scale: 2, backgroundColor: '#ffffff', scrollY: 0 },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
       }).from(host.firstChild).outputPdf('blob');
     } finally { host.innerHTML = ''; }
@@ -318,16 +317,21 @@
       box.innerHTML = '<div class="msg msg-err show">Не вдалося підготувати PDF. <a href="#" onclick="CustomsCalc.retry();return false">Спробувати ще раз</a></div>'; return;
     }
     const b = st.broker || {};
-    const text = 'Розрахунок митних платежів' + (st.last.client ? ' для ' + st.last.client : '') + ' — ' + (b.name || 'митний брокер') +
-                 '. Разом орієнтовно: ' + money(st.last.total) + '. PDF: ';
+    const text = st.last.title + (st.last.client ? ' для ' + st.last.client : '') + '\n' +
+                 st.last.subject + '\n' +
+                 'Митні платежі: ' + money(st.last.payments) + '\n' +
+                 'Разом орієнтовно: ' + money(st.last.total) + '\n' +
+                 (b.name || 'Митний брокер') + (b.phone ? ', ' + b.phone : '') + '\n' +
+                 'Детальний розрахунок (PDF): ';
     const url = st.url || '';
     const enc = encodeURIComponent;
-    const canFile = !!(navigator.canShare && st.file && navigator.canShare({ files: [st.file] }));
+    st.msg = text + url;
+    const canFile = !!navigator.share && (url || (navigator.canShare && st.file && navigator.canShare({ files: [st.file] })));
     box.innerHTML =
       '<div class="text-sm" style="margin-bottom:.6rem">Надіслати клієнту:</div>' +
       '<div class="row" style="gap:8px">' +
         '<a class="btn btn-primary" href="' + esc(st.objUrl) + '" download="' + esc(st.fname) + '"><i class="ti ti-file-download"></i>Завантажити PDF</a>' +
-        (canFile ? '<button class="btn btn-ghost" onclick="CustomsCalc.shareFile()"><i class="ti ti-share"></i>Поділитися файлом</button>' : '') +
+        (canFile ? '<button class="btn btn-ghost" onclick="CustomsCalc.shareFile()"><i class="ti ti-share"></i>Поділитися</button>' : '') +
         (url ? (
           '<a class="btn btn-ghost" target="_blank" rel="noopener" href="https://t.me/share/url?url=' + enc(url) + '&text=' + enc(text) + '"><i class="ti ti-brand-telegram"></i>Telegram</a>' +
           '<a class="btn btn-ghost" href="viber://forward?text=' + enc(text + url) + '"><i class="ti ti-brand-viber"></i>Viber</a>' +
@@ -368,7 +372,12 @@
   }
 
   async function shareFile(){
-    try{ await navigator.share({ files: [st.file], title: st.last.title }); }
+    /* Багато месенджерів відкидають текст, коли в share є файл, і навпаки —
+       тому, якщо є посилання, ділимося текстом із посиланням на PDF. */
+    try{
+      if (st.url) await navigator.share({ text: st.msg });
+      else await navigator.share({ files: [st.file], text: st.msg });
+    }
     catch(e){ if (e.name !== 'AbortError') showToast('Не вдалося поділитися — завантажте PDF', 'error'); }
   }
 
