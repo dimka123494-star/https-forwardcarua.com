@@ -126,11 +126,20 @@
         <div class="row" style="gap:8px">
           <button class="btn btn-ghost btn-sm" onclick="Outreach.tplOpen()"><i class="ti ti-template"></i> Шаблони</button>
           <button class="btn btn-ghost btn-sm" onclick="Outreach.importOpen()"><i class="ti ti-table-import"></i> Імпорт списку</button>
+          <button class="btn btn-ghost btn-sm" onclick="Outreach.importRegistry()"><i class="ti ti-building-bank"></i> Імпорт з реєстру Держмитслужби</button>
           <button class="btn btn-ghost btn-sm" onclick="Outreach.compose(null)"><i class="ti ti-message"></i> Текст без контакту</button>
           <button class="btn btn-primary btn-sm" onclick="Outreach.edit(null)"><i class="ti ti-user-plus"></i> Додати контакт</button>
         </div>
       </div>
       <div class="stat-grid" id="oStats" style="margin-bottom:1.25rem"></div>
+      <div id="oClaims" style="display:none;margin-bottom:1.5rem">
+        <div class="card-title" style="color:var(--amber)">Заявки на підтвердження профілю з реєстру</div>
+        <div class="table-wrap table-scroll"><table>
+          <thead><tr><th>Компанія</th><th>Контактна особа</th><th>Контакти</th><th>Коли</th><th></th></tr></thead>
+          <tbody id="oClaimsList"></tbody></table></div>
+        <p class="hint">Перед запрошенням зателефонуйте на офіційний номер компанії і переконайтеся, що людина справді її представляє.
+          Підставки шаблонів: <code>{профіль}</code> — посилання на сторінку компанії в реєстрі.</p>
+      </div>
       <div class="o-grid">
         <div>
           <div class="row" style="gap:8px;margin-bottom:10px">
@@ -285,7 +294,7 @@
   <div class="modal modal-wide" role="dialog" aria-modal="true" style="max-width:760px;max-height:92vh;overflow-y:auto">
     <button class="modal-close" onclick="document.getElementById('tplModal').classList.remove('open')" aria-label="Закрити"><i class="ti ti-x"></i></button>
     <div class="modal-title">Шаблони повідомлень</div>
-    <div class="modal-sub">Підстановки: <code>{, імʼя}</code> — «, Олександр» або нічого; <code>{імʼя}</code>; <code>{компанія}</code>; <code>{місто}</code>;
+    <div class="modal-sub">Підстановки: <code>{профіль}</code> — сторінка компанії з реєстру; <code>{, імʼя}</code> — «, Олександр» або нічого; <code>{імʼя}</code>; <code>{компанія}</code>; <code>{місто}</code>;
       <code>{речення_про_регіон}</code>; <code>{презентація}</code>; <code>{інструкція}</code>; <code>{реєстрація}</code>; <code>{сторінка_області}</code>.</div>
     <div id="tplList"></div>
   </div>

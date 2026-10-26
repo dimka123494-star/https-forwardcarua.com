@@ -54,7 +54,8 @@
       pres: SITE + '/prezentatsiya?' + ref,
       instr: SITE + '/instruktsiya?' + ref,
       reg: SITE + '/vhid?role=broker&' + ref,
-      regionPage: reg ? SITE + '/brokery/' + reg[0] : SITE + '/'
+      regionPage: reg ? SITE + '/brokery/' + reg[0] : SITE + '/',
+      profile: p && p.edrpou ? SITE + '/kompaniya/' + p.edrpou + '?' + ref : SITE + '/reyestr-brokeriv?' + ref
     };
   }
   function render(tpl, p){
@@ -73,7 +74,8 @@
       .replace(/\{презентація\}/g, L.pres)
       .replace(/\{інструкція\}/g, L.instr)
       .replace(/\{реєстрація\}/g, L.reg)
-      .replace(/\{сторінка_області\}/g, L.regionPage);
+      .replace(/\{сторінка_області\}/g, L.regionPage)
+      .replace(/\{профіль\}/g, L.profile);
   }
 
   /* ---------------- автоматичне визначення «зареєструвався» ---------------- */
@@ -318,6 +320,62 @@
   function tplAdd(){ tpls.push({ title:'Новий шаблон', subject:'', body:'Добрий день{, імʼя}!\n\n…\n\nПрезентація: {презентація}\nРеєстрація: {реєстрація}' }); tplOpen(); }
 
   /* ---------------- старт ---------------- */
+  /* ---------------- реєстр Держмитслужби: імпорт і заявки на підтвердження ---------------- */
+  async function importRegistry(){
+    let reg;
+    try{ reg = await (await fetch('/assets/data/registry.json', { cache:'no-store' })).json(); }
+    catch(e){ return showToast('Не вдалося завантажити реєстр', 'error'); }
+    const have = new Set(list.map(p => p.edrpou).filter(Boolean));
+    const fresh = reg.filter(r => !have.has(r.code)).map(r => ({
+      name: r.name, edrpou: r.code, source: 'Реєстр Держмитслужби',
+      notes: 'Авторизація ' + r.auth + ' від ' + r.date + '. Профіль: ' + SITE + '/kompaniya/' + r.code
+    }));
+    if (!fresh.length) return showToast('Усі компанії з реєстру вже в базі');
+    if (!confirm('Додати ' + fresh.length + ' компаній з реєстру в базу контактів?\n\nКонтактів (телефон, email) у реєстрі немає — їх треба буде знайти й додати вручну.')) return;
+    const sb = await db();
+    const { data, error } = await sb.from('prospects').insert(fresh).select();
+    if (error) return showToast('Імпорт не вдався: ' + error.message, 'error');
+    list = (data || []).concat(list); refresh(); showToast('Додано ' + (data || []).length + ' компаній');
+  }
+  let claims = [];
+  async function loadClaims(){
+    const sb = await db();
+    const { data } = await sb.from('registry_claims').select('*').order('created_at', { ascending:false }).limit(200);
+    claims = data || [];
+    const box = $('oClaims'); if (!box) return;
+    const open = claims.filter(c => c.status === 'new' || c.status === 'verified');
+    box.style.display = open.length ? '' : 'none';
+    $('oClaimsList').innerHTML = open.map(c =>
+      '<tr><td><div style="font-weight:500">' + esc(c.company) + '</div><div class="text-xs text-muted">ЄДРПОУ ' + esc(c.edrpou) + ' · <a href="/kompaniya/' + esc(c.edrpou) + '" target="_blank">профіль</a></div></td>' +
+      '<td class="text-sm">' + esc(c.contact_name) + (c.position ? '<div class="text-xs text-muted">' + esc(c.position) + '</div>' : '') + '</td>' +
+      '<td class="text-sm"><a href="tel:' + esc(c.phone) + '">' + esc(c.phone) + '</a><div class="text-xs"><a href="mailto:' + esc(c.email) + '">' + esc(c.email) + '</a></div></td>' +
+      '<td class="text-xs text-muted">' + timeAgo(c.created_at) + (c.comment ? '<div>' + esc(c.comment) + '</div>' : '') + '</td>' +
+      '<td><div class="row-actions">' +
+        (c.status === 'new' ? '<button class="btn-quiet" onclick="Outreach.claimVerify(\'' + c.id + '\')">Підтвердив по телефону</button>' : '<span class="text-xs" style="color:var(--green)">Підтверджено</span>') +
+        '<button class="btn btn-primary btn-sm" onclick="Outreach.claimInvite(\'' + c.id + '\')">Запросити в кабінет</button>' +
+        '<button class="btn-quiet" onclick="Outreach.claimReject(\'' + c.id + '\')">Відхилити</button></div></td></tr>').join('');
+  }
+  async function claimSet(id, status){
+    const sb = await db();
+    const { error } = await sb.from('registry_claims').update({ status }).eq('id', id);
+    if (error) return showToast('Не вдалося оновити', 'error');
+    await loadClaims();
+  }
+  function claimInvite(id){
+    const c = claims.find(x => x.id === id); if (!c) return;
+    openInvite();
+    const set = (k, v) => { const el = $(k); if (el) el.value = v || ''; };
+    set('i-name', c.company); set('i-email', c.email); set('i-phone', c.phone);
+    set('i-about', c.comment || '');
+    window.__claimInvite = c;
+  }
+  async function afterClaimInvite(){
+    const c = window.__claimInvite; if (!c) return; window.__claimInvite = null;
+    await claimSet(c.id, 'invited');
+    const p = list.find(x => x.edrpou === c.edrpou);
+    if (p) try{ Object.assign(p, await saveProspect({ id:p.id, status:'invited', email: p.email || c.email, phone: p.phone || c.phone, contact_person: p.contact_person || c.contact_name })); refresh(); }catch(e){}
+  }
+
   async function init(){
     $('oRegion').innerHTML = '<option value="">Усі області</option>' + REGIONS.map(r => '<option>' + r + '</option>').join('');
     $('oStatus').innerHTML = '<option value="">Усі статуси</option>' + Object.keys(STATUS).map(k => '<option value="' + k + '">' + STATUS[k].l + '</option>').join('');
@@ -328,6 +386,7 @@
     try{
       [list, tpls] = await Promise.all([loadProspects(), loadTemplates()]);
       refresh();
+      loadClaims().catch(() => {});
       syncRegistered().then(refresh).catch(() => {});
     }catch(e){
       $('oTable').innerHTML = '<tr><td colspan="6" class="text-sm" style="color:var(--red)">' + esc(e.message) + '</td></tr>';
@@ -340,7 +399,9 @@
     filter(k, v){ filt[k] = v; table(); },
     importOpen(){ $('impModal').classList.add('open'); importPreview(); }, importPreview, doImport,
     tplOpen, tplSave, tplDel, tplAdd,
-    afterInvite(){ const id = window.__outreachInvite; if (!id) return; window.__outreachInvite = null; setStatus(id, 'invited'); },
+    afterInvite(){ afterClaimInvite(); const id = window.__outreachInvite; if (!id) return; window.__outreachInvite = null; setStatus(id, 'invited'); },
+    importRegistry, claimInvite, claimVerify: id => claimSet(id, 'verified'),
+    claimReject: id => { if (confirm('Відхилити заявку на підтвердження?')) claimSet(id, 'rejected'); },
     _render: render
   };
   const _origCompose = compose;

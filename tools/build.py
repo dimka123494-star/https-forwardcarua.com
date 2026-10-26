@@ -5,7 +5,7 @@
 Створює: index.html (з tools/index.src.html), brokery/{slug}/index.html,
 dlya-brokeriv/index.html, statti/index.html, statti/{slug}/index.html, sitemap.xml
 """
-import html, json, os, sys, datetime
+import html, json, os, re, sys, datetime
 sys.path.insert(0, os.path.dirname(__file__))
 from regions import REGIONS, POSTS, DEFAULT_NEAREST, INTERNAL
 from content import ARTICLES, BROKERS_FAQ
@@ -399,10 +399,114 @@ from broker_docs import presentation, instruction
 presentation(write, COMMON_HEAD, ICONS)
 instruction(write, page, crumbs_ld)
 
+# ---------------------------------------------------------------- реєстр митних брокерів (непідтверджені профілі)
+FORMS = [('ТОВАРИСТВО З ОБМЕЖЕНОЮ ВІДПОВІДАЛЬНІСТЮ', 'ТОВ'), ('ТОВАРИСТВО З ДОДАТКОВОЮ ВІДПОВІДАЛЬНІСТЮ', 'ТДВ'),
+         ('ПРИВАТНЕ ПІДПРИЄМСТВО', 'ПП'), ('ДОЧІРНЄ ПІДПРИЄМСТВО', 'ДП')]
+def pretty_name(raw):
+    s = raw.replace('I', 'І').replace('"', '').replace('«', '').replace('»', '').strip()
+    s = re.sub(r'\s+', ' ', s)
+    for full, short in FORMS:
+        if s.startswith(full):
+            rest = s[len(full):].strip()
+            return '%s «%s»' % (short, rest), rest
+    return s, s
+REG = json.load(open(os.path.join(ROOT, 'tools', 'data', 'registry.json'), encoding='utf-8'))
+REG = [dict(code=c, raw=n, auth=a, date=d, name=pretty_name(n)[0], short=pretty_name(n)[1]) for c, n, a, d in REG]
+write('assets/data/registry.json', json.dumps([{k: r[k] for k in ('code', 'name', 'short', 'auth', 'date')} for r in REG], ensure_ascii=False))
+
+CLAIM_JS = r"""
+<script>
+async function sendClaim(ev){
+  ev.preventDefault();
+  const f = ev.target, m = document.getElementById('cl-msg'), b = f.querySelector('button');
+  const v = n => f.elements[n].value.trim();
+  const show = (t, ok) => { m.className = 'msg show ' + (ok ? 'msg-ok' : 'msg-err'); m.textContent = t; };
+  if (!f.elements.ok.checked) return show('Потрібна згода на обробку даних', false);
+  b.disabled = true; b.textContent = 'Надсилаємо…';
+  try{
+    const sb = await sbReady();
+    const { error } = await sb.rpc('claim_registry_profile', { p_edrpou: f.dataset.code, p_company: f.dataset.name,
+      p_name: v('name'), p_position: v('position'), p_phone: v('phone'), p_email: v('email'), p_comment: v('comment') });
+    if (error){
+      const map = { bad_name:'Вкажіть ім\'я', bad_phone:'Вкажіть коректний телефон', bad_email:'Вкажіть коректний email', too_many:'Заявку вже надіслано — ми зв\'яжемося з вами' };
+      const k = Object.keys(map).find(k => (error.message || '').includes(k));
+      throw new Error(k ? map[k] : 'Не вдалося надіслати. Спробуйте ще раз або напишіть на custom@forwardcarua.com');
+    }
+    f.innerHTML = '<div class="msg show msg-ok" style="font-size:15px">Дякуємо! Ми зателефонуємо на офіційний номер компанії, щоб підтвердити, що ви її представляєте, і надішлемо на email доступ до кабінету.</div>';
+    if (typeof gtag === 'function') gtag('event', 'registry_claim', { edrpou: f.dataset.code });
+  }catch(e){ show(e.message, false); b.disabled = false; b.textContent = 'Забрати профіль безкоштовно'; }
+}
+</script>
+"""
+
+def company_page(r):
+    path = '/kompaniya/' + r['code']
+    title = '%s — митний брокер, ЄДРПОУ %s | МитнийБрокер' % (r['name'], r['code'])
+    desc = ('%s (ЄДРПОУ %s) — компанія з авторизацією на провадження митної брокерської діяльності %s від %s. '
+            'Профіль у каталозі митних брокерів України.' % (r['name'], r['code'], r['auth'], r['date']))
+    body = ('<section class="container-narrow page-hero"><div class="crumbs"><a href="/">Каталог</a> › <a href="/reyestr-brokeriv">Реєстр брокерів</a> › ' + E(r['short']) + '</div>'
+            '<span class="badge" style="background:rgba(245,166,35,.15);color:var(--amber);border:.5px solid rgba(245,166,35,.35);padding:5px 12px;border-radius:20px;font-size:12px">'
+            '<i class="ti ti-alert-circle"></i> Непідтверджений профіль</span>'
+            '<h1 class="h-lg" style="font-size:clamp(26px,5vw,40px);margin-top:1rem">' + E(r['name']) + '</h1>'
+            '<p class="lead">Митний брокер з авторизацією Держмитслужби. Профіль створено автоматично на основі відкритого реєстру — компанія ще не підтвердила його.</p>'
+            '<div class="card" style="margin-top:1.5rem"><table style="width:100%;font-size:14px">'
+            '<tr><td class="text-muted" style="padding:8px 0;width:45%">Повна назва</td><td>' + E(r['raw'].replace('I', 'І')) + '</td></tr>'
+            '<tr><td class="text-muted" style="padding:8px 0">Код ЄДРПОУ</td><td>' + r['code'] + '</td></tr>'
+            '<tr><td class="text-muted" style="padding:8px 0">Авторизація</td><td>Провадження митної брокерської діяльності, № ' + E(r['auth']) + '</td></tr>'
+            '<tr><td class="text-muted" style="padding:8px 0">Діє з</td><td>' + E(r['date']) + '</td></tr>'
+            '<tr><td class="text-muted" style="padding:8px 0">Джерело</td><td><a href="https://cabinet.customs.gov.ua/cdspubliclist" target="_blank" rel="noopener nofollow">Реєстр авторизацій Держмитслужби</a></td></tr>'
+            '</table></div></section>'
+            '<section class="container-narrow" style="padding-bottom:1rem"><div class="cta-band" style="text-align:left">'
+            '<h2 style="font-size:24px">Це ваша компанія? Заберіть доступ безкоштовно</h2>'
+            '<p style="margin-left:0">Підтвердіть профіль — і отримуйте заявки клієнтів у кабінет: до 5 заявок на місяць безкоштовно, '
+            'калькулятор розмитнення з вивантаженням PDF для клієнта, ваші послуги й ціни в каталозі. Без комісії з угод.</p>'
+            '<form onsubmit="sendClaim(event)" data-code="' + r['code'] + '" data-name="' + E(r['name']) + '">'
+            '<div class="field-row"><div class="field"><label class="label">Ваше ім\'я *</label><input class="input" name="name" required autocomplete="name"></div>'
+            '<div class="field"><label class="label">Посада</label><input class="input" name="position" placeholder="Директор, декларант…"></div></div>'
+            '<div class="field-row"><div class="field"><label class="label">Телефон *</label><input class="input" name="phone" type="tel" required autocomplete="tel"></div>'
+            '<div class="field"><label class="label">Email для доступу *</label><input class="input" name="email" type="email" required autocomplete="email"></div></div>'
+            '<div class="field"><label class="label">Коментар</label><textarea class="input" name="comment" placeholder="Область роботи, основні послуги"></textarea></div>'
+            '<label class="check-row"><input type="checkbox" name="ok" checked> Погоджуюсь з <a href="/terms#privacy" target="_blank">обробкою персональних даних</a></label>'
+            '<div class="msg" id="cl-msg"></div><button class="btn btn-primary" type="submit"><i class="ti ti-user-check"></i>Забрати профіль безкоштовно</button></form>'
+            '<p class="text-sm" style="margin:1rem 0 0;color:var(--muted)">Не хочете бути в каталозі? Напишіть на <a href="mailto:custom@forwardcarua.com?subject=' + 'Видалити профіль ' + r['code'] + '">custom@forwardcarua.com</a> — видалимо профіль протягом робочого дня.</p>'
+            '</div></section>'
+            '<section class="container-narrow" style="padding-bottom:2rem"><div class="card">'
+            '<h3 style="font-size:18px;margin-bottom:.5rem">Потрібен митний брокер?</h3>'
+            '<p class="text-sm text-muted" style="margin-bottom:1rem">Компанія ще не підтвердила профіль, тому її прямі контакти тут не показуються. '
+            'Залиште заявку — ми передамо її брокеру, який працює з вашим регіоном і послугою.</p>'
+            '<div class="row"><a class="btn btn-primary" href="/zayavka"><i class="ti ti-send"></i>Залишити заявку</a>'
+            '<a class="btn btn-ghost" href="/kalkulyator-rozmytnennya">Калькулятор розмитнення</a></div></div></section>' + region_links())
+    ld = [crumbs_ld([('Каталог', '/'), ('Реєстр брокерів', '/reyestr-brokeriv'), (r['name'], path)]),
+          {"@type": "Organization", "name": r['name'], "legalName": r['raw'].replace('I', 'І'), "identifier": r['code'], "url": SITE + path}]
+    html_ = page(path, title, desc, body, ld, scripts='<script src="/assets/js/config.js"></script>\n' + CLAIM_JS)
+    write('kompaniya/%s.html' % r['code'], html_)
+
+for r in REG: company_page(r)
+
+def registry_list():
+    items = ''.join('<a class="card card-hover reg-item" href="/kompaniya/%s" data-q="%s"><div style="font-weight:600">%s</div>'
+                    '<div class="text-xs text-muted">ЄДРПОУ %s · авторизація з %s</div>'
+                    '<span class="text-xs" style="color:var(--amber)">Непідтверджений профіль</span></a>'
+                    % (r['code'], E((r['name'] + ' ' + r['code']).lower()), E(r['name']), r['code'], E(r['date'])) for r in REG)
+    body = ('<section class="container page-hero"><div class="crumbs"><a href="/">Каталог</a> › Реєстр брокерів</div>'
+            '<h1 class="h-lg">Реєстр митних брокерів України</h1>'
+            '<p class="lead">Компанії з чинною авторизацією Держмитслужби на провадження митної брокерської діяльності. '
+            'Профілі створено на основі відкритого реєстру; підтверджені брокери з контактами, цінами та відгуками — у <a href="/">каталозі</a>.</p>'
+            '<input class="input" style="max-width:420px;margin-top:1.25rem" placeholder="Пошук за назвою або ЄДРПОУ" oninput="regFilter(this.value)"></section>'
+            '<section class="container" style="padding-bottom:2rem"><div class="post-list" id="regList" style="grid-template-columns:repeat(auto-fill,minmax(280px,1fr))">' + items + '</div>'
+            '<div class="cta-band"><h3>Ваша компанія є в реєстрі?</h3><p>Відкрийте сторінку компанії та підтвердіть профіль — це безкоштовно.</p>'
+            '<div class="row"><a class="btn btn-primary" href="/dlya-brokeriv">Як це працює</a></div></div></section>')
+    js = '<script>function regFilter(q){q=q.toLowerCase().trim();document.querySelectorAll(".reg-item").forEach(e=>e.style.display=!q||e.dataset.q.includes(q)?"":"none")}</script>\n'
+    write('reyestr-brokeriv.html', page('/reyestr-brokeriv', 'Реєстр митних брокерів України 2026 | МитнийБрокер',
+          'Перелік компаній з авторизацією Держмитслужби на провадження митної брокерської діяльності: назва, ЄДРПОУ, номер і дата авторизації.',
+          body, [crumbs_ld([('Каталог', '/'), ('Реєстр брокерів', '/reyestr-brokeriv')])], scripts=js))
+registry_list()
+
 # ---------------------------------------------------------------- sitemap
-urls = [('/', '1.0'), ('/taryfy', '0.6'), ('/zayavka', '0.8'), ('/kalkulyator-rozmytnennya', '0.9'), ('/dlya-brokeriv', '0.9'), ('/prezentatsiya', '0.6'), ('/instruktsiya', '0.6'), ('/statti/', '0.6'), ('/terms', '0.3')]
+urls = [('/', '1.0'), ('/taryfy', '0.6'), ('/zayavka', '0.8'), ('/kalkulyator-rozmytnennya', '0.9'), ('/dlya-brokeriv', '0.9'), ('/reyestr-brokeriv', '0.5'), ('/prezentatsiya', '0.6'), ('/instruktsiya', '0.6'), ('/statti/', '0.6'), ('/terms', '0.3')]
 urls += [('/brokery/' + r['slug'], '0.8') for r in REGIONS]
 urls += [('/statti/%s/' % a['slug'], '0.7') for a in ARTICLES]
+urls += [('/kompaniya/' + r['code'], '0.3') for r in REG]
 write('sitemap.xml', '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' +
       ''.join('  <url><loc>%s%s</loc><lastmod>%s</lastmod><priority>%s</priority></url>\n' % (SITE, u, TODAY, p) for u, p in urls) +
       '</urlset>\n')
