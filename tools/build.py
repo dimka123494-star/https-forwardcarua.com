@@ -7,7 +7,7 @@ dlya-brokeriv/index.html, statti/index.html, statti/{slug}/index.html, sitemap.x
 """
 import html, json, os, sys, datetime
 sys.path.insert(0, os.path.dirname(__file__))
-from regions import REGIONS
+from regions import REGIONS, POSTS, DEFAULT_NEAREST, INTERNAL
 from content import ARTICLES, BROKERS_FAQ
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -82,7 +82,7 @@ STATIC_NAV = (NAV.replace('<button class="nav-brand" onclick="go(\'/\')">Мит�
                           '<a href="/taryfy">Тарифи для брокерів</a>'))
 assert 'onclick="go(' not in STATIC_NAV, 'nav: SPA-кнопки не замінено'
 
-def page(path, title, desc, body, ld_graph, active=None):
+def page(path, title, desc, body, ld_graph, active=None, scripts=''):
     nav = STATIC_NAV
     if active:
         nav = nav.replace('<a class="nav-link" href="%s">' % active, '<a class="nav-link active" href="%s">' % active)
@@ -100,7 +100,7 @@ def page(path, title, desc, body, ld_graph, active=None):
             + COMMON_HEAD +
             jsonld({"@context": "https://schema.org", "@graph": ld_graph}) + '\n' + ICONS +
             '</head>\n<body>\n' + nav + '\n<div class="page">' + body + '</div>\n' + STATIC_FOOTER +
-            '\n<script>function toggleMenu(){document.getElementById("menu").classList.toggle("open")}</script>\n'
+            '\n<script>function toggleMenu(){document.getElementById("menu").classList.toggle("open")}</script>\n' + scripts +
             '</body>\n</html>\n')
 
 # ---------------------------------------------------------------- головна
@@ -120,11 +120,26 @@ def region_page(r):
     city0 = 'Київ' if slug == 'kyiv' else r['cities'][0]
     is_city = slug == 'kyiv'
     places = 'райони' if is_city else 'міста'
-    title = ('Митний брокер Київ — розмитнення авто | МитнийБрокер' if is_city
-             else 'Митний брокер %s — %s область | МитнийБрокер' % (city0, name))
+    P = POSTS.get(slug, {})
+    if P.get('title') and not is_city:
+        title = 'Митний брокер %s — %s область | МитнийБрокер' % (P['title'], name)
+        if len(title) > 78: title = 'Митний брокер %s | МитнийБрокер' % P['title']
+    else:
+        title = ('Митний брокер Київ — розмитнення авто | МитнийБрокер' if is_city
+                 else 'Митний брокер %s — %s область | МитнийБрокер' % (city0, name))
+    post_names = [x.split(' — ')[0].split(' (')[0] for x in P.get('posts', []) if not x.startswith(('внутрішні', 'митні пости'))]
     desc = ('Митні брокери %s: %s. Розмитнення авто, авто зі США, оцінка, митне оформлення вантажів. '
-            'Порівняйте послуги й ціни та залиште заявку онлайн.' % (loc, ', '.join(r['cities'][:3])))
+            'Порівняйте послуги й ціни та залиште заявку онлайн.' % (loc, ', '.join((r['cities'][:2] + post_names[:3]) if post_names else r['cities'][:3])))
+    if P.get('posts'):
+        posts_html = ('<h3>Пункти пропуску та митні пости %s</h3><ul>' % ('у Києві' if is_city else loc.replace('у ', 'у ', 1)) +
+                      ''.join('<li>' + E(x) + '</li>' for x in P['posts']) + '</ul>' +
+                      ('<p>' + E(P['note']) + '</p>' if P.get('note') else ''))
+        posts_answer = 'Основні варіанти: ' + '; '.join(P['posts']) + '. Брокер підкаже, який пост найзручніший саме для вашого авто чи вантажу.'
+    else:
+        posts_html = '<h3>Де проходить митне оформлення</h3><p>' + E(INTERNAL) + ' ' + E(DEFAULT_NEAREST.get(slug, '')) + '</p>'
+        posts_answer = INTERNAL + ' ' + DEFAULT_NEAREST.get(slug, '') + ' Брокер підкаже найзручніший пост.'
     faq = [
+        ('Де розмитнити авто %s?' % loc, posts_answer),
         ('Скільки коштують послуги митного брокера %s?' % loc,
          'Ціну встановлює сам брокер. Вона залежить від типу авто чи вантажу, комплекту документів і терміновості. '
          'Ціни «від» видно в профілях, точну суму брокер назве після перегляду документів. Митні платежі — мито, '
@@ -152,6 +167,8 @@ def region_page(r):
         'Обирайте брокера в профілі або залиште одну заявку: брокер зв\'яжеться з вами сам.</p>'
         % (gen, ', '.join(r['cities']), places) +
         '</div>'
+        '<div class="prose" style="max-width:820px">' + posts_html +
+        '<p>Порахувати мито, акциз і ПДВ заздалегідь можна в <a href="/kalkulyator-rozmytnennya">калькуляторі розмитнення</a>.</p></div>' +
         '<h3>Які послуги найчастіше шукають %s</h3><div class="seo-grid">%s</div>' % (loc, cards) +
         '<div class="prose" style="max-width:820px"><h3>Як працює заявка</h3><ol>'
         '<li>Опишіть завдання: авто чи вантаж, послуга, терміновість.</li>'
@@ -266,6 +283,64 @@ def brokers_page():
 
 brokers_page()
 
+WIDGET_JS = ('<script src="/assets/js/config.js"></script>\n<script src="/assets/js/db.js"></script>\n'
+             '<script src="/assets/js/broker-widget.js"></script>\n')
+
+# ---------------------------------------------------------------- калькулятор (публічний)
+CALC_FAQ = [
+ ('Як розраховується розмитнення авто у 2026 році?',
+  'Сплачуються три платежі: ввізне мито 10% від митної вартості (0% для авто з ЄС із сертифікатом EUR.1 і для електромобілів), акциз за формулою «базова ставка × об\'єм двигуна / 1000 × коефіцієнт віку» та ПДВ 20% від суми вартості, мита й акцизу. Під час першої реєстрації додатково сплачується збір до Пенсійного фонду 3–5% (крім електромобілів).'),
+ ('Яка базова ставка акцизу на авто?',
+  'Для бензинового двигуна до 3000 см³ — 50 €, понад 3000 см³ — 100 €; для дизельного до 3500 см³ — 75 €, понад 3500 см³ — 150 €. Коефіцієнт віку дорівнює кількості повних років після року випуску (від 1 до 15).'),
+ ('Скільки коштує розмитнити електромобіль у 2026 році?',
+  'Ввізне мито для повністю електричних авто — 0%, акциз — 1 € за 1 кВт·год ємності батареї, з 1 січня 2026 року сплачується ПДВ 20%. Збір до Пенсійного фонду електромобілі не сплачують.'),
+ ('Чи враховує калькулятор послуги брокера, сертифікацію і реєстрацію?',
+  'Ні. Калькулятор рахує митні платежі та пенсійний збір. Послуги брокера, сертифікація, доставка й реєстрація оплачуються окремо — точну суму назве брокер у відповідь на безкоштовну заявку.'),
+]
+
+def calculator_page():
+    body = ('<section class="container-narrow page-hero"><div class="crumbs"><a href="/">Каталог</a> › Калькулятор розмитнення</div>'
+            '<h1 class="h-lg" style="font-size:clamp(28px,5vw,42px)">Калькулятор розмитнення авто 2026</h1>'
+            '<p class="lead">Порахуйте мито, акциз, ПДВ і пенсійний збір для авто з Європи, США чи Кореї за актуальним курсом НБУ. '
+            'Наприкінці — безкоштовна заявка на точний розрахунок і оформлення від брокера у вашій області.</p></section>'
+            '<section class="container-narrow" style="padding-bottom:1rem"><div id="calcMount"></div></section>'
+            '<section class="container-narrow seo"><div class="prose">'
+            '<h2>Як рахуються митні платежі за авто</h2>'
+            '<table><tr><th>Платіж</th><th>Як рахується</th></tr>'
+            '<tr><td>Ввізне мито</td><td>10% від митної вартості; 0% для авто з ЄС із сертифікатом EUR.1 і для електромобілів</td></tr>'
+            '<tr><td>Акциз</td><td>базова ставка × об\'єм двигуна / 1000 × коефіцієнт віку (1–15); для електромобілів — 1 € за 1 кВт·год</td></tr>'
+            '<tr><td>ПДВ</td><td>20% від суми митної вартості, мита та акцизу</td></tr>'
+            '<tr><td>Пенсійний збір</td><td>3–5% від вартості при першій реєстрації (електромобілі звільнені)</td></tr></table>'
+            '<h3>Базові ставки акцизу</h3>'
+            '<table><tr><th>Двигун</th><th>Об\'єм</th><th>Ставка</th></tr>'
+            '<tr><td>Бензиновий (у т. ч. гібрид)</td><td>до 3000 см³</td><td>50 €</td></tr>'
+            '<tr><td>Бензиновий (у т. ч. гібрид)</td><td>понад 3000 см³</td><td>100 €</td></tr>'
+            '<tr><td>Дизельний (у т. ч. гібрид)</td><td>до 3500 см³</td><td>75 €</td></tr>'
+            '<tr><td>Дизельний (у т. ч. гібрид)</td><td>понад 3500 см³</td><td>150 €</td></tr></table>'
+            '<h3>Приклад</h3><p>Бензинове авто 2018 року, 2,0 л, вартість 8 000 € у 2026 році: коефіцієнт віку — 7, акциз = 50 × 2,0 × 7 = 700 €, '
+            'мито = 800 €, ПДВ = 20% × (8 000 + 800 + 700) = 1 900 €. Разом митних платежів — 3 400 € плюс пенсійний збір при реєстрації.</p>'
+            '<p>Детальніше — у статтях <a href="/statti/rozmytnennya-avto-poryadok/">про порядок розмитнення</a>, '
+            '<a href="/statti/dokumenty-rozmytnennya-avto-polshcha-nimechchyna/">про документи для авто з Польщі та Німеччини</a> і '
+            '<a href="/statti/pilhove-rozmytnennya-2026/">про пільги у 2026 році</a>.</p>'
+            '<p class="text-sm">Розрахунок орієнтовний: остаточну суму визначає митниця під час оформлення за курсом НБУ на день подання декларації.</p>'
+            '</div><h3 style="margin-top:2rem">Часті запитання</h3>' + faq_html(CALC_FAQ) + '</section>'
+            '<section class="container-narrow"><div class="bw" data-service="Розмитнення авто" data-title="Брокери з розмитнення авто"></div></section>'
+            + region_links())
+    ld = [crumbs_ld([('Каталог', '/'), ('Калькулятор розмитнення', '/kalkulyator-rozmytnennya')]),
+          {"@type": "WebApplication", "name": "Калькулятор розмитнення авто 2026", "url": SITE + '/kalkulyator-rozmytnennya',
+           "applicationCategory": "FinanceApplication", "operatingSystem": "Any", "inLanguage": "uk-UA",
+           "offers": {"@type": "Offer", "price": "0", "priceCurrency": "UAH"}},
+          faq_ld(CALC_FAQ)]
+    scripts = ('<script src="/assets/js/config.js"></script>\n<script src="/assets/js/db.js"></script>\n'
+               '<script src="/assets/js/customs-calc.js"></script>\n<script src="/assets/js/broker-widget.js"></script>\n'
+               '<script>CustomsCalc.mount(document.getElementById("calcMount"), { public: true });</script>\n')
+    write('kalkulyator-rozmytnennya.html', page('/kalkulyator-rozmytnennya',
+          'Калькулятор розмитнення авто 2026 — мито, акциз, ПДВ онлайн | МитнийБрокер',
+          'Онлайн-калькулятор розмитнення авто з Європи та США у 2026 році: мито, акциз, ПДВ і пенсійний збір за курсом НБУ. Безкоштовний точний розрахунок від брокера у вашій області.',
+          body, ld, active='/kalkulyator-rozmytnennya', scripts=scripts))
+
+calculator_page()
+
 # ---------------------------------------------------------------- статті
 def articles():
     items = ''.join(
@@ -285,7 +360,11 @@ def articles():
     for a in ARTICLES:
         path = '/statti/%s/' % a['slug']
         others = ''.join('<li><a href="/statti/%s/">%s</a></li>' % (o['slug'], E(o['h1'])) for o in ARTICLES if o is not a)
-        client_cta = ('' if a['tag'] == 'Брокерам' or 'cta-band' in a['body'] else
+        widget = ('' if a.get('service') is None else
+                  '<div class="bw" data-service="%s" data-title="%s"></div>' % (E(a['service']),
+                  E('Брокери з розмитнення авто' if a['service'] == 'Розмитнення авто' else
+                    'Брокери з митного оформлення вантажів' if a['service'] == 'Митне оформлення' else 'Митні брокери в каталозі')))
+        client_cta = ('' if a['tag'] == 'Брокерам' or 'cta-band' in a['body'] or widget else
                       '<div class="cta-band"><h3>Знайдіть митного брокера у своїй області</h3>'
                       '<p>Порівняйте послуги та ціни або залиште одну заявку — брокер зв\'яжеться з вами сам.</p>'
                       '<div class="row"><a class="btn btn-primary" href="/zayavka"><i class="ti ti-send"></i>Залишити заявку</a>'
@@ -294,7 +373,7 @@ def articles():
                 '<a href="/statti/">Статті</a></div>'
                 '<h1 class="h-lg" style="font-size:clamp(26px,5vw,38px)">' + E(a['h1']) + '</h1>'
                 '<p class="lead">' + E(a['lead']) + '</p>'
-                '<div class="prose" style="margin-top:2rem">' + a['body'] + client_cta +
+                '<div class="prose" style="margin-top:2rem">' + a['body'] + client_cta + '</div>' + widget + '<div class="prose">' +
                 '<h2>Часті запитання</h2></div>' + faq_html(a['faq']) +
                 '<div class="prose" style="margin-top:2rem"><h3>Читайте також</h3><ul>' + others + '</ul></div>'
                 '</article>' + region_links())
@@ -306,7 +385,8 @@ def articles():
                              "logo": {"@type": "ImageObject", "url": SITE + '/apple-touch-icon.png'}},
                "image": SITE + '/og.png'},
               faq_ld(a['faq'])]
-        write('statti/%s/index.html' % a['slug'], page(path, a['title'] + ' | МитнийБрокер', a['desc'], body, ld, active='/statti/'))
+        write('statti/%s/index.html' % a['slug'], page(path, a['title'] + ' | МитнийБрокер', a['desc'], body, ld, active='/statti/',
+              scripts=WIDGET_JS if widget else ''))
 
 articles()
 
@@ -320,7 +400,7 @@ presentation(write, COMMON_HEAD, ICONS)
 instruction(write, page, crumbs_ld)
 
 # ---------------------------------------------------------------- sitemap
-urls = [('/', '1.0'), ('/taryfy', '0.6'), ('/zayavka', '0.8'), ('/dlya-brokeriv', '0.9'), ('/prezentatsiya', '0.6'), ('/instruktsiya', '0.6'), ('/statti/', '0.6'), ('/terms', '0.3')]
+urls = [('/', '1.0'), ('/taryfy', '0.6'), ('/zayavka', '0.8'), ('/kalkulyator-rozmytnennya', '0.9'), ('/dlya-brokeriv', '0.9'), ('/prezentatsiya', '0.6'), ('/instruktsiya', '0.6'), ('/statti/', '0.6'), ('/terms', '0.3')]
 urls += [('/brokery/' + r['slug'], '0.8') for r in REGIONS]
 urls += [('/statti/%s/' % a['slug'], '0.7') for a in ARTICLES]
 write('sitemap.xml', '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' +

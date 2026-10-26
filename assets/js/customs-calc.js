@@ -47,14 +47,14 @@
   function markup(){
     const groups = (typeof UKTZED_GROUPS !== 'undefined' ? UKTZED_GROUPS : []).map(g => '<option value="' + g[0] + '">' + g[0] + ' — ' + esc(g[1]) + '</option>').join('');
     return '' +
-    '<div class="cc-tabs row" style="gap:6px;margin-bottom:1rem">' +
+    '<div class="cc-tabs row" style="gap:6px;margin-bottom:1rem' + (st.public ? ';display:none' : '') + '">' +
       '<button class="chip active" id="cc-tab-car" onclick="CustomsCalc.mode(\'car\')"><i class="ti ti-car"></i> Легкове авто</button>' +
       '<button class="chip" id="cc-tab-goods" onclick="CustomsCalc.mode(\'goods\')"><i class="ti ti-packages"></i> Будь-який товар (УКТ ЗЕД)' +
         (st.paid ? '' : ' <i class="ti ti-lock" style="font-size:13px"></i>') + '</button>' +
     '</div>' +
     '<div class="card" style="margin-bottom:1rem">' +
-      '<div class="card-title">Клієнт і курс</div>' +
-      '<div class="field-row">' +
+      '<div class="card-title">' + (st.public ? 'Курс валют' : 'Клієнт і курс') + '</div>' +
+      '<div class="field-row"' + (st.public ? ' style="display:none"' : '') + '>' +
         '<div class="field"><label class="label" for="cc-client">Клієнт (для PDF)</label><input class="input" id="cc-client" placeholder="Ім\'я або компанія"></div>' +
         '<div class="field"><label class="label" for="cc-fee">Ваші послуги, грн</label><input class="input" id="cc-fee" type="number" min="0" placeholder="Напр. 4000"></div>' +
       '</div>' +
@@ -146,7 +146,7 @@
         '<div class="row" style="margin-top:1rem;gap:8px">' +
         '</div>' +
         '<div id="cc-send" style="margin-top:1rem"></div>' +
-        '<div class="hint">PDF містить ваше ім\'я, телефон і Telegram — клієнт одразу знає, кому дзвонити.</div>' +
+        (st.public ? '' : '<div class="hint">PDF містить ваше ім\'я, телефон і Telegram — клієнт одразу знає, кому дзвонити.</div>') +
       '</div>' +
     '</div>' +
     '<div id="cc-pdf-host" style="position:fixed;left:0;top:0;z-index:-1;opacity:0;pointer-events:none"></div>';
@@ -273,7 +273,7 @@
       (r.fee ? row('Послуги брокера', '', r.fee) : '') +
       row('Разом до сплати', 'орієнтовно', r.total, true);
     $('cc-res').style.display = 'block';
-    preparePdf();
+    if (st.public) renderLead(); else preparePdf();
     $('cc-res').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }
 
@@ -611,11 +611,52 @@
     info.style.display = 'block';
   }
 
+  /* ---------------- публічна версія: заявка брокеру ---------------- */
+  function renderLead(){
+    const r = st.last, box = $('cc-send');
+    const regions = (typeof REGIONS !== 'undefined' ? REGIONS : []).map(x => '<option>' + esc(x) + '</option>').join('');
+    box.innerHTML =
+      '<div style="border-top:.5px solid var(--border);padding-top:1.25rem;margin-top:.25rem">' +
+      '<div style="font-family:var(--display);font-size:20px;font-weight:800;margin-bottom:.35rem">Отримати точний розрахунок та оформлення від брокера у вашій області</div>' +
+      '<p class="text-sm text-muted" style="margin-bottom:1rem">Безкоштовна заявка: брокер перевірить дані авто, назве точну суму платежів і вартість оформлення. Ваш розрахунок додамо до заявки.</p>' +
+      '<div class="field-row">' +
+        '<div class="field"><label class="label" for="ld-name">Ваше ім\'я</label><input class="input" id="ld-name" autocomplete="name"></div>' +
+        '<div class="field"><label class="label" for="ld-phone">Телефон</label><input class="input" id="ld-phone" type="tel" autocomplete="tel" placeholder="+380…"></div>' +
+      '</div>' +
+      '<div class="field"><label class="label" for="ld-region">Область, де плануєте розмитнення</label><select class="input" id="ld-region"><option value="">Оберіть область</option>' + regions + '</select></div>' +
+      '<label class="check-row"><input type="checkbox" id="ld-ok" checked> Погоджуюсь з <a href="/terms#privacy" target="_blank">обробкою персональних даних</a></label>' +
+      '<div class="msg" id="ld-msg"></div>' +
+      '<button class="btn btn-primary btn-block" id="ld-btn" onclick="CustomsCalc.sendLead()"><i class="ti ti-send"></i>Отримати безкоштовний розрахунок</button>' +
+      '</div>';
+  }
+  async function sendLead(){
+    const m = $('ld-msg'), btn = $('ld-btn'), r = st.last;
+    const show = (t, ok) => { m.className = 'msg show ' + (ok ? 'msg-ok' : 'msg-err'); m.textContent = t; };
+    if (!$('ld-ok').checked) return show('Потрібна згода на обробку даних', false);
+    const region = $('ld-region').value;
+    const summary = [r.title + ': ' + r.subject, r.params.map(p => p[0] + ': ' + p[1]).join('; '),
+      r.lines.map(l => l[0] + ' ' + money(l[2])).join(', '), 'Разом орієнтовно: ' + money(r.total),
+      region ? 'Область: ' + region : '', 'Джерело: публічний калькулятор'].filter(Boolean).join('\n');
+    btn.disabled = true; btn.textContent = 'Надсилаємо…';
+    try{
+      await createRequest({
+        service: 'Розмитнення авто',
+        comment: summary,
+        car: { make: ($('cc-car-name').value || '').trim() || null, year: parseInt($('cc-year').value, 10) || null },
+        contact: { name: $('ld-name').value, phone: $('ld-phone').value }
+      });
+      $('cc-send').innerHTML = '<div class="msg show msg-ok" style="font-size:15px">Дякуємо! Заявку отримано — брокер зателефонує вам найближчим часом. ' +
+        'Тим часом можна переглянути <a href="' + (region && typeof regionSlug === 'function' && regionSlug(region) ? '/brokery/' + regionSlug(region) : '/') + '">брокерів у вашій області</a>.</div>';
+      if (typeof gtag === 'function') gtag('event', 'calculator_lead', { region });
+    }catch(e){ show(e.message, false); btn.disabled = false; btn.innerHTML = '<i class="ti ti-send"></i>Отримати безкоштовний розрахунок'; }
+  }
+
   /* ---------------- публічне API ---------------- */
   window.CustomsCalc = {
     mount(el, opts){
       st.broker = opts.broker || null;
       st.paid = !!opts.paid;
+      st.public = !!opts.public;
       el.innerHTML = markup();
       loadRates();
     },
@@ -641,7 +682,7 @@
       $('cc-hybrid-f').style.display = f === 'hybrid' ? '' : 'none';
       $('cc-eu-f').style.display = ev ? 'none' : '';
     },
-    calc, shareFile, copy, retry: preparePdf, group: onGroup, find, pick, applyRate, excUi,
+    calc, shareFile, copy, sendLead, retry: preparePdf, group: onGroup, find, pick, applyRate, excUi,
     _state: st
   };
 })();
