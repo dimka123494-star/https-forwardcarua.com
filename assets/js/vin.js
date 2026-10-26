@@ -114,23 +114,58 @@ const VinTools = (() => {
     'FRANCE':'Франція', 'ITALY':'Італія', 'SPAIN':'Іспанія', 'SLOVAKIA':'Словаччина', 'CZECH REPUBLIC':'Чехія', 'HUNGARY':'Угорщина', 'AUSTRIA':'Австрія',
     'BELGIUM':'Бельгія', 'NETHERLANDS':'Нідерланди', 'POLAND':'Польща', 'TURKEY':'Туреччина', 'BRAZIL':'Бразилія', 'SOUTH AFRICA':'ПАР', 'INDIA':'Індія' };
 
+  /* Європейські VIN: модель за кодом моделі виробника (концерн VW — 7–8 символи, Mercedes-Benz — шасі 4–6) */
+  const VAG = {
+    WVW: { '1J':'Golf IV / Bora', '1K':'Golf V / Jetta', '5K':'Golf VI', '5G':'Golf VII', 'AU':'Golf VII', 'CD':'Golf VIII', '3B':'Passat B5',
+           '3C':'Passat B6/B7', '3G':'Passat B8', '6R':'Polo V', 'AW':'Polo VI', '1T':'Touran', '5T':'Touran II', '7N':'Sharan II', '3H':'Arteon', '5C':'Beetle' },
+    WVG: { '5N':'Tiguan', 'AD':'Tiguan II', '7L':'Touareg I', '7P':'Touareg II', 'CR':'Touareg III' },
+    WV1: { '7H':'Transporter T5', '2K':'Caddy' }, WV2: { '7H':'Transporter / Multivan T5', '2K':'Caddy' },
+    WAU: { '8L':'A3 (8L)', '8P':'A3 (8P)', '8V':'A3 (8V)', '8Y':'A3 (8Y)', '8E':'A4 B6/B7', '8K':'A4 B8', '8W':'A4 B9', '8T':'A5', 'F5':'A5 II',
+           '4F':'A6 C6', '4G':'A6 / A7 (C7)', '4E':'A8 D3', '4H':'A8 D4', '8U':'Q3', 'F3':'Q3 II', '8R':'Q5', 'FY':'Q5 II', 'GE':'e-tron' },
+    WA1: { '4L':'Q7', '4M':'Q7 II / Q8', '8R':'Q5', 'FY':'Q5 II', 'GE':'e-tron' },
+    TMB: { '1Z':'Octavia II', '5E':'Octavia III', 'NX':'Octavia IV', '3U':'Superb I', '3T':'Superb II', '3V':'Superb III', '5J':'Fabia II / Roomster',
+           'NJ':'Fabia III', '5L':'Yeti', 'NS':'Kodiaq', 'NU':'Karoq' },
+    VSS: { '1P':'Leon II', '5F':'Leon III', '6J':'Ibiza IV' }
+  };
+  const MB = { '169':'A-Class', '176':'A-Class', '177':'A-Class', '245':'B-Class', '246':'B-Class', '247':'B-Class / GLB', '203':'C-Class', '204':'C-Class',
+    '205':'C-Class', '206':'C-Class', '211':'E-Class', '212':'E-Class', '213':'E-Class', '214':'E-Class', '207':'E-Class Coupé', '238':'E-Class Coupé',
+    '220':'S-Class', '221':'S-Class', '222':'S-Class', '223':'S-Class', '117':'CLA', '118':'CLA', '156':'GLA', '219':'CLS', '218':'CLS', '257':'CLS',
+    '253':'GLC', '254':'GLC', '164':'M-Class', '166':'M-Class / GLE', '167':'GLE', '292':'GLE Coupé', '463':'G-Class', '251':'R-Class',
+    '639':'Vito / Viano', '447':'Vito / V-Class', '906':'Sprinter', '907':'Sprinter', '910':'Sprinter', '293':'EQC' };
+
+  function euModel(v){
+    const w = v.slice(0, 3);
+    if (VAG[w]) return VAG[w][v.slice(6, 8)] || '';
+    if (/^(WDD|WDB|WDC|W1K|W1N|WDF|W1V)$/.test(w)) return MB[v.slice(3, 6)] || '';
+    return '';
+  }
+
   async function decode(raw){
     const v = normalize(raw);
     if (!valid(v)) throw new Error('VIN має містити 17 символів: латинські літери (крім I, O, Q) і цифри');
-    const res = { vin: v, make: make(v), model: '', year: modelYear(v), cc: null, fuel: '', body: '', country: country(v),
-                  market: isNA(v) ? 'na' : 'other', checkOk: null, source: 'WMI' };
-    if (isNA(v)) res.checkOk = checkDigit(v) === v[8];
+    const na = isNA(v);
+    const res = { vin: v, make: make(v), model: na ? '' : euModel(v), year: modelYear(v), cc: null, fuel: '', body: '', country: country(v),
+                  market: na ? 'na' : 'other', checkOk: null, source: 'WMI', modelGuess: !na && !!euModel(v) };
+    // Для європейських VIN 10-й символ рік кодує не завжди (напр., у BMW — «0»): «0», «Z» і т.п. означають «невідомо»
+    // Рік у 10-му символі надійно кодують лише частина виробників для Європи (концерн VW, Volvo, корейці, японці, Tesla)
+    const YEAR_OK = /^(WVW|WVG|WV1|WV2|WAU|WA1|WUA|TRU|TMB|VSS|YV1|YV4|KMH|KNA|KND|KM8|U5Y|TMA|XP7|LRW|J)/;
+    if (!na && (!YEAR_OK.test(v) || !/[A-HJ-NPR-TV-Y1-9]/.test(v[9]))) res.year = null;
+    if (na) res.checkOk = checkDigit(v) === v[8];
     const n = await nhtsa(v);
     if (n){
       if (n.make && !res.make) res.make = n.make;
-      if (n.model) res.model = n.model;
-      if (n.year && isNA(v)) res.year = n.year;
-      if (n.cc) res.cc = n.cc;
-      if (n.fuel) res.fuel = n.fuel;
-      if (n.body) res.body = n.body;
-      if (n.plant && PLANT[n.plant.toUpperCase()]) res.country = PLANT[n.plant.toUpperCase()];
-      if (n.make || n.model) res.source = 'NHTSA';
+      // База NHTSA надійна лише для авто ринку США/Канади; для європейських VIN вона вгадує завод і рік — не беремо
+      if (na){
+        if (n.model) res.model = n.model;
+        if (n.year) res.year = n.year;
+        if (n.cc) res.cc = n.cc;
+        if (n.fuel) res.fuel = n.fuel;
+        if (n.body) res.body = n.body;
+        if (n.plant && PLANT[n.plant.toUpperCase()]) res.country = PLANT[n.plant.toUpperCase()];
+        if (n.make || n.model) res.source = 'NHTSA';
+      }
     }
+    res.missing = ['model', 'year', 'cc', 'fuel'].filter(k => !res[k]);
     return res;
   }
 

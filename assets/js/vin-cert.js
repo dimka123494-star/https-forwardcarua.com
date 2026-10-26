@@ -30,12 +30,13 @@ const VinCert = (() => {
       '</div>' +
       '<div class="card" id="vc-form" style="display:none;margin-bottom:16px">' +
         '<div class="card-title">Дані авто <span class="text-xs text-muted" id="vc-src" style="text-transform:none;letter-spacing:0"></span></div>' +
+        '<div id="vc-gap" style="margin:-4px 0 12px"></div>' +
         '<div class="field-row"><div class="field"><label class="label" for="vc-make">Марка</label><input class="input" id="vc-make"></div>' +
-          '<div class="field"><label class="label" for="vc-model">Модель</label><input class="input" id="vc-model"></div></div>' +
-        '<div class="field-row"><div class="field"><label class="label" for="vc-year">Рік випуску (модельний)</label><input class="input" type="number" id="vc-year" min="1950" max="2100" oninput="VinCert.estimate()"></div>' +
+          '<div class="field"><label class="label" for="vc-model">Модель</label><input class="input" id="vc-model" oninput="this.style.borderColor=\'\'"></div></div>' +
+        '<div class="field-row"><div class="field"><label class="label" for="vc-year">Рік випуску (модельний)</label><input class="input" type="number" id="vc-year" min="1950" max="2100" oninput="this.style.borderColor=\'\';VinCert.estimate()"></div>' +
           '<div class="field"><label class="label" for="vc-reg">Дата першої реєстрації</label><input class="input" type="text" id="vc-reg" inputmode="numeric" maxlength="10" placeholder="ДД.ММ.РРРР" autocomplete="off" oninput="VinCert.regInput(this)"><div class="hint" id="vc-reg-hint">З техпаспорта (поле B), напр. 15.03.2016. Необовʼязково — робить оцінку класу точнішою.</div></div></div>' +
-        '<div class="field-row"><div class="field"><label class="label" for="vc-fuel">Тип пального</label><select class="input" id="vc-fuel" onchange="VinCert.estimate()"><option value="">—</option>' + opt(FUEL) + '</select></div>' +
-          '<div class="field"><label class="label" for="vc-cc">Обʼєм двигуна, см³</label><input class="input" type="number" id="vc-cc" min="0"></div></div>' +
+        '<div class="field-row"><div class="field"><label class="label" for="vc-fuel">Тип пального</label><select class="input" id="vc-fuel" onchange="this.style.borderColor=\'\';VinCert.estimate()"><option value="">—</option>' + opt(FUEL) + '</select></div>' +
+          '<div class="field"><label class="label" for="vc-cc">Обʼєм двигуна, см³</label><input class="input" type="number" id="vc-cc" min="0" oninput="this.style.borderColor=\'\'"></div></div>' +
         '<div class="field-row"><div class="field"><label class="label" for="vc-cat">Категорія</label><select class="input" id="vc-cat" onchange="VinCert.estimate()">' + opt(CAT, 'M1') + '</select></div>' +
           '<div class="field"><label class="label" for="vc-cm">Країна виробництва (за VIN)</label><input class="input" id="vc-cm"></div></div>' +
         '<div class="field"><label class="label" for="vc-co">Країна походження</label><input class="input" id="vc-co">' +
@@ -96,7 +97,21 @@ const VinCert = (() => {
       $('vc-make').value = d.make || ''; $('vc-model').value = d.model || ''; $('vc-year').value = d.year || '';
       $('vc-fuel').value = d.fuel || ''; $('vc-cc').value = d.cc || ''; $('vc-cm').value = d.country || ''; $('vc-co').value = d.country || '';
       $('vc-reg').value = ''; $('vc-basis').value = 'estimate';
-      $('vc-src').textContent = d.source === 'NHTSA' ? '· дані з бази NHTSA та WMI' : '· за структурою VIN (WMI) — модель і двигун уточніть вручну';
+      $('vc-src').textContent = d.source === 'NHTSA' ? '· дані з бази NHTSA (США) та структури VIN' : '· за структурою VIN';
+      // Підсвічуємо поля, які треба внести з техпаспорта
+      const F = { model: 'vc-model', year: 'vc-year', cc: 'vc-cc', fuel: 'vc-fuel' };
+      Object.values(F).forEach(id => $(id).style.borderColor = '');
+      (d.missing || []).forEach(k => $(F[k]).style.borderColor = 'var(--amber)');
+      if (d.modelGuess) $('vc-model').title = 'Визначено за кодом моделі у VIN — перевірте';
+      const names = { model: 'модель', year: 'рік випуску', cc: 'обʼєм двигуна', fuel: 'тип пального' };
+      const miss = (d.missing || []).map(k => names[k]);
+      $('vc-gap').innerHTML = miss.length
+        ? '<div class="msg show" style="background:rgba(245,166,35,.12);color:var(--amber);border:.5px solid rgba(245,166,35,.35)">' +
+          (d.market === 'na' ? 'База NHTSA не має повних даних про це авто. ' :
+            'Це VIN європейського ринку: безкоштовні бази розшифровують у ньому лише марку, країну' + (d.year ? ', рік' : '') + (d.model ? ' і модель' : '') + '. ') +
+          'Внесіть з техпаспорта: <b>' + miss.join(', ') + '</b> (поля підсвічено).' + (d.modelGuess ? ' Модель визначено за кодом у VIN — перевірте.' : '') + '</div>'
+        : '';
+      if (miss.length) setTimeout(() => $(F[d.missing[0]]).focus(), 50);
       $('vc-form').style.display = ''; $('vc-send').innerHTML = '';
       if (d.checkOk === false) msg('Увага: контрольна цифра VIN не збігається. Перевірте, чи правильно введено номер.');
       estimate();
