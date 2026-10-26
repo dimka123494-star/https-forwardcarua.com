@@ -98,6 +98,15 @@ function initials(n){
   if (w.length === 1) return (w[0].match(/[\p{L}\p{N}]/gu) || ['?']).slice(0, 2).join('').toUpperCase();
   return w.map(x => x.match(/[\p{L}\p{N}]/u)[0]).join('').slice(0, 2).toUpperCase();
 }
+/** Вміст аватарки: логотип (платні тарифи) або ініціали */
+function avatarInner(b){
+  const paid = b && b.plan && b.plan !== 'free' && (!b.plan_expires_at || new Date(b.plan_expires_at) > new Date());
+  if (paid && b.logo_url) return '<img src="' + esc(b.logo_url) + '" alt="' + esc(b.name || '') + '" loading="lazy">';
+  return esc(initials(b && b.name));
+}
+/** Безпечне посилання на сайт брокера */
+function siteHref(u){ u = String(u || '').trim(); return /^https?:\/\//i.test(u) ? u : (u ? 'https://' + u : ''); }
+function siteLabel(u){ return String(u || '').replace(/^https?:\/\//i, '').replace(/^www\./i, '').replace(/\/$/, ''); }
 function planLabel(p){ return (PLANS[p] || PLANS.free).label; }
 function planEmoji(p){ return (PLANS[p] || PLANS.free).emoji; }
 function regionSlug(region){ const i = REGIONS.indexOf(region); return i < 0 ? null : SLUGS[i]; }

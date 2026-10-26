@@ -144,6 +144,7 @@ function render(){
     broker.whatsapp && ['ti-brand-whatsapp', waHref(broker.whatsapp), broker.whatsapp],
     broker.viber    && ['ti-brand-viber', 'viber://chat?number=' + encodeURIComponent(broker.viber), broker.viber],
     broker.instagram&& ['ti-brand-instagram', 'https://instagram.com/' + String(broker.instagram).replace(/^@/,''), broker.instagram],
+    broker.website  && ['ti-world', siteHref(broker.website), siteLabel(broker.website)],
     broker.facebook && ['ti-brand-facebook', String(broker.facebook).startsWith('http') ? broker.facebook : 'https://' + broker.facebook, broker.facebook]
   ].filter(Boolean);
 
@@ -152,7 +153,7 @@ function render(){
 
     '<div class="card" style="margin-bottom:16px">' +
       '<div class="b-hero">' +
-        '<div class="avatar avatar-lg av-' + esc(plan) + '">' + esc(initials(broker.name)) + '</div>' +
+        '<div class="avatar avatar-lg av-' + esc(plan) + '">' + avatarInner(broker) + '</div>' +
         '<div>' +
           '<h1 class="b-name">' + esc(broker.name) +
             '<span class="badge badge-' + esc(plan) + '">' + planEmoji(plan) + ' ' + planLabel(plan) + '</span>' +
@@ -183,7 +184,7 @@ function render(){
       '</div>' +
       '<div class="card"><div class="card-title">Контакти</div>' +
         (contacts.length
-          ? contacts.map(c => '<a class="contact-line" href="' + c[1] + '" target="_blank" rel="noopener">' +
+          ? contacts.map(c => '<a class="contact-line" href="' + esc(c[1]) + '" target="_blank" rel="noopener">' +
               '<i class="ti ' + c[0] + '"></i><span>' + esc(c[2]) + '</span></a>').join('')
           : '<p class="text-sm text-muted">Контакти доступні після заявки.</p>') +
       '</div>' +
@@ -330,6 +331,8 @@ function addSchema(){
     address: { '@type':'PostalAddress', addressLocality: broker.city || '', addressCountry:'UA' }
   };
   if (broker.phone) data.telephone = broker.phone;
+  if (broker.website) data.sameAs = [siteHref(broker.website)];
+  if (planActive(broker) && broker.logo_url){ data.logo = broker.logo_url; data.image = broker.logo_url; }
   if (s.total > 0) data.aggregateRating = {
     '@type':'AggregateRating', ratingValue: s.avg.toFixed(1), reviewCount: s.total, bestRating:5, worstRating:1
   };

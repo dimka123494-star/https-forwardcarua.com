@@ -106,7 +106,7 @@ function authMessage(m){
 
 /* ================= КАТАЛОГ ================= */
 
-const BROKER_FIELDS = 'id, name, city, region, plan, plan_expires_at, rating_avg, rating_count, experience, is_verified, views_count, about, phone, telegram, whatsapp, viber, instagram, facebook, tiktok, youtube, created_at, card_color, card_theme, card_tagline';
+const BROKER_FIELDS = 'id, name, city, region, plan, plan_expires_at, rating_avg, rating_count, experience, is_verified, views_count, about, phone, telegram, whatsapp, viber, instagram, facebook, tiktok, youtube, created_at, card_color, card_theme, card_tagline, website, logo_url';
 
 async function listBrokers({ region = '', city = '', service = '', search = '', sort = 'plan', verifiedOnly = false } = {}){
   const sb = await sbReady();
@@ -339,6 +339,41 @@ async function createBrokerProfile(fields){
   return data;
 }
 
+/** Логотип брокера (платні тарифи): стискаємо до 512px WebP і кладемо в Storage */
+async function uploadMyLogo(file){
+  if (!file) throw new Error('Оберіть файл');
+  if (!/^image\/(png|jpeg|webp)$/.test(file.type)) throw new Error('Підходять PNG, JPG або WebP');
+  if (file.size > 8 * 1024 * 1024) throw new Error('Файл завеликий — до 8 МБ');
+  const sb = await sbReady();
+  const user = await currentUser();
+  if (!user) throw new Error('Сесія завершилась — увійдіть знову');
+  const img = await new Promise((ok, bad) => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => bad(new Error('Не вдалося прочитати зображення')); i.src = URL.createObjectURL(file); });
+  const k = Math.min(1, 512 / Math.max(img.width, img.height));
+  const c = document.createElement('canvas'); c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+  c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+  const blob = await new Promise(r => c.toBlob(r, 'image/webp', .9)) || await new Promise(r => c.toBlob(r, 'image/png'));
+  const path = user.id + '/logo-' + Date.now() + (blob.type === 'image/webp' ? '.webp' : '.png');
+  const up = await sb.storage.from('logos').upload(path, blob, { contentType: blob.type, upsert: false });
+  if (up.error){ console.error('uploadMyLogo:', up.error); throw new Error('Не вдалося завантажити логотип'); }
+  const url = sb.storage.from('logos').getPublicUrl(path).data.publicUrl;
+  const { error } = await sb.from('brokers').update({ logo_url: url }).eq('user_id', user.id);
+  if (error) throw new Error('Логотип завантажено, але не збережено в профілі');
+  // прибираємо попередні файли
+  const { data: old } = await sb.storage.from('logos').list(user.id);
+  const stale = (old || []).map(f => user.id + '/' + f.name).filter(p => p !== path);
+  if (stale.length) await sb.storage.from('logos').remove(stale);
+  return url;
+}
+async function removeMyLogo(){
+  const sb = await sbReady();
+  const user = await currentUser();
+  if (!user) throw new Error('Сесія завершилась — увійдіть знову');
+  const { error } = await sb.from('brokers').update({ logo_url: null }).eq('user_id', user.id);
+  if (error) throw new Error('Не вдалося прибрати логотип');
+  const { data: old } = await sb.storage.from('logos').list(user.id);
+  if (old && old.length) await sb.storage.from('logos').remove(old.map(f => user.id + '/' + f.name));
+}
+
 /** Оформлення електронної візитівки (платні тарифи; на безкоштовному тригер у базі ігнорує зміни). */
 async function updateMyCard({ color, theme, tagline }){
   const sb = await sbReady();
@@ -359,7 +394,13 @@ async function updateMyBroker(updates){
   const user = await currentUser();
   if (!user) throw new Error('Сесія завершилась — увійдіть знову');
   const allowed = ['name','city','region','about','experience','phone','telegram',
-                   'whatsapp','viber','instagram','facebook','tiktok','youtube'];
+                   'whatsapp','viber','instagram','facebook','tiktok','youtube','website'];
+  if ('website' in updates && updates.website){
+    let w = String(updates.website).trim();
+    if (!/^https?:\/\//i.test(w)) w = 'https://' + w;
+    if (!/^https?:\/\/[^\s/]+\.[^\s]+$/i.test(w) || w.length > 200) throw new Error('Перевірте адресу сайту — наприклад, https://mybroker.com.ua');
+    updates.website = w;
+  }
   const patch = {};
   allowed.forEach(k => { if (k in updates) patch[k] = updates[k] || null; });
   if (!patch.name || patch.name.trim().length < 2) throw new Error('Вкажіть ім\'я або назву компанії');

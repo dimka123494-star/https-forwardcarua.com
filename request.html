@@ -149,7 +149,7 @@ function render(){
       (topBrokers.length
         ? topBrokers.map(b =>
             '<div class="bcard ' + (data.brokerId === b.id ? 'on' : '') + '" onclick="pickBroker(\'' + b.id + '\')">' +
-            '<div class="avatar avatar-sm av-' + esc(b.plan || 'free') + '">' + esc(initials(b.name)) + '</div>' +
+            '<div class="avatar avatar-sm av-' + esc(b.plan || 'free') + '">' + avatarInner(b) + '</div>' +
             '<div style="flex:1"><div style="font-size:14px;font-weight:500">' + esc(b.name) + '</div>' +
             '<div class="text-xs text-muted">' + esc([b.city, b.region].filter(Boolean).join(', ')) +
             (b.rating_avg ? ' · ★ ' + Number(b.rating_avg).toFixed(1) : '') + '</div></div></div>').join('')

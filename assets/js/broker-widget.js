@@ -6,7 +6,7 @@
     const svcs = (b.broker_services || []).slice(0, 3).map(s => '<span class="tag">' + esc(s.name) + '</span>').join('');
     const rating = Number(b.rating_avg) || 0;
     return '<div class="card" style="display:flex;flex-direction:column;gap:.6rem">' +
-      '<div style="display:flex;gap:10px;align-items:center"><div class="avatar av-' + esc(b.plan || 'free') + '" style="width:40px;height:40px;font-size:15px">' + esc(initials(b.name)) + '</div>' +
+      '<div style="display:flex;gap:10px;align-items:center"><div class="avatar av-' + esc(b.plan || 'free') + '" style="width:40px;height:40px;font-size:15px">' + avatarInner(b) + '</div>' +
       '<div style="min-width:0"><div style="font-weight:600">' + esc(b.name) + '</div>' +
       '<div class="text-xs text-muted">' + esc([b.city, b.region].filter(Boolean).join(', ') || 'Україна') +
       (rating ? ' · ★ ' + rating.toFixed(1) : '') + '</div></div></div>' +

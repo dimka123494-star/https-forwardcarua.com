@@ -38,6 +38,7 @@ const BizCard = (() => {
     if (b.whatsapp && digits(b.whatsapp) !== digits(b.phone)) L.push('TEL;TYPE=CELL:' + digits(b.whatsapp));
     if (b.viber && digits(b.viber) !== digits(b.phone) && digits(b.viber) !== digits(b.whatsapp)) L.push('TEL;TYPE=CELL:' + digits(b.viber));
     if (b.city || b.region) L.push('ADR;TYPE=WORK:;;;' + vcfEsc(b.city) + ';' + vcfEsc(b.region) + ';;Україна');
+    if (b.website) L.push('URL;TYPE=WORK:' + siteHref(b.website));
     L.push('URL:' + url(b.id));
     if (b.telegram) L.push('X-SOCIALPROFILE;TYPE=telegram:' + tgHref(b.telegram));
     if (b.instagram) L.push('X-SOCIALPROFILE;TYPE=instagram:https://instagram.com/' + String(b.instagram).replace(/^@/, ''));

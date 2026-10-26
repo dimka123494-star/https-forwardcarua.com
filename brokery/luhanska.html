@@ -374,7 +374,7 @@ function renderBrokers(){
     const rating = Number(b.rating_avg) || 0;
     return '<article class="bcard ' + (plan === 'premium' ? 'is-premium' : plan === 'pro' ? 'is-pro' : '') + '">' +
       '<div class="bcard-top">' +
-        '<div class="avatar av-' + esc(plan) + '">' + esc(initials(b.name)) + '</div>' +
+        '<div class="avatar av-' + esc(plan) + '">' + avatarInner(b) + '</div>' +
         '<div style="flex:1;min-width:0">' +
           '<div class="bcard-name">' + esc(b.name) +
             (b.is_verified ? '<i class="ti ti-rosette-discount-check" style="color:var(--green);font-size:15px" title="Контакти перевірено"></i>' : '') +
