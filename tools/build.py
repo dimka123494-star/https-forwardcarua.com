@@ -115,6 +115,20 @@ SERVICES_CARDS = [
     ('ti-packages', 'Митне оформлення вантажів', 'Імпорт і експорт товарів для бізнесу та ФОП.'),
 ]
 
+REGION_SLUG = {x['name']: x['slug'] for x in REGIONS}
+REG_LOC = json.load(open(os.path.join(ROOT, 'tools', 'data', 'registry_loc.json'), encoding='utf-8'))
+def _reg_by_region(name):
+    raw = json.load(open(os.path.join(ROOT, 'tools', 'data', 'registry.json'), encoding='utf-8'))
+    out = []
+    for c, n, a, d in raw:
+        city, reg = REG_LOC.get(c, ['', ''])
+        if reg == name:
+            nm = n.replace('I', 'І').replace('"', '')
+            for full, short in [('ТОВАРИСТВО З ОБМЕЖЕНОЮ ВІДПОВІДАЛЬНІСТЮ', 'ТОВ'), ('ТОВАРИСТВО З ДОДАТКОВОЮ ВІДПОВІДАЛЬНІСТЮ', 'ТДВ'), ('ПРИВАТНЕ ПІДПРИЄМСТВО', 'ПП')]:
+                if nm.startswith(full): nm = '%s «%s»' % (short, nm[len(full):].strip()); break
+            out.append((c, nm, city))
+    return out
+
 def region_page(r):
     slug, loc, gen, name = r['slug'], r['loc'], r['gen'], r['name']
     city0 = 'Київ' if slug == 'kyiv' else r['cities'][0]
@@ -176,7 +190,11 @@ def region_page(r):
         '<li>Брокер зателефонує, назве вартість і перелік документів.</li></ol>'
         '<p>Перед співпрацею корисно прочитати, <a href="/statti/yak-obraty-mytnoho-brokera/">як обрати митного брокера</a> '
         'і <a href="/statti/vartist-posluh-mytnoho-brokera/">з чого складається вартість розмитнення</a>.</p></div>'
-        '<div class="row" style="margin:1.25rem 0 2rem"><a class="btn btn-primary" href="/zayavka"><i class="ti ti-send"></i>Залишити заявку</a></div>'
+        '<div class="row" style="margin:1.25rem 0 2rem"><a class="btn btn-primary" href="/zayavka"><i class="ti ti-send"></i>Залишити заявку</a></div>' +
+        (lambda lst: ('<h3>Митні брокери %s з реєстру Держмитслужби</h3><p class="text-sm text-muted" style="max-width:820px">Компанії з чинною авторизацією на митну брокерську діяльність. '
+            'Профілі ще не підтверджені — щоб отримати розрахунок, залиште заявку, і ми передамо її брокеру.</p>'
+            '<div class="region-links" style="margin-bottom:1.5rem">' % gen +
+            ''.join('<a href="/kompaniya/%s">%s%s</a>' % (c, E(nm), (' · ' + E(city)) if city else '') for c, nm, city in lst) + '</div>') if lst else '')(_reg_by_region(name)) +
         '<h3>Часті запитання</h3><div style="max-width:820px">' + faq_html(faq) + '</div>'
         '<div class="cta-band"><h3>Ви митний брокер %s?</h3>'
         '<p>Розмістіть профіль безкоштовно і отримуйте заявки від клієнтів свого регіону. Поки брокерів %s у каталозі небагато — '
@@ -451,7 +469,9 @@ def company_page(r):
             '<p class="lead">Митний брокер з авторизацією Держмитслужби. Профіль створено автоматично на основі відкритого реєстру — компанія ще не підтвердила його.</p>'
             '<div class="card" style="margin-top:1.5rem"><table style="width:100%;font-size:14px">'
             '<tr><td class="text-muted" style="padding:8px 0;width:45%">Повна назва</td><td>' + E(r['raw'].replace('I', 'І')) + '</td></tr>'
-            '<tr><td class="text-muted" style="padding:8px 0">Код ЄДРПОУ</td><td>' + r['code'] + '</td></tr>'
+            '<tr><td class="text-muted" style="padding:8px 0">Код ЄДРПОУ</td><td>' + r['code'] + '</td></tr>' +
+            (lambda l: ('<tr><td class="text-muted" style="padding:8px 0">Місцезнаходження</td><td>' + E(', '.join(x for x in [l[0], (l[1] + ' обл.') if l[1] and l[1] != 'м. Київ' else ''] if x)) +
+                        ((' · <a href="/brokery/' + REGION_SLUG[l[1]] + '">брокери регіону</a>') if l[1] in REGION_SLUG else '') + '</td></tr>') if l[1] else '')(REG_LOC.get(r['code'], ['', ''])) +
             '<tr><td class="text-muted" style="padding:8px 0">Авторизація</td><td>Провадження митної брокерської діяльності, № ' + E(r['auth']) + '</td></tr>'
             '<tr><td class="text-muted" style="padding:8px 0">Діє з</td><td>' + E(r['date']) + '</td></tr>'
             '<tr><td class="text-muted" style="padding:8px 0">Джерело</td><td><a href="https://cabinet.customs.gov.ua/cdspubliclist" target="_blank" rel="noopener nofollow">Реєстр авторизацій Держмитслужби</a></td></tr>'
