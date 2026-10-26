@@ -106,6 +106,12 @@ def page(path, title, desc, body, ld_graph, active=None, scripts=''):
 # ---------------------------------------------------------------- головна
 index = SRC.replace('<!--REGION-SEO-->', '').replace('<!--REGIONS-LINKS-->', region_links())
 write('index.html', index)
+# Тарифи — окремий статичний файл з власним canonical/title (інакше Google бачить canonical на головну)
+taryfy = (index.replace('<link rel="canonical" href="https://forwardcarua.com/">', '<link rel="canonical" href="https://forwardcarua.com/taryfy">')
+               .replace(index[index.index('<title>'):index.index('</title>') + 8], '<title>Тарифи для митних брокерів — розміщення в каталозі | МитнийБрокер</title>')
+               .replace('<meta property="og:url" content="https://forwardcarua.com/">', '<meta property="og:url" content="https://forwardcarua.com/taryfy">'))
+taryfy = re.sub(r'<meta name="description" content="[^"]*">', '<meta name="description" content="Тарифи розміщення профілю митного брокера: безкоштовний план, Стандарт 299 грн, Про 599 грн, Преміум 999 грн на місяць. Без комісії з угод.">', taryfy, count=1)
+write('taryfy.html', taryfy)
 
 # ---------------------------------------------------------------- області
 SERVICES_CARDS = [
