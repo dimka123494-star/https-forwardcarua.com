@@ -90,7 +90,13 @@ function esc(v){
     ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 function initials(n){
-  return (n || '?').trim().split(/\s+/).map(w => w[0]).join('').slice(0,2).toUpperCase();
+  // «ТОВ "Митний Партнер"» → «МП»: пропускаємо організаційно-правову форму та лапки
+  const FORMS = /^(тов|пп|фоп|прат|пат|ат|дп|кп|тдв|ltd|llc)$/i;
+  const w = String(n || '').replace(/[«»"'„“”()]/g, ' ').trim().split(/\s+/)
+    .filter(x => x && /\p{L}|\p{N}/u.test(x) && !FORMS.test(x.replace(/\./g, '')));
+  if (!w.length) return '?';
+  if (w.length === 1) return (w[0].match(/[\p{L}\p{N}]/gu) || ['?']).slice(0, 2).join('').toUpperCase();
+  return w.map(x => x.match(/[\p{L}\p{N}]/u)[0]).join('').slice(0, 2).toUpperCase();
 }
 function planLabel(p){ return (PLANS[p] || PLANS.free).label; }
 function planEmoji(p){ return (PLANS[p] || PLANS.free).emoji; }

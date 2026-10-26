@@ -169,6 +169,7 @@ function render(){
           '<a class="btn btn-primary" href="/zayavka?broker=' + esc(broker.id) + '"><i class="ti ti-message-2"></i> Залишити заявку</a>' +
           (broker.phone ? '<a class="btn btn-ghost" href="' + telHref(broker.phone) + '" onclick="track(\'contact_click\',{type:\'phone\'})"><i class="ti ti-phone"></i> Подзвонити</a>' : '') +
           (broker.telegram ? '<a class="btn btn-ghost" href="' + tgHref(broker.telegram) + '" target="_blank" rel="noopener" onclick="track(\'contact_click\',{type:\'telegram\'})"><i class="ti ti-brand-telegram"></i> Telegram</a>' : '') +
+          (planActive(broker) ? '<a class="btn btn-ghost" href="/v/' + esc(broker.id) + '"><i class="ti ti-id-badge-2"></i> Візитівка</a>' : '') +
         '</div>' +
       '</div>' +
     '</div>' +

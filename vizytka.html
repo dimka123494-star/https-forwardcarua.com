@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Візитівка митного брокера — МитнийБрокер</title>
+<meta name="description" content="Електронна візитівка митного брокера: контакти, послуги, ціни.">
+<meta name="robots" content="noindex, follow">
+<meta property="og:type" content="profile">
+<meta property="og:site_name" content="МитнийБрокер">
+<meta property="og:title" content="Візитівка митного брокера">
+<meta property="og:description" content="Контакти, послуги та ціни. Збережіть контакт в один дотик.">
+<meta property="og:image" content="https://forwardcarua.com/og.png">
+<meta name="theme-color" content="#0a0f0d">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.7.0/dist/tabler-icons.min.css">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<script async src="https://www.googletagmanager.com/gtag/js?id=AW-18171698074"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','AW-18171698074');</script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--acc:#10B981;--on:#fff;--bg:#0a0f0d;--card:#111815;--soft:#18211d;--line:rgba(255,255,255,.08);--text:#f0f1f5;--muted:rgba(240,241,245,.55)}
+body.light{--bg:#eef2f0;--card:#ffffff;--soft:#f3f6f4;--line:rgba(0,0,0,.08);--text:#0f1713;--muted:rgba(15,23,19,.55)}
+html,body{min-height:100%}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);line-height:1.5;
+  padding:24px 16px calc(32px + env(safe-area-inset-bottom))}
+a{color:inherit;text-decoration:none}
+.wrap{width:100%;max-width:440px;margin:0 auto}
+#app-toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);max-width:90vw;background:#111;color:#fff;padding:10px 16px;border-radius:12px;font-size:14px;opacity:0;pointer-events:none;transition:opacity .2s}
+#app-toast.show{opacity:1}
+.card{background:var(--card);border:1px solid var(--line);border-radius:24px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.25)}
+.top{position:relative;padding:28px 24px 22px;background:
+  radial-gradient(120% 90% at 100% 0%, color-mix(in srgb, var(--acc) 55%, transparent) 0%, transparent 60%),
+  linear-gradient(160deg, color-mix(in srgb, var(--acc) 28%, var(--card)) 0%, var(--card) 85%)}
+.av{width:84px;height:84px;border-radius:50%;background:var(--acc);color:var(--on);display:grid;place-items:center;
+  font-family:'Syne',sans-serif;font-weight:800;font-size:30px;border:4px solid var(--card);box-shadow:0 8px 24px color-mix(in srgb, var(--acc) 40%, transparent)}
+.name{font-family:'Syne',sans-serif;font-weight:800;font-size:25px;line-height:1.15;margin-top:16px;overflow-wrap:anywhere}
+.tag{color:var(--muted);font-size:15px;margin-top:6px}
+.meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.pill{display:inline-flex;align-items:center;gap:5px;font-size:12.5px;padding:5px 10px;border-radius:999px;background:var(--soft);border:1px solid var(--line)}
+.pill i{font-size:14px;color:var(--acc)}
+.body{padding:20px 24px 24px}
+.main-btns{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.btn{display:flex;align-items:center;justify-content:center;gap:8px;min-height:50px;padding:12px 14px;border-radius:14px;
+  font-weight:600;font-size:15px;border:1px solid var(--line);background:var(--soft);color:var(--text);cursor:pointer;font-family:inherit;transition:transform .12s}
+.btn:active{transform:scale(.98)}
+.btn i{font-size:20px}
+.btn.acc{background:var(--acc);color:var(--on);border-color:transparent}
+.btn.wide{grid-column:1/-1}
+.icons{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px;justify-content:center}
+.ic{width:48px;height:48px;border-radius:14px;display:grid;place-items:center;background:var(--soft);border:1px solid var(--line);font-size:22px;color:var(--acc)}
+.sec{margin-top:22px}
+.sec h2{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:8px}
+.about{font-size:14.5px;color:var(--text);opacity:.85;white-space:pre-line}
+.svc{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--line);font-size:14.5px}
+.svc:last-child{border:none}
+.svc b{font-weight:600;color:var(--acc);white-space:nowrap}
+.qr-box{display:flex;gap:16px;align-items:center;background:var(--soft);border:1px solid var(--line);border-radius:16px;padding:14px}
+.qr{width:108px;height:108px;flex:none;border-radius:10px;overflow:hidden;background:#fff}
+.qr svg{width:100%;height:100%;display:block}
+.qr-box p{font-size:13.5px;color:var(--muted)}
+.foot{text-align:center;margin-top:18px;font-size:12.5px;color:var(--muted)}
+.foot a{color:var(--acc)}
+.ribbon{position:fixed;top:0;left:0;right:0;text-align:center;font-size:12px;padding:5px;background:#F5A623;color:#1a1300;font-weight:600;z-index:5}
+.empty{padding:60px 24px;text-align:center;color:var(--muted)}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#111;color:#fff;padding:10px 16px;border-radius:12px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none}
+.toast.on{opacity:1}
+@media print{body{background:#fff}.btn,.icons,.ribbon{display:none}.card{box-shadow:none}}
+</style>
+</head>
+<body>
+<div class="wrap" id="root"><div class="card"><div class="empty">Завантаження…</div></div></div>
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+<script src="/assets/js/config.js"></script>
+<script src="/assets/js/db.js"></script>
+<script src="/assets/js/bizcard.js"></script>
+<script>
+const qs = new URLSearchParams(location.search);
+const PREVIEW = qs.get('preview') === '1';
+let B = null;
+
+function idFromUrl(){
+  const p = location.pathname.split('/').filter(Boolean);
+  const i = p.indexOf('v');
+  return (i >= 0 && p[i + 1]) || qs.get('id');
+}
+function toast(t){ const el = document.getElementById('toast'); el.textContent = t; el.classList.add('on'); setTimeout(() => el.classList.remove('on'), 1800); }
+function hrefOf(v){ v = String(v || ''); return v.startsWith('http') ? v : 'https://' + v.replace(/^\/+/, ''); }
+function handle(v, base){ return base + String(v || '').replace(/^@/, '').replace(/^https?:\/\/[^/]+\//, ''); }
+
+function applyLook(){
+  const c = PREVIEW && /^#[0-9a-fA-F]{6}$/.test(qs.get('c') || '') ? qs.get('c') : BizCard.color(B);
+  const theme = PREVIEW && qs.get('t') ? qs.get('t') : (B.card_theme || 'dark');
+  document.documentElement.style.setProperty('--acc', c);
+  document.documentElement.style.setProperty('--on', BizCard.onColor(c));
+  document.body.classList.toggle('light', theme === 'light');
+  document.querySelector('meta[name=theme-color]').content = theme === 'light' ? '#eef2f0' : '#0a0f0d';
+}
+
+function render(){
+  const b = B;
+  const tagline = (PREVIEW && qs.has('tg') ? qs.get('tg') : b.card_tagline) ||
+    ('Митний брокер' + (b.city ? ' · ' + b.city : ''));
+  const svcs = (b.broker_services || []).slice(0, 12);
+  const rating = Number(b.rating_avg || 0), rc = Number(b.rating_count || 0);
+  const place = [b.city, b.region].filter(Boolean).join(', ');
+
+  const icons = [
+    b.viber && ['ti-brand-viber', 'viber://chat?number=' + encodeURIComponent(String(b.viber).replace(/[^\d+]/g, '')), 'Viber'],
+    b.whatsapp && ['ti-brand-whatsapp', waHref(b.whatsapp), 'WhatsApp'],
+    b.instagram && ['ti-brand-instagram', handle(b.instagram, 'https://instagram.com/'), 'Instagram'],
+    b.facebook && ['ti-brand-facebook', hrefOf(b.facebook), 'Facebook'],
+    b.tiktok && ['ti-brand-tiktok', handle(b.tiktok, 'https://www.tiktok.com/@'), 'TikTok'],
+    b.youtube && ['ti-brand-youtube', hrefOf(b.youtube), 'YouTube']
+  ].filter(Boolean);
+
+  document.getElementById('root').innerHTML =
+    (PREVIEW ? '<div class="ribbon">Попередній перегляд' + (BizCard.paid(b) ? '' : ' — візитівка доступна на платних тарифах') + '</div>' : '') +
+    '<div class="card">' +
+      '<div class="top">' +
+        '<div class="av">' + esc(initials(b.name)) + '</div>' +
+        '<h1 class="name">' + esc(b.name) + '</h1>' +
+        '<div class="tag">' + esc(tagline) + '</div>' +
+        '<div class="meta">' +
+          (place ? '<span class="pill"><i class="ti ti-map-pin"></i>' + esc(place) + '</span>' : '') +
+          (b.experience ? '<span class="pill"><i class="ti ti-briefcase"></i>Досвід ' + esc(b.experience) + ' р.</span>' : '') +
+          (rc ? '<span class="pill"><i class="ti ti-star-filled"></i>' + rating.toFixed(1) + ' · ' + rc + ' ' + plural(rc, 'відгук', 'відгуки', 'відгуків') + '</span>' : '') +
+          (b.is_verified ? '<span class="pill"><i class="ti ti-rosette-discount-check"></i>Контакти перевірено</span>' : '') +
+        '</div>' +
+      '</div>' +
+      '<div class="body">' +
+        '<div class="main-btns">' +
+          (b.phone ? '<a class="btn acc" href="' + telHref(b.phone) + '" onclick="ev(\'phone\')"><i class="ti ti-phone"></i>Подзвонити</a>' : '') +
+          (b.telegram ? '<a class="btn' + (b.phone ? '' : ' acc') + '" href="' + tgHref(b.telegram) + '" target="_blank" rel="noopener" onclick="ev(\'telegram\')"><i class="ti ti-brand-telegram"></i>Telegram</a>' : '') +
+          '<button class="btn" onclick="saveContact()"><i class="ti ti-address-book"></i>Зберегти контакт</button>' +
+          '<button class="btn" onclick="share()"><i class="ti ti-share"></i>Поділитися</button>' +
+          '<a class="btn wide" href="/zayavka?broker=' + esc(b.id) + '" onclick="ev(\'request\')"><i class="ti ti-message-2"></i>Залишити заявку</a>' +
+        '</div>' +
+        (icons.length ? '<div class="icons">' + icons.map(i => '<a class="ic" href="' + esc(i[1]) + '" target="_blank" rel="noopener" aria-label="' + i[2] + '" onclick="ev(\'' + i[2].toLowerCase() + '\')"><i class="ti ' + i[0] + '"></i></a>').join('') + '</div>' : '') +
+        (b.about ? '<div class="sec"><h2>Про мене</h2><p class="about">' + esc(b.about) + '</p></div>' : '') +
+        (svcs.length ? '<div class="sec"><h2>Послуги</h2>' + svcs.map(s => '<div class="svc"><span>' + esc(s.name) + '</span><b>' +
+            (s.price_from ? 'від ' + fmtMoney(s.price_from) : 'договірна') + '</b></div>').join('') + '</div>' : '') +
+        '<div class="sec"><div class="qr-box"><div class="qr">' + BizCard.qrSvg(BizCard.url(b.id)) + '</div>' +
+          '<p>Покажіть цей QR-код клієнту — він відкриє візитівку на своєму телефоні.</p></div></div>' +
+      '</div>' +
+    '</div>' +
+    '<div class="foot"><a href="/broker/' + esc(b.id) + '">Профіль і відгуки</a> · Візитівка на <a href="/">МитнийБрокер</a></div>';
+}
+
+function ev(type){ try { track('card_click', { type }); } catch(e){} }
+function saveContact(){ ev('vcf'); BizCard.downloadVcf(B); }
+async function share(){
+  ev('share');
+  const data = { title: B.name, text: B.name + ' — митний брокер', url: BizCard.url(B.id) };
+  if (navigator.share){ try { await navigator.share(data); return; } catch(e){ if (e.name === 'AbortError') return; } }
+  try { await navigator.clipboard.writeText(data.url); toast('Посилання скопійовано'); }
+  catch(e){ prompt('Скопіюйте посилання', data.url); }
+}
+
+(async () => {
+  const id = idFromUrl();
+  if (!id){ document.getElementById('root').innerHTML = '<div class="card"><div class="empty">Візитівку не знайдено</div></div>'; return; }
+  B = await getBroker(id);
+  if (!B){ document.getElementById('root').innerHTML = '<div class="card"><div class="empty">Візитівку не знайдено.<br><a href="/" style="color:var(--acc)">До каталогу брокерів</a></div></div>'; return; }
+  // Візитівка — функція платних тарифів; безкоштовний профіль веде на звичайну сторінку
+  if (!PREVIEW && !BizCard.paid(B)){ location.replace('/broker/' + B.id); return; }
+  document.title = B.name + ' — візитівка митного брокера';
+  document.querySelector('meta[name=description]').content = B.name + ' — митний брокер' + (B.city ? ', ' + B.city : '') + '. Контакти, послуги, ціни.';
+  applyLook();
+  render();
+  if (!PREVIEW) incrementViews(B.id);
+})();
+</script>
+</body>
+</html>

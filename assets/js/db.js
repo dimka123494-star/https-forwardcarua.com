@@ -106,7 +106,7 @@ function authMessage(m){
 
 /* ================= КАТАЛОГ ================= */
 
-const BROKER_FIELDS = 'id, name, city, region, plan, plan_expires_at, rating_avg, rating_count, experience, is_verified, views_count, about, phone, telegram, whatsapp, viber, instagram, facebook, tiktok, youtube, created_at';
+const BROKER_FIELDS = 'id, name, city, region, plan, plan_expires_at, rating_avg, rating_count, experience, is_verified, views_count, about, phone, telegram, whatsapp, viber, instagram, facebook, tiktok, youtube, created_at, card_color, card_theme, card_tagline';
 
 async function listBrokers({ region = '', city = '', service = '', search = '', sort = 'plan', verifiedOnly = false } = {}){
   const sb = await sbReady();
@@ -337,6 +337,20 @@ async function createBrokerProfile(fields){
   }
   track('sign_up', { method:'broker' });
   return data;
+}
+
+/** Оформлення електронної візитівки (платні тарифи; на безкоштовному тригер у базі ігнорує зміни). */
+async function updateMyCard({ color, theme, tagline }){
+  const sb = await sbReady();
+  const user = await currentUser();
+  if (!user) throw new Error('Сесія завершилась — увійдіть знову');
+  const patch = {
+    card_color: /^#[0-9a-fA-F]{6}$/.test(color || '') ? color : null,
+    card_theme: theme === 'light' ? 'light' : 'dark',
+    card_tagline: (tagline || '').trim().slice(0, 80) || null
+  };
+  const { error } = await sb.from('brokers').update(patch).eq('user_id', user.id);
+  if (error){ console.error('updateMyCard:', error); throw new Error('Не вдалося зберегти оформлення'); }
 }
 
 /** Тариф, рейтинг і верифікацію звідси змінити не можна — блокує тригер у базі. */

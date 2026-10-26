@@ -18,6 +18,17 @@
   background:var(--surface);border:.5px solid var(--border);border-radius:var(--r-sm);padding:12px 14px;margin-bottom:8px}
 .rv{background:var(--surface);border:.5px solid var(--border);border-radius:var(--r);padding:1.15rem;margin-bottom:8px}
 .rv-reply{margin-top:10px;padding:10px 12px;background:var(--surface2);border-left:2px solid var(--green);border-radius:0 var(--r-sm) var(--r-sm) 0}
+.bc-grid{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:20px;align-items:start}
+.bc-phone{border:8px solid #1d2622;border-radius:34px;overflow:hidden;height:640px;background:#0a0f0d}
+.bc-phone iframe{width:100%;height:100%;border:0;display:block}
+.bc-swatches{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
+.bc-sw{width:32px;height:32px;border-radius:50%;border:2px solid transparent;cursor:pointer;outline:none}
+.bc-sw.on{border-color:var(--text);box-shadow:0 0 0 2px var(--bg) inset}
+.bc-share{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px}
+.bc-share a{display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 4px;border-radius:10px;background:var(--surface2);border:.5px solid var(--border);font-size:12px;color:var(--text)}
+.bc-share a i{font-size:22px;color:var(--blue)}
+.bc-locked{opacity:.45;pointer-events:none;user-select:none}
+@media(max-width:900px){.bc-grid{grid-template-columns:1fr}.bc-phone{height:560px;max-width:360px;margin:0 auto}}
 .plan-box{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
 .plan-pick{background:var(--surface);border:.5px solid var(--border);border-radius:12px;padding:1rem;text-align:center;cursor:pointer;transition:all .2s}
 .plan-pick:hover{border-color:var(--border-strong)}
@@ -62,6 +73,7 @@
         <button class="cab-item"        data-pane="requests" onclick="pane('requests',this)"><i class="ti ti-inbox"></i>Заявки <span class="cab-badge" id="reqBadge" style="display:none">0</span></button>
         <button class="cab-item"        data-pane="reviews"  onclick="pane('reviews',this)"><i class="ti ti-star"></i>Відгуки <span class="cab-badge" id="rvBadge" style="display:none">0</span></button>
         <button class="cab-item"        data-pane="calc"     onclick="pane('calc',this)"><i class="ti ti-calculator"></i>Калькулятор</button>
+        <button class="cab-item"        data-pane="card"     onclick="pane('card',this)"><i class="ti ti-id-badge-2"></i>Візитівка</button>
         <button class="cab-item"        data-pane="services" onclick="pane('services',this)"><i class="ti ti-list-check"></i>Послуги</button>
         <button class="cab-item"        data-pane="billing"  onclick="pane('billing',this)"><i class="ti ti-credit-card"></i>Підписка</button>
         <button class="cab-item"        data-pane="profile"  onclick="pane('profile',this)"><i class="ti ti-user"></i>Профіль</button>
@@ -107,6 +119,56 @@
         <p class="text-sm text-muted" style="margin-bottom:1.25rem">Порахуйте митні платежі й надішліть клієнту PDF з вашими контактами.
           Легкові авто — на всіх тарифах, будь-який товар за групами УКТ ЗЕД — на платних.</p>
         <div id="calcMount"></div>
+      </section>
+
+      <!-- ВІЗИТІВКА -->
+      <section class="cab-pane" id="pane-card">
+        <h1 class="h-md" style="margin-bottom:.5rem">Електронна візитівка</h1>
+        <p class="text-sm text-muted" style="margin-bottom:1.25rem">Окрема сторінка з вашими контактами, послугами й QR-кодом. Надсилайте її клієнтам у месенджери,
+          ставте в підпис листа чи друкуйте QR на візитках — клієнт збереже ваш контакт в один дотик.</p>
+        <div id="cardLock"></div>
+        <div class="bc-grid">
+          <div>
+            <div class="card" style="margin-bottom:16px" id="cardShare">
+              <div class="card-title">Посилання на візитівку</div>
+              <div class="row" style="gap:8px;flex-wrap:nowrap">
+                <input class="input" id="bcUrl" readonly onclick="this.select()" style="flex:1;min-width:0">
+                <button class="btn btn-ghost btn-sm" onclick="bcCopy()"><i class="ti ti-copy"></i></button>
+              </div>
+              <div class="bc-share" id="bcShare"></div>
+              <div class="row" style="gap:8px;margin-top:10px;flex-wrap:wrap">
+                <a class="btn btn-ghost btn-sm" id="bcOpen" target="_blank" rel="noopener"><i class="ti ti-external-link"></i> Відкрити</a>
+                <button class="btn btn-ghost btn-sm" onclick="bcQr()"><i class="ti ti-qrcode"></i> QR-код (PNG)</button>
+                <button class="btn btn-ghost btn-sm" onclick="BizCard.downloadVcf(broker)"><i class="ti ti-address-book"></i> Файл контакту .vcf</button>
+              </div>
+            </div>
+            <div class="card" id="cardDesign">
+              <div class="card-title">Оформлення</div>
+              <label class="label">Фірмовий колір</label>
+              <div class="bc-swatches" id="bcSw"></div>
+              <div class="row" style="gap:10px;margin:10px 0 1rem">
+                <input type="color" id="bcColor" value="#10B981" oninput="bcSet(this.value)" style="width:46px;height:36px;border:none;background:none;cursor:pointer">
+                <input class="input" id="bcHex" maxlength="7" style="width:120px" oninput="if(/^#[0-9a-fA-F]{6}$/.test(this.value))bcSet(this.value)">
+                <span class="text-xs text-muted">Будь-який колір під ваш бренд</span>
+              </div>
+              <label class="label">Тема</label>
+              <div class="row" style="gap:6px;margin-bottom:1rem">
+                <button class="chip" id="bcDark" onclick="bcTheme('dark')">Темна</button>
+                <button class="chip" id="bcLight" onclick="bcTheme('light')">Світла</button>
+              </div>
+              <div class="field"><label class="label" for="bcTag">Слоган під іменем</label>
+                <input class="input" id="bcTag" maxlength="80" placeholder="Напр.: Розмитнення авто з ЄС і США під ключ" oninput="bcPreview()">
+                <div class="hint">До 80 символів. Порожньо — «Митний брокер · ваше місто».</div></div>
+              <div class="msg" id="bcMsg"></div>
+              <button class="btn btn-primary" id="bcSave" onclick="bcSave()">Зберегти оформлення</button>
+              <p class="text-xs text-muted" style="margin-top:10px">Потрібен індивідуальний дизайн чи логотип? Напишіть на custom@forwardcarua.com.</p>
+            </div>
+          </div>
+          <div>
+            <div class="bc-phone"><iframe id="bcFrame" title="Попередній перегляд візитівки" loading="lazy"></iframe></div>
+            <p class="text-xs text-muted" style="text-align:center;margin-top:8px">Так візитівку побачить клієнт</p>
+          </div>
+        </div>
       </section>
 
       <!-- ПОСЛУГИ -->
@@ -192,6 +254,8 @@
 <script src="/assets/js/db.js"></script>
 <script src="/assets/js/uktzed.js"></script>
 <script src="/assets/js/customs-calc.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+<script src="/assets/js/bizcard.js"></script>
 <script>
 let broker = null, requests = [], myRevs = [], period = 'month', reqFilter = 'all';
 
@@ -451,6 +515,67 @@ function renderHeader(){
   document.getElementById('myPublicLink2').href = link;
 }
 
+/* ---------- Візитівка ---------- */
+const bc = { color: '#10B981', theme: 'dark' };
+let bcTimer = null;
+function renderCard(){
+  const paid = BizCard.paid(broker);
+  bc.color = BizCard.color(broker); bc.theme = broker.card_theme || 'dark';
+  document.getElementById('bcTag').value = broker.card_tagline || '';
+  document.getElementById('bcUrl').value = BizCard.url(broker.id);
+  document.getElementById('bcOpen').href = '/v/' + broker.id;
+  const L = BizCard.shareLinks(broker);
+  document.getElementById('bcShare').innerHTML =
+    [['telegram','ti-brand-telegram','Telegram'],['viber','ti-brand-viber','Viber'],['whatsapp','ti-brand-whatsapp','WhatsApp'],['email','ti-mail','Email']]
+      .map(x => '<a href="' + esc(L[x[0]]) + '" target="_blank" rel="noopener"><i class="ti ' + x[1] + '"></i>' + x[2] + '</a>').join('');
+  document.getElementById('bcSw').innerHTML = BizCard.PRESETS.map(c =>
+    '<button class="bc-sw" data-c="' + c + '" style="background:' + c + '" aria-label="' + c + '" onclick="bcSet(\'' + c + '\')"></button>').join('');
+  document.getElementById('cardLock').innerHTML = paid ? '' :
+    '<div class="card" style="margin-bottom:16px;border-color:var(--blue)"><div style="font-weight:600;margin-bottom:4px">🔒 Візитівка доступна на платних тарифах</div>' +
+    '<p class="text-sm text-muted" style="margin-bottom:10px">Від 299 грн/міс: власна сторінка-візитівка з QR-кодом, файлом контакту й вашим фірмовим кольором. Праворуч — як вона виглядатиме.</p>' +
+    '<button class="btn btn-primary btn-sm" onclick="pane(\'billing\',document.querySelector(\'[data-pane=billing]\'))">Обрати тариф</button></div>';
+  document.getElementById('cardShare').classList.toggle('bc-locked', !paid);
+  document.getElementById('cardDesign').classList.toggle('bc-locked', !paid);
+  bcSet(bc.color, true); bcTheme(bc.theme, true);
+  bcPreview(true);
+}
+function bcSet(c, silent){
+  bc.color = c;
+  document.getElementById('bcColor').value = c.toLowerCase();
+  const hx = document.getElementById('bcHex'); if (document.activeElement !== hx) hx.value = c.toUpperCase();
+  document.querySelectorAll('.bc-sw').forEach(b => b.classList.toggle('on', b.dataset.c.toLowerCase() === c.toLowerCase()));
+  if (!silent) bcPreview();
+}
+function bcTheme(t, silent){
+  bc.theme = t;
+  document.getElementById('bcDark').classList.toggle('active', t === 'dark');
+  document.getElementById('bcLight').classList.toggle('active', t === 'light');
+  if (!silent) bcPreview();
+}
+function bcPreview(now){
+  clearTimeout(bcTimer);
+  bcTimer = setTimeout(() => {
+    const q = new URLSearchParams({ preview: '1', c: bc.color, t: bc.theme, tg: document.getElementById('bcTag').value.trim() });
+    document.getElementById('bcFrame').src = '/v/' + broker.id + '?' + q.toString();
+  }, now ? 0 : 400);
+}
+async function bcSave(){
+  const msg = document.getElementById('bcMsg'), btn = document.getElementById('bcSave');
+  btn.disabled = true;
+  try{
+    const tagline = document.getElementById('bcTag').value;
+    await updateMyCard({ color: bc.color, theme: bc.theme, tagline });
+    Object.assign(broker, { card_color: bc.color, card_theme: bc.theme, card_tagline: tagline.trim() || null });
+    msg.className = 'msg msg-ok show'; msg.textContent = 'Збережено. Візитівка вже оновилась.';
+  }catch(e){ msg.className = 'msg msg-err show'; msg.textContent = e.message; }
+  btn.disabled = false;
+}
+async function bcCopy(){
+  try{ await navigator.clipboard.writeText(BizCard.url(broker.id)); showToast('Посилання скопійовано'); }
+  catch(e){ document.getElementById('bcUrl').select(); }
+}
+function bcQr(){ BizCard.downloadQrPng(BizCard.url(broker.id), 'vizytivka-qr'); }
+
 /* ---------- Старт ---------- */
 window.addEventListener('DOMContentLoaded', async () => {
   const user = await requireAuth();
@@ -473,6 +598,7 @@ window.addEventListener('DOMContentLoaded', async () => {
   const paidPlan = broker.plan && broker.plan !== 'free' &&
     (!broker.plan_expires_at || new Date(broker.plan_expires_at) > new Date());
   CustomsCalc.mount(document.getElementById('calcMount'), { broker, paid: paidPlan });
+  renderCard();
   renderServices();
   renderBilling();
   renderPayments();
