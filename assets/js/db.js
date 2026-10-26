@@ -339,6 +339,44 @@ async function createBrokerProfile(fields){
   return data;
 }
 
+/* ---------- Консультації бухгалтера та юриста (платні тарифи) ---------- */
+const CONSULT_KINDS = {
+  accounting: { label: 'Бухгалтер', icon: 'ti-calculator', by: 'clerk.tax' },
+  legal:      { label: 'Юрист',     icon: 'ti-scale',      by: 'Адвокат Поруч' }
+};
+const CONSULT_STATUS = {
+  new:         { label: 'Нове',       color: 'var(--blue)' },
+  in_progress: { label: 'В роботі',   color: 'var(--amber)' },
+  done:        { label: 'Відповіли',  color: 'var(--green)' }
+};
+async function createConsultation(c){
+  const sb = await sbReady();
+  const { error } = await sb.from('consultations').insert({
+    broker_id: c.broker_id, kind: c.kind, topic: c.topic.trim(), question: c.question.trim(),
+    contact_method: c.contact_method, contact: (c.contact || '').trim() || null
+  });
+  if (error){ console.error('createConsultation:', error); throw new Error('Не вдалося надіслати запит. Перевірте, що тариф активний, і спробуйте ще раз.'); }
+}
+async function myConsultations(){
+  const sb = await sbReady();
+  const { data, error } = await sb.from('consultations').select('*').order('created_at', { ascending: false });
+  if (error) console.error('myConsultations:', error);
+  return data || [];
+}
+async function adminConsultations(){
+  const sb = await sbReady();
+  const { data, error } = await sb.from('consultations')
+    .select('*, brokers(name, phone, telegram, plan, city)').order('created_at', { ascending: false });
+  if (error) throw new Error('Не вдалося завантажити консультації');
+  return data || [];
+}
+async function adminUpdateConsultation(id, patch){
+  const sb = await sbReady();
+  if (patch.answer !== undefined) patch.answered_at = patch.answer ? new Date().toISOString() : null;
+  const { error } = await sb.from('consultations').update(patch).eq('id', id);
+  if (error) throw new Error('Не вдалося зберегти');
+}
+
 /** Логотип брокера (платні тарифи): стискаємо до 512px WebP і кладемо в Storage */
 async function uploadMyLogo(file){
   if (!file) throw new Error('Оберіть файл');

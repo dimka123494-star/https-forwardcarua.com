@@ -59,6 +59,7 @@
     <button class="nav-link"        data-p="brokers"  onclick="pane('brokers',this)">Брокери</button>
     <button class="nav-link"        data-p="outreach" onclick="pane('outreach',this)">Залучення</button>
     <button class="nav-link"        data-p="requests" onclick="pane('requests',this)">Заявки</button>
+    <button class="nav-link"        data-p="consult"  onclick="pane('consult',this)">Консультації <span class="cab-badge" id="csBadge" style="display:none">0</span></button>
     <button class="nav-link"        data-p="reviews"  onclick="pane('reviews',this)">Відгуки <span class="cab-badge" id="modBadge" style="display:none">0</span></button>
     <button class="nav-link"        data-p="billing"  onclick="pane('billing',this)">Платежі</button>
   </div>
@@ -193,6 +194,19 @@
       </div>
       <p class="hint">Тут видно персональні дані клієнтів. Не експортуйте і не пересилайте цю таблицю третім особам —
         на неї поширюються зобов'язання з розділу «Конфіденційність» вашої оферти.</p>
+    </section>
+
+    <!-- КОНСУЛЬТАЦІЇ -->
+    <section class="cab-pane" id="pane-consult">
+      <div class="spread" style="margin-bottom:1rem">
+        <h1 class="h-md">Консультації брокерів <span class="text-sm text-muted" id="csTotal"></span></h1>
+        <div style="display:flex;gap:6px">
+          <select class="input" style="width:150px" id="csFKind" onchange="renderConsults()"><option value="">Всі</option><option value="accounting">Бухгалтер</option><option value="legal">Юрист</option></select>
+          <select class="input" style="width:160px" id="csFStatus" onchange="renderConsults()"><option value="open">Відкриті</option><option value="">Всі статуси</option><option value="done">Відповіли</option></select>
+        </div>
+      </div>
+      <p class="hint" style="margin-bottom:1rem">Безкоштовні консультації для платних тарифів. Бухгалтерські питання — для clerk.tax, юридичні — для «Адвокат Поруч». Відповідь, яку ви тут збережете, брокер побачить у кабінеті.</p>
+      <div id="csAdmList"></div>
     </section>
 
     <!-- ВІДГУКИ -->
@@ -394,6 +408,43 @@ async function loadAll(){
     ]);
   }catch(e){ showToast(e.message, 'error'); return; }
   renderDash(); renderBrokers(brokers); renderPending(); renderRequests(requests); renderPayments(); renderReviews();
+  try { consults = await adminConsultations(); renderConsults(); } catch(e){ console.error(e); }
+}
+
+/* ---------- Консультації ---------- */
+let consults = [];
+const HOW = { cabinet:'у кабінеті', phone:'дзвінок', telegram:'Telegram', viber:'Viber', email:'Email' };
+function renderConsults(){
+  const fk = document.getElementById('csFKind').value, fs = document.getElementById('csFStatus').value;
+  const list = consults.filter(c => (!fk || c.kind === fk) && (!fs || (fs === 'open' ? c.status !== 'done' : c.status === fs)));
+  const open = consults.filter(c => c.status === 'new').length;
+  const b = document.getElementById('csBadge'); b.textContent = open; b.style.display = open ? '' : 'none';
+  document.getElementById('csTotal').textContent = '· ' + consults.length;
+  document.getElementById('csAdmList').innerHTML = list.length ? list.map(c => {
+    const k = CONSULT_KINDS[c.kind] || CONSULT_KINDS.accounting, br = c.brokers || {};
+    return '<div class="card" style="margin-bottom:12px"><div class="spread" style="gap:10px;align-items:flex-start;flex-wrap:wrap">' +
+      '<div><div style="font-weight:600"><i class="ti ' + k.icon + '" style="color:var(--blue)"></i> ' + k.label + ' · ' + esc(c.topic) + '</div>' +
+      '<div class="text-xs text-muted">' + esc(br.name || '—') + (br.city ? ', ' + esc(br.city) : '') + ' · ' + planLabel(br.plan) + ' · ' + new Date(c.created_at).toLocaleString('uk-UA') + '</div>' +
+      '<div class="text-xs" style="margin-top:2px">Зв\'язок: ' + (HOW[c.contact_method] || c.contact_method) + (c.contact ? ' — <strong>' + esc(c.contact) + '</strong>' : '') +
+        (br.phone ? ' · тел. профілю ' + esc(br.phone) : '') + '</div></div>' +
+      '<select class="input" style="max-width:150px" id="cs-st-' + c.id + '">' +
+        Object.entries(CONSULT_STATUS).map(([v, s]) => '<option value="' + v + '"' + (c.status === v ? ' selected' : '') + '>' + s.label + '</option>').join('') + '</select></div>' +
+      '<p class="text-sm" style="margin:10px 0;white-space:pre-line">' + esc(c.question) + '</p>' +
+      '<textarea class="input" id="cs-ans-' + c.id + '" placeholder="Відповідь для брокера (побачить у кабінеті)" style="min-height:90px">' + esc(c.answer || '') + '</textarea>' +
+      '<button class="btn btn-primary btn-sm" style="margin-top:8px" onclick="saveConsult(\'' + c.id + '\')">Зберегти</button>' +
+      (c.answered_at ? ' <span class="text-xs text-muted">Відповідь від ' + new Date(c.answered_at).toLocaleString('uk-UA') + '</span>' : '') +
+      '</div>';
+  }).join('') : '<div class="empty"><strong>Немає консультацій</strong>Тут з\'являться питання брокерів з платних тарифів.</div>';
+}
+async function saveConsult(id){
+  const answer = document.getElementById('cs-ans-' + id).value.trim();
+  let status = document.getElementById('cs-st-' + id).value;
+  if (answer && status === 'new') status = 'done';
+  try{
+    await adminUpdateConsultation(id, { status, answer: answer || null });
+    const c = consults.find(x => x.id === id); Object.assign(c, { status, answer: answer || null, answered_at: answer ? new Date().toISOString() : null });
+    renderConsults(); showToast('Збережено');
+  }catch(e){ showToast(e.message, 'error'); }
 }
 
 function renderDash(){

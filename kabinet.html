@@ -18,6 +18,11 @@
   background:var(--surface);border:.5px solid var(--border);border-radius:var(--r-sm);padding:12px 14px;margin-bottom:8px}
 .rv{background:var(--surface);border:.5px solid var(--border);border-radius:var(--r);padding:1.15rem;margin-bottom:8px}
 .rv-reply{margin-top:10px;padding:10px 12px;background:var(--surface2);border-left:2px solid var(--green);border-radius:0 var(--r-sm) var(--r-sm) 0}
+.cs-kinds{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.cs-ic{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;background:var(--blue-glow);color:var(--blue);font-size:22px;margin-bottom:10px}
+.cs-item{background:var(--surface);border:.5px solid var(--border);border-radius:var(--r);padding:1rem 1.15rem;margin-bottom:10px}
+.cs-ans{margin-top:10px;padding:10px 12px;background:var(--surface2);border-left:2px solid var(--green);border-radius:0 var(--r-sm) var(--r-sm) 0;font-size:14px;white-space:pre-line}
+@media(max-width:768px){.cs-kinds{grid-template-columns:1fr}}
 .bc-grid{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:20px;align-items:start}
 .bc-phone{border:8px solid #1d2622;border-radius:34px;overflow:hidden;height:640px;background:#0a0f0d}
 .bc-phone iframe{width:100%;height:100%;border:0;display:block}
@@ -74,6 +79,7 @@
         <button class="cab-item"        data-pane="reviews"  onclick="pane('reviews',this)"><i class="ti ti-star"></i>Відгуки <span class="cab-badge" id="rvBadge" style="display:none">0</span></button>
         <button class="cab-item"        data-pane="calc"     onclick="pane('calc',this)"><i class="ti ti-calculator"></i>Калькулятор</button>
         <button class="cab-item"        data-pane="card"     onclick="pane('card',this)"><i class="ti ti-id-badge-2"></i>Візитівка</button>
+        <button class="cab-item"        data-pane="consult"  onclick="pane('consult',this)"><i class="ti ti-headset"></i>Консультації <span class="cab-badge" id="csBadge" style="display:none">0</span></button>
         <button class="cab-item"        data-pane="services" onclick="pane('services',this)"><i class="ti ti-list-check"></i>Послуги</button>
         <button class="cab-item"        data-pane="billing"  onclick="pane('billing',this)"><i class="ti ti-credit-card"></i>Підписка</button>
         <button class="cab-item"        data-pane="profile"  onclick="pane('profile',this)"><i class="ti ti-user"></i>Профіль</button>
@@ -181,6 +187,47 @@
         </div>
       </section>
 
+      <!-- КОНСУЛЬТАЦІЇ -->
+      <section class="cab-pane" id="pane-consult">
+        <h1 class="h-md" style="margin-bottom:.5rem">Консультації з митних питань</h1>
+        <p class="text-sm text-muted" style="margin-bottom:1.25rem">Бухгалтер і юрист відповідають на ваші робочі питання — <strong style="color:var(--text)">безкоштовно на всіх платних тарифах</strong>.
+          Відповідь з'явиться тут, а за потреби спеціаліст зв'яжеться з вами обраним способом.</p>
+        <div id="csLock"></div>
+        <div class="cs-kinds">
+          <div class="card"><div class="cs-ic"><i class="ti ti-calculator"></i></div><h3 class="h-sm">Бухгалтер з митних питань</h3>
+            <p class="text-sm text-muted">ПДВ при імпорті та його відшкодування, облік митних платежів і МД, ЗЕД-контракти й валютний контроль, оподаткування послуг брокера, ФОП чи ТОВ для митної діяльності.</p>
+            <div class="text-xs" style="margin-top:8px;color:var(--blue)">Відповідають бухгалтери clerk.tax</div></div>
+          <div class="card"><div class="cs-ic"><i class="ti ti-scale"></i></div><h3 class="h-sm">Юрист з митних питань</h3>
+            <p class="text-sm text-muted">Оскарження рішень митниці, коригування митної вартості, протоколи про порушення митних правил, договори з клієнтами й перевізниками, конфіскація та арешт товарів і авто.</p>
+            <div class="text-xs" style="margin-top:8px;color:var(--blue)">Відповідають юристи «Адвокат Поруч»</div></div>
+        </div>
+        <div class="card" id="csForm" style="margin:16px 0">
+          <div class="card-title">Поставити питання</div>
+          <div class="row" style="gap:6px;margin-bottom:1rem">
+            <button class="chip active" id="csKa" onclick="csKind('accounting')"><i class="ti ti-calculator"></i> Бухгалтеру</button>
+            <button class="chip" id="csKl" onclick="csKind('legal')"><i class="ti ti-scale"></i> Юристу</button>
+          </div>
+          <div class="field"><label class="label" for="csTopic">Тема *</label>
+            <input class="input" id="csTopic" maxlength="120" placeholder="Напр.: Клієнту донарахували митну вартість — що робити?"></div>
+          <div class="field"><label class="label" for="csQ">Питання *</label>
+            <textarea class="input" id="csQ" maxlength="4000" style="min-height:140px" placeholder="Опишіть ситуацію: що за товар чи авто, який режим, що сталося, які документи є. Персональні дані клієнта вказувати не потрібно."></textarea>
+            <div class="hint">Мінімум 20 символів.</div></div>
+          <div class="field-row">
+            <div class="field"><label class="label" for="csHow">Як з вами зв'язатися</label>
+              <select class="input" id="csHow" onchange="csHowChange()">
+                <option value="cabinet">Відповідь у кабінеті</option><option value="phone">Дзвінок</option>
+                <option value="telegram">Telegram</option><option value="viber">Viber</option><option value="email">Email</option>
+              </select></div>
+            <div class="field"><label class="label" for="csContact">Контакт</label><input class="input" id="csContact" maxlength="120"></div>
+          </div>
+          <div class="msg" id="csMsg"></div>
+          <button class="btn btn-primary" id="csBtn" onclick="csSend()"><i class="ti ti-send"></i> Надіслати питання</button>
+          <p class="text-xs text-muted" style="margin-top:10px">Консультація — це розʼяснення щодо вашої ситуації. Підготовку документів, представництво в суді чи ведення обліку спеціалісти запропонують окремо.</p>
+        </div>
+        <h2 class="h-sm" style="margin-bottom:10px">Мої питання</h2>
+        <div id="csList"><div class="text-sm text-muted">Ще немає питань.</div></div>
+      </section>
+
       <!-- ПОСЛУГИ -->
       <section class="cab-pane" id="pane-services">
         <h1 class="h-md" style="margin-bottom:1rem">Мої послуги</h1>
@@ -278,6 +325,7 @@ function pane(name, btn){
   document.getElementById('pane-' + name).classList.add('active');
   if (btn) btn.classList.add('active');
   location.hash = name;
+  if (name === 'consult' && typeof markConsultSeen === 'function') markConsultSeen();
 }
 async function doLogout(){ await signOut(); location.href = '/'; }
 
@@ -528,6 +576,59 @@ function renderHeader(){
   document.getElementById('myPublicLink2').href = link;
 }
 
+/* ---------- Консультації ---------- */
+let csK = 'accounting', myCons = [];
+function csKind(k){ csK = k;
+  document.getElementById('csKa').classList.toggle('active', k === 'accounting');
+  document.getElementById('csKl').classList.toggle('active', k === 'legal'); }
+function csHowChange(){
+  const h = document.getElementById('csHow').value, c = document.getElementById('csContact');
+  const def = { phone: broker.phone, telegram: broker.telegram, viber: broker.viber || broker.phone, email: broker.email, cabinet: '' }[h] || '';
+  c.value = def || ''; c.disabled = h === 'cabinet';
+  c.placeholder = { phone: '+380…', telegram: '@username', viber: '+380…', email: 'mail@…', cabinet: 'Не потрібно' }[h];
+}
+function renderConsult(){
+  const paid = BizCard.paid(broker);
+  document.getElementById('csLock').innerHTML = paid ? '' :
+    '<div class="card" style="margin-bottom:16px;border-color:var(--blue)"><div style="font-weight:600;margin-bottom:4px">🔒 Безкоштовні консультації — на платних тарифах</div>' +
+    '<p class="text-sm text-muted" style="margin-bottom:10px">Від 299 грн/міс ви отримуєте доступ до бухгалтера й юриста з митних питань без додаткової оплати.</p>' +
+    '<button class="btn btn-primary btn-sm" onclick="pane(\'billing\',document.querySelector(\'[data-pane=billing]\'))">Обрати тариф</button></div>';
+  document.getElementById('csForm').classList.toggle('bc-locked', !paid);
+  const fresh = myCons.filter(c => c.status === 'done' && c.answered_at && !localSeen(c.id)).length;
+  const b = document.getElementById('csBadge'); b.textContent = fresh; b.style.display = fresh ? '' : 'none';
+  document.getElementById('csList').innerHTML = myCons.length ? myCons.map(c => {
+    const k = CONSULT_KINDS[c.kind] || CONSULT_KINDS.accounting, st = CONSULT_STATUS[c.status] || CONSULT_STATUS.new;
+    return '<div class="cs-item"><div class="spread" style="gap:10px;align-items:flex-start">' +
+      '<div><div style="font-weight:500"><i class="ti ' + k.icon + '" style="color:var(--blue)"></i> ' + esc(c.topic) + '</div>' +
+      '<div class="text-xs text-muted">' + k.label + ' · ' + fmtDate(c.created_at) + '</div></div>' +
+      '<span class="text-xs" style="white-space:nowrap;color:' + st.color + '"><span class="dot" style="background:' + st.color + '"></span> ' + st.label + '</span></div>' +
+      '<p class="text-sm text-muted" style="margin-top:8px;white-space:pre-line">' + esc(c.question) + '</p>' +
+      (c.answer ? '<div class="cs-ans"><div class="text-xs" style="color:var(--green);margin-bottom:4px">Відповідь · ' + k.by + '</div>' + esc(c.answer) + '</div>' : '') +
+      '</div>';
+  }).join('') : '<div class="text-sm text-muted">Ще немає питань.</div>';
+}
+function localSeen(id){ try { return localStorage.getItem('cs_seen_' + id) === '1'; } catch(e){ return true; } }
+function markConsultSeen(){ myCons.filter(c => c.answer).forEach(c => { try { localStorage.setItem('cs_seen_' + c.id, '1'); } catch(e){} });
+  const b = document.getElementById('csBadge'); if (b) b.style.display = 'none'; }
+async function csSend(){
+  const msg = document.getElementById('csMsg'), btn = document.getElementById('csBtn');
+  const topic = document.getElementById('csTopic').value.trim(), q = document.getElementById('csQ').value.trim();
+  const how = document.getElementById('csHow').value, contact = document.getElementById('csContact').value.trim();
+  const fail = t => { msg.className = 'msg msg-err show'; msg.textContent = t; };
+  if (topic.length < 3) return fail('Вкажіть тему питання');
+  if (q.length < 20) return fail('Опишіть ситуацію детальніше — мінімум 20 символів');
+  if (how !== 'cabinet' && !contact) return fail('Вкажіть контакт для зв\'язку');
+  btn.disabled = true;
+  try{
+    await createConsultation({ broker_id: broker.id, kind: csK, topic, question: q, contact_method: how, contact });
+    document.getElementById('csTopic').value = ''; document.getElementById('csQ').value = '';
+    msg.className = 'msg msg-ok show'; msg.textContent = 'Питання надіслано. Зазвичай відповідаємо протягом робочого дня.';
+    track('consultation_request', { kind: csK });
+    myCons = await myConsultations(); renderConsult();
+  }catch(e){ fail(e.message); }
+  btn.disabled = false;
+}
+
 /* ---------- Візитівка ---------- */
 const bc = { color: '#10B981', theme: 'dark' };
 let bcTimer = null;
@@ -632,6 +733,8 @@ window.addEventListener('DOMContentLoaded', async () => {
     (!broker.plan_expires_at || new Date(broker.plan_expires_at) > new Date());
   CustomsCalc.mount(document.getElementById('calcMount'), { broker, paid: paidPlan });
   renderCard();
+  csHowChange(); myConsultations().then(l => { myCons = l; renderConsult(); });
+  renderConsult();
   renderServices();
   renderBilling();
   renderPayments();
