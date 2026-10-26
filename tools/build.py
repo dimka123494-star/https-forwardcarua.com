@@ -463,6 +463,30 @@ async function sendClaim(ev){
     if (typeof gtag === 'function') gtag('event', 'registry_claim', { edrpou: f.dataset.code });
   }catch(e){ show(e.message, false); b.disabled = false; b.textContent = 'Забрати профіль безкоштовно'; }
 }
+/* Статус профілю з бази: сторінка статична, а компанія могла вже підтвердити профіль */
+(async () => {
+  const f = document.querySelector('form[data-code]'); if (!f) return;
+  try{
+    const sb = await sbReady();
+    const { data } = await sb.rpc('registry_profile_status', { code: f.dataset.code });
+    const badge = document.getElementById('regBadge'), box = document.getElementById('claimBox'), lead = document.getElementById('regLead');
+    if (data && data.state === 'claimed'){
+      badge.style.cssText = 'background:rgba(45,217,143,.12);color:var(--green);border:.5px solid rgba(45,217,143,.35);padding:5px 12px;border-radius:20px;font-size:12px';
+      badge.innerHTML = '<i class="ti ti-rosette-discount-check"></i> Підтверджений профіль';
+      lead.textContent = 'Митний брокер з авторизацією Держмитслужби. Компанія підтвердила профіль і приймає заявки в каталозі МитнийБрокер.';
+      box.innerHTML = '<h2 style="font-size:24px">Профіль підтверджено</h2>' +
+        '<p style="margin-left:0">Послуги, ціни, контакти й відгуки — у профілі брокера. Там же можна залишити заявку напряму.</p>' +
+        '<div class="row"><a class="btn btn-primary" href="/broker/' + data.broker_id + '"><i class="ti ti-user"></i>Перейти до профілю</a>' +
+        '<a class="btn btn-ghost" href="/zayavka?broker=' + data.broker_id + '">Залишити заявку</a></div>' +
+        '<p class="text-sm" style="margin:1rem 0 0;color:var(--muted)">Це ваша компанія? <a href="/vhid">Увійдіть у кабінет</a> — якщо не пам\'ятаєте пароль, відновіть його на сторінці входу.</p>';
+    } else if (data && data.state === 'pending'){
+      badge.innerHTML = '<i class="ti ti-clock"></i> Підтвердження в процесі';
+      box.innerHTML = '<h2 style="font-size:24px">Заявку на підтвердження отримано</h2>' +
+        '<p style="margin-left:0">Ми перевіряємо дані компанії й надішлемо доступ до кабінету на email, вказаний у заявці. Зазвичай це займає до одного робочого дня.</p>' +
+        '<p class="text-sm" style="margin:0;color:var(--muted)">Питання — <a href="mailto:custom@forwardcarua.com">custom@forwardcarua.com</a>.</p>';
+    }
+  }catch(e){}
+})();
 </script>
 """
 
@@ -472,10 +496,10 @@ def company_page(r):
     desc = ('%s (ЄДРПОУ %s) — компанія з авторизацією на провадження митної брокерської діяльності %s від %s. '
             'Профіль у каталозі митних брокерів України.' % (r['name'], r['code'], r['auth'], r['date']))
     body = ('<section class="container-narrow page-hero"><div class="crumbs"><a href="/">Каталог</a> › <a href="/reyestr-brokeriv">Реєстр брокерів</a> › ' + E(r['short']) + '</div>'
-            '<span class="badge" style="background:rgba(245,166,35,.15);color:var(--amber);border:.5px solid rgba(245,166,35,.35);padding:5px 12px;border-radius:20px;font-size:12px">'
+            '<span class="badge" id="regBadge" style="background:rgba(245,166,35,.15);color:var(--amber);border:.5px solid rgba(245,166,35,.35);padding:5px 12px;border-radius:20px;font-size:12px">'
             '<i class="ti ti-alert-circle"></i> Непідтверджений профіль</span>'
             '<h1 class="h-lg" style="font-size:clamp(26px,5vw,40px);margin-top:1rem">' + E(r['name']) + '</h1>'
-            '<p class="lead">Митний брокер з авторизацією Держмитслужби. Профіль створено автоматично на основі відкритого реєстру — компанія ще не підтвердила його.</p>'
+            '<p class="lead" id="regLead">Митний брокер з авторизацією Держмитслужби. Профіль створено автоматично на основі відкритого реєстру — компанія ще не підтвердила його.</p>'
             '<div class="card" style="margin-top:1.5rem"><table style="width:100%;font-size:14px">'
             '<tr><td class="text-muted" style="padding:8px 0;width:45%">Повна назва</td><td>' + E(r['raw'].replace('I', 'І')) + '</td></tr>'
             '<tr><td class="text-muted" style="padding:8px 0">Код ЄДРПОУ</td><td>' + r['code'] + '</td></tr>' +
@@ -485,7 +509,7 @@ def company_page(r):
             '<tr><td class="text-muted" style="padding:8px 0">Діє з</td><td>' + E(r['date']) + '</td></tr>'
             '<tr><td class="text-muted" style="padding:8px 0">Джерело</td><td><a href="https://cabinet.customs.gov.ua/cdspubliclist" target="_blank" rel="noopener nofollow">Реєстр авторизацій Держмитслужби</a></td></tr>'
             '</table></div></section>'
-            '<section class="container-narrow" style="padding-bottom:1rem"><div class="cta-band" style="text-align:left">'
+            '<section class="container-narrow" style="padding-bottom:1rem"><div class="cta-band" id="claimBox" style="text-align:left">'
             '<h2 style="font-size:24px">Це ваша компанія? Заберіть доступ безкоштовно</h2>'
             '<p style="margin-left:0">Підтвердіть профіль — і отримуйте заявки клієнтів у кабінет: до 5 заявок на місяць безкоштовно, '
             'калькулятор розмитнення з вивантаженням PDF для клієнта, ваші послуги й ціни в каталозі. Без комісії з угод.</p>'

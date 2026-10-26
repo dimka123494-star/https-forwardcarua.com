@@ -33,7 +33,7 @@ const VinCert = (() => {
         '<div class="field-row"><div class="field"><label class="label" for="vc-make">Марка</label><input class="input" id="vc-make"></div>' +
           '<div class="field"><label class="label" for="vc-model">Модель</label><input class="input" id="vc-model"></div></div>' +
         '<div class="field-row"><div class="field"><label class="label" for="vc-year">Рік випуску (модельний)</label><input class="input" type="number" id="vc-year" min="1950" max="2100" oninput="VinCert.estimate()"></div>' +
-          '<div class="field"><label class="label" for="vc-reg">Дата першої реєстрації</label><input class="input" type="date" id="vc-reg" oninput="VinCert.estimate()"><div class="hint">З техпаспорта (поле B). Робить оцінку класу точнішою.</div></div></div>' +
+          '<div class="field"><label class="label" for="vc-reg">Дата першої реєстрації</label><input class="input" type="text" id="vc-reg" inputmode="numeric" maxlength="10" placeholder="ДД.ММ.РРРР" autocomplete="off" oninput="VinCert.regInput(this)"><div class="hint" id="vc-reg-hint">З техпаспорта (поле B), напр. 15.03.2016. Необовʼязково — робить оцінку класу точнішою.</div></div></div>' +
         '<div class="field-row"><div class="field"><label class="label" for="vc-fuel">Тип пального</label><select class="input" id="vc-fuel" onchange="VinCert.estimate()"><option value="">—</option>' + opt(FUEL) + '</select></div>' +
           '<div class="field"><label class="label" for="vc-cc">Обʼєм двигуна, см³</label><input class="input" type="number" id="vc-cc" min="0"></div></div>' +
         '<div class="field-row"><div class="field"><label class="label" for="vc-cat">Категорія</label><select class="input" id="vc-cat" onchange="VinCert.estimate()">' + opt(CAT, 'M1') + '</select></div>' +
@@ -90,11 +90,33 @@ const VinCert = (() => {
 
   function estimate(){
     if (!st.data) return;
-    const r = VinTools.euroEstimate({ fuel: $('vc-fuel').value, firstReg: $('vc-reg').value, year: +$('vc-year').value || null,
+    const r = VinTools.euroEstimate({ fuel: $('vc-fuel').value, firstReg: regIso(), year: +$('vc-year').value || null,
                                       market: st.data.market, category: $('vc-cat').value });
     if (!st.manualEuro && $('vc-basis').value === 'estimate') $('vc-euro').value = r.value;
     st.note = r.note;
     $('vc-enote').textContent = $('vc-basis').value === 'estimate' ? r.note : 'Клас підтверджено документом — у довідці буде зазначено підставу.';
+  }
+  // Дата першої реєстрації: вводимо ДД.ММ.РРРР (рідний date-picker у темній темі незручний і не всюди дає ввести з клавіатури)
+  function regIso(){
+    const v = ($('vc-reg').value || '').trim();
+    let m = v.match(/^(\d{1,2})[.\/-](\d{1,2})[.\/-](\d{4})$/), d, mo, y;
+    if (m){ d = +m[1]; mo = +m[2]; y = +m[3]; }
+    else if ((m = v.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/))){ y = +m[1]; mo = +m[2]; d = +m[3]; }
+    else if ((m = v.match(/^(\d{1,2})[.\/](\d{4})$/))){ d = 1; mo = +m[1]; y = +m[2]; }
+    else return '';
+    const dt = new Date(Date.UTC(y, mo - 1, d));
+    if (y < 1950 || y > new Date().getFullYear() || dt.getUTCMonth() !== mo - 1 || dt.getUTCDate() !== d) return '';
+    return y + '-' + String(mo).padStart(2, '0') + '-' + String(d).padStart(2, '0');
+  }
+  function regInput(el){
+    let raw = el.value.replace(/[^\d]/g, '').slice(0, 8);
+    if (/^\d{1,2}[.\/]\d{4}$/.test(el.value)) raw = null;   // формат ММ.РРРР залишаємо як є
+    if (raw !== null) el.value = raw.length > 4 ? raw.slice(0, 2) + '.' + raw.slice(2, 4) + '.' + raw.slice(4)
+                                 : raw.length > 2 ? raw.slice(0, 2) + '.' + raw.slice(2) : raw;
+    const ok = !el.value || regIso();
+    el.style.borderColor = ok ? '' : 'var(--red)';
+    $('vc-reg-hint').textContent = el.value && !ok && el.value.length >= 10 ? 'Перевірте дату — формат ДД.ММ.РРРР' : 'З техпаспорта (поле B), напр. 15.03.2016. Необовʼязково — робить оцінку класу точнішою.';
+    estimate();
   }
   function manual(){ st.manualEuro = true; }
   function basis(){ estimate(); }
@@ -174,7 +196,7 @@ const VinCert = (() => {
       broker_id: st.broker.id, vin: VinTools.normalize($('vc-vin').value),
       make: $('vc-make').value.trim() || null, model: $('vc-model').value.trim() || null, year: +$('vc-year').value || null,
       fuel: $('vc-fuel').value || null, engine_cc: +$('vc-cc').value || null, category: $('vc-cat').value,
-      country_mfg: $('vc-cm').value.trim() || null, country_origin: $('vc-co').value.trim() || null, first_reg: $('vc-reg').value || null,
+      country_mfg: $('vc-cm').value.trim() || null, country_origin: $('vc-co').value.trim() || null, first_reg: regIso() || null,
       euro: $('vc-euro').value.trim() || null, euro_basis: $('vc-basis').value,
       euro_note: $('vc-basis').value === 'estimate' ? (st.note || null) : null,
       client: $('vc-client').value.trim() || null, note: $('vc-note').value.trim() || null
@@ -219,5 +241,5 @@ const VinCert = (() => {
       '</div>' + (uploading ? '<div class="hint"><i class="ti ti-loader-2"></i> Створюємо посилання на PDF для месенджерів…</div>' : '');
   }
 
-  return { mount, decode, estimate, manual, basis, create };
+  return { mount, decode, estimate, manual, basis, create, regInput };
 })();

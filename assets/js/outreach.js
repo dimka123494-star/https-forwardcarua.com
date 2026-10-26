@@ -343,7 +343,15 @@
     const { data } = await sb.from('registry_claims').select('*').order('created_at', { ascending:false }).limit(200);
     claims = data || [];
     const box = $('oClaims'); if (!box) return;
-    const open = claims.filter(c => c.status === 'new' || c.status === 'verified');
+    // компанія вже зареєстрована як брокер — заявку закриваємо автоматично
+    const reg = {}; list.forEach(p => { if (p.edrpou && p.status === 'registered') reg[p.edrpou] = p; });
+    const stale = claims.filter(c => (c.status === 'new' || c.status === 'verified') && reg[c.edrpou]);
+    if (stale.length){
+      await sb.from('registry_claims').update({ status: 'invited' }).in('id', stale.map(c => c.id));
+      stale.forEach(c => c.status = 'invited');
+    }
+    const seen = {};
+    const open = claims.filter(c => (c.status === 'new' || c.status === 'verified') && !seen[c.edrpou] && (seen[c.edrpou] = 1));
     box.style.display = open.length ? '' : 'none';
     $('oClaimsList').innerHTML = open.map(c =>
       '<tr><td><div style="font-weight:500">' + esc(c.company) + '</div><div class="text-xs text-muted">ЄДРПОУ ' + esc(c.edrpou) + ' · <a href="/kompaniya/' + esc(c.edrpou) + '" target="_blank">профіль</a></div></td>' +
@@ -351,14 +359,16 @@
       '<td class="text-sm"><a href="tel:' + esc(c.phone) + '">' + esc(c.phone) + '</a><div class="text-xs"><a href="mailto:' + esc(c.email) + '">' + esc(c.email) + '</a></div></td>' +
       '<td class="text-xs text-muted">' + timeAgo(c.created_at) + (c.comment ? '<div>' + esc(c.comment) + '</div>' : '') + '</td>' +
       '<td><div class="row-actions">' +
-        (c.status === 'new' ? '<button class="btn-quiet" onclick="Outreach.claimVerify(\'' + c.id + '\')">Підтвердив по телефону</button>' : '<span class="text-xs" style="color:var(--green)">Підтверджено</span>') +
-        '<button class="btn btn-primary btn-sm" onclick="Outreach.claimInvite(\'' + c.id + '\')">Запросити в кабінет</button>' +
+        (c.status === 'new' ? '<button class="btn-quiet" onclick="Outreach.claimVerify(\'' + c.id + '\')">1. Підтвердив по телефону</button>' : '<span class="text-xs" style="color:var(--green)"><i class="ti ti-check"></i> Телефон підтверджено</span>') +
+        '<button class="btn btn-primary btn-sm" onclick="Outreach.claimInvite(\'' + c.id + '\')">' + (c.status === 'new' ? '' : '2. ') + 'Запросити в кабінет</button>' +
         '<button class="btn-quiet" onclick="Outreach.claimReject(\'' + c.id + '\')">Відхилити</button></div></td></tr>').join('');
   }
   async function claimSet(id, status){
     const sb = await db();
-    const { error } = await sb.from('registry_claims').update({ status }).eq('id', id);
-    if (error) return showToast('Не вдалося оновити', 'error');
+    const { data, error } = await sb.from('registry_claims').update({ status }).eq('id', id).select('id, status');
+    // RLS може «мовчки» не оновити рядок — тоді data порожній
+    if (error || !data || !data.length){ console.error('claimSet:', error); return showToast('Не вдалося оновити заявку' + (error ? ': ' + error.message : ' — немає прав на зміну'), 'error'); }
+    showToast({ verified: 'Позначено як підтверджено', invited: 'Запрошення надіслано', rejected: 'Заявку відхилено' }[status] || 'Оновлено');
     await loadClaims();
   }
   function claimInvite(id){
