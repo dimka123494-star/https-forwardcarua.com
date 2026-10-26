@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Перевірка довідки про авто — МитнийБрокер</title>
+<meta name="description" content="Перевірка інформаційної довідки про транспортний засіб за QR-кодом.">
+<meta name="robots" content="noindex, nofollow">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.7.0/dist/tabler-icons.min.css">
+<link rel="stylesheet" href="/assets/css/app.css">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<style>
+.vc-wrap{max-width:640px;margin:0 auto;padding:32px 16px 48px}
+.vc-ok{display:flex;gap:12px;align-items:center;padding:14px 16px;border-radius:var(--r);background:rgba(45,217,143,.1);border:.5px solid rgba(45,217,143,.35);margin-bottom:16px}
+.vc-ok i{font-size:28px;color:var(--green)}
+.vc-row{display:flex;justify-content:space-between;gap:14px;padding:10px 0;border-bottom:.5px solid var(--border);font-size:14px}
+.vc-row:last-child{border:none}
+.vc-row span:first-child{color:var(--muted)}
+.vc-row span:last-child{text-align:right;font-weight:500;overflow-wrap:anywhere}
+.vc-euro{display:flex;justify-content:space-between;align-items:center;gap:14px;padding:16px;border-radius:var(--r);border:1px solid var(--blue);margin:16px 0}
+.vc-euro b{font-family:var(--display);font-size:26px}
+</style>
+</head>
+<body>
+<div class="vc-wrap" id="root"><div class="text-sm text-muted">Перевіряємо довідку…</div></div>
+<script src="/assets/js/config.js"></script>
+<script src="/assets/js/db.js"></script>
+<script>
+const FUEL = { petrol:'Бензин', diesel:'Дизель', hybrid:'Гібрид', phev:'Плагін-гібрид', gas:'Газ / бензин', electric:'Електро' };
+const BASIS = { estimate:'Орієнтовно — за датою реєстрації / роком випуску', v9:'Підтверджено: поле V.9 свідоцтва про реєстрацію', coc:'Підтверджено: сертифікат відповідності (COC)', other:'Підтверджено іншим документом' };
+(async () => {
+  const id = location.pathname.split('/').filter(Boolean)[1] || new URLSearchParams(location.search).get('id');
+  const root = document.getElementById('root');
+  const c = /^[0-9a-f-]{36}$/i.test(id || '') ? await getVehicleCert(id) : null;
+  if (!c){
+    root.innerHTML = '<div class="empty"><strong>Довідку не знайдено</strong>Можливо, QR-код пошкоджений або довідку видалено. <br><a href="/">До каталогу брокерів</a></div>';
+    return;
+  }
+  const r = (k, v) => v ? '<div class="vc-row"><span>' + k + '</span><span>' + esc(v) + '</span></div>' : '';
+  const b = c.broker || {};
+  root.innerHTML =
+    '<p class="text-sm" style="margin-bottom:12px"><a href="/">МитнийБрокер</a></p>' +
+    '<div class="vc-ok"><i class="ti ti-shield-check"></i><div><div style="font-weight:600">Довідку видано через МитнийБрокер</div>' +
+      '<div class="text-xs text-muted">№ ' + esc(c.id.slice(0, 8).toUpperCase()) + ' від ' + fmtDate(c.created_at) + '. Дані нижче мають збігатися з PDF.</div></div></div>' +
+    '<div class="card"><h1 class="h-sm" style="margin-bottom:6px">' + esc([c.make, c.model, c.year].filter(Boolean).join(' ') || 'Транспортний засіб') + '</h1>' +
+      r('VIN', c.vin) + r('Тип пального', FUEL[c.fuel]) + r('Обʼєм двигуна', c.engine_cc ? c.engine_cc + ' см³' : '') +
+      r('Країна виробництва', c.country_mfg) + r('Країна походження', c.country_origin) +
+      r('Дата першої реєстрації', c.first_reg ? c.first_reg.split('-').reverse().join('.') : '') +
+      '<div class="vc-euro"><div><div class="text-xs text-muted">Екологічний клас</div><b>' + esc(c.euro || '—') + '</b></div>' +
+        '<div class="text-sm" style="text-align:right;max-width:60%">' + esc(BASIS[c.euro_basis] || '') + '</div></div>' +
+      (c.euro_basis === 'estimate' && c.euro_note ? '<p class="text-xs text-muted">' + esc(c.euro_note) + '</p>' : '') +
+    '</div>' +
+    '<div class="card" style="margin-top:16px"><div class="text-xs text-muted">Видав брокер</div>' +
+      '<div style="font-weight:600;margin:4px 0">' + esc(b.name || '') + (b.is_verified ? ' <i class="ti ti-rosette-discount-check" style="color:var(--green)" title="Контакти перевірено"></i>' : '') + '</div>' +
+      '<div class="text-sm text-muted">' + esc([b.city, b.phone].filter(Boolean).join(' · ')) + '</div>' +
+      (b.id ? '<a class="btn btn-ghost btn-sm" style="margin-top:10px" href="/broker/' + esc(b.id) + '">Профіль брокера</a>' : '') + '</div>' +
+    '<p class="text-xs text-muted" style="margin-top:16px">Довідка має інформаційний характер і не є офіційним документом. Орієнтовний екологічний клас визначено за строками введення норм Euro в ЄС; ' +
+      'остаточно його підтверджують сертифікат відповідності (COC) або поле V.9 свідоцтва про реєстрацію.</p>';
+})();
+</script>
+</body>
+</html>

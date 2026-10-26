@@ -339,6 +339,30 @@ async function createBrokerProfile(fields){
   return data;
 }
 
+/* ---------- Довідки по VIN ---------- */
+async function createVehicleCert(c){
+  const sb = await sbReady();
+  const { data, error } = await sb.from('vehicle_certs').insert(c).select('id').single();
+  if (error){
+    console.error('createVehicleCert:', error);
+    if (/row-level security/i.test(error.message || '')) throw new Error('На безкоштовному тарифі — 5 довідок на місяць. Оберіть платний тариф для безлімітних довідок.');
+    throw new Error('Не вдалося зберегти довідку');
+  }
+  return data.id;
+}
+async function myVehicleCerts(limit = 30){
+  const sb = await sbReady();
+  const { data, error } = await sb.from('vehicle_certs').select('*').order('created_at', { ascending: false }).limit(limit);
+  if (error) console.error('myVehicleCerts:', error);
+  return data || [];
+}
+async function getVehicleCert(id){
+  const sb = await sbReady();
+  const { data, error } = await sb.rpc('get_vehicle_cert', { cid: id });
+  if (error) console.error('getVehicleCert:', error);
+  return data || null;
+}
+
 /* ---------- Консультації бухгалтера та юриста (платні тарифи) ---------- */
 const CONSULT_KINDS = {
   accounting: { label: 'Бухгалтер', icon: 'ti-calculator', by: 'clerk.tax' },

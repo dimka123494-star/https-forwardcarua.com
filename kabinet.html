@@ -78,6 +78,7 @@
         <button class="cab-item"        data-pane="requests" onclick="pane('requests',this)"><i class="ti ti-inbox"></i>Заявки <span class="cab-badge" id="reqBadge" style="display:none">0</span></button>
         <button class="cab-item"        data-pane="reviews"  onclick="pane('reviews',this)"><i class="ti ti-star"></i>Відгуки <span class="cab-badge" id="rvBadge" style="display:none">0</span></button>
         <button class="cab-item"        data-pane="calc"     onclick="pane('calc',this)"><i class="ti ti-calculator"></i>Калькулятор</button>
+        <button class="cab-item"        data-pane="vin"      onclick="pane('vin',this)"><i class="ti ti-car"></i>Довідка VIN</button>
         <button class="cab-item"        data-pane="card"     onclick="pane('card',this)"><i class="ti ti-id-badge-2"></i>Візитівка</button>
         <button class="cab-item"        data-pane="consult"  onclick="pane('consult',this)"><i class="ti ti-headset"></i>Консультації <span class="cab-badge" id="csBadge" style="display:none">0</span></button>
         <button class="cab-item"        data-pane="services" onclick="pane('services',this)"><i class="ti ti-list-check"></i>Послуги</button>
@@ -125,6 +126,14 @@
         <p class="text-sm text-muted" style="margin-bottom:1.25rem">Порахуйте митні платежі й надішліть клієнту PDF з вашими контактами.
           Легкові авто — на всіх тарифах, будь-який товар за групами УКТ ЗЕД — на платних.</p>
         <div id="calcMount"></div>
+      </section>
+
+      <!-- ДОВІДКА VIN -->
+      <section class="cab-pane" id="pane-vin">
+        <h1 class="h-md" style="margin-bottom:.5rem">Довідка по VIN</h1>
+        <p class="text-sm text-muted" style="margin-bottom:1.25rem">Введіть VIN — марка, модель, рік, двигун і країна виробництва підтягнуться автоматично, а екологічний клас буде оцінено
+          за строками введення норм Euro в ЄС. Перевірте дані, за потреби підтвердьте клас з техпаспорта (поле V.9) чи COC — і надішліть клієнту PDF з QR-кодом для перевірки.</p>
+        <div id="vinMount"></div>
       </section>
 
       <!-- ВІЗИТІВКА -->
@@ -316,6 +325,8 @@
 <script src="/assets/js/customs-calc.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
 <script src="/assets/js/bizcard.js"></script>
+<script src="/assets/js/vin.js"></script>
+<script src="/assets/js/vin-cert.js"></script>
 <script>
 let broker = null, requests = [], myRevs = [], period = 'month', reqFilter = 'all';
 
@@ -733,6 +744,7 @@ window.addEventListener('DOMContentLoaded', async () => {
     (!broker.plan_expires_at || new Date(broker.plan_expires_at) > new Date());
   CustomsCalc.mount(document.getElementById('calcMount'), { broker, paid: paidPlan });
   renderCard();
+  VinCert.mount(document.getElementById('vinMount'), { broker });
   csHowChange(); myConsultations().then(l => { myCons = l; renderConsult(); });
   renderConsult();
   renderServices();

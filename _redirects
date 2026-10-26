@@ -22,6 +22,7 @@
 /zaproshennya    /zaproshennya.html  200
 /broker/*        /broker.html        200
 /v/*             /vizytka.html       200
+/d/*             /dovidka.html       200
 /terms           /terms.html         200
 /admin           /admin.html         200
 /taryfy          /index.html         200
