@@ -46,6 +46,21 @@ const VinCert = (() => {
             ['Euro 3','Euro 4','Euro 5','Euro 6','Euro 6c','Euro 6d-TEMP','Euro 6d','Не застосовується'].map(x => '<option value="' + x + '">').join('') + '</datalist></div>' +
           '<div class="field"><label class="label" for="vc-basis">Підстава</label><select class="input" id="vc-basis" onchange="VinCert.basis()">' + opt(BASIS, 'estimate') + '</select></div></div>' +
         '<div class="hint" id="vc-enote" style="margin:-4px 0 1rem"></div>' +
+        '<details id="vc-auc" style="margin:0 0 1rem;border:.5px solid var(--border);border-radius:var(--r);padding:12px 14px">' +
+          '<summary style="cursor:pointer;font-weight:600"><i class="ti ti-gavel"></i> Історія аукціону <span class="text-xs text-muted" id="vc-auc-hint"></span></summary>' +
+          '<div style="margin-top:12px"><div class="text-sm text-muted" style="margin-bottom:8px">Відкрийте пошук цього VIN на аукціонах — фото, пошкодження, ціна продажу:</div>' +
+          '<div class="row" id="vc-auc-links" style="gap:8px;flex-wrap:wrap;margin-bottom:12px"></div>' +
+          '<div class="text-sm text-muted" style="margin-bottom:8px">Знайшли лот? Внесіть дані — вони потраплять у довідку:</div>' +
+          '<div class="field-row"><div class="field"><label class="label" for="vc-a-src">Аукціон</label><select class="input" id="vc-a-src"><option value="">—</option>' +
+            ['Copart','IAAI','Manheim','ADESA','Інший'].map(x => '<option>' + x + '</option>').join('') + '</select></div>' +
+            '<div class="field"><label class="label" for="vc-a-lot">Номер лоту</label><input class="input" id="vc-a-lot" maxlength="30"></div></div>' +
+          '<div class="field-row"><div class="field"><label class="label" for="vc-a-date">Дата продажу</label><input class="input" id="vc-a-date" inputmode="numeric" maxlength="10" placeholder="ДД.ММ.РРРР" oninput="VinCert.dateMask(this)"></div>' +
+            '<div class="field"><label class="label" for="vc-a-price">Ціна продажу, $</label><input class="input" type="number" id="vc-a-price" min="0"></div></div>' +
+          '<div class="field-row"><div class="field"><label class="label" for="vc-a-dmg">Пошкодження</label><input class="input" id="vc-a-dmg" maxlength="80" placeholder="Напр.: Front end, Hail, Flood"></div>' +
+            '<div class="field"><label class="label" for="vc-a-title">Документи (title)</label><select class="input" id="vc-a-title"><option value="">—</option>' +
+            ['Clean','Salvage','Rebuilt','Certificate of Destruction','Parts only','Інше'].map(x => '<option>' + x + '</option>').join('') + '</select></div></div>' +
+          '<div class="field"><label class="label" for="vc-a-odo">Пробіг на аукціоні</label><input class="input" id="vc-a-odo" maxlength="20" placeholder="Напр.: 45 210 mi"></div>' +
+        '</div></details>' +
         '<div class="field-row"><div class="field"><label class="label" for="vc-client">Клієнт (для PDF)</label><input class="input" id="vc-client" placeholder="Необовʼязково"></div>' +
           '<div class="field"><label class="label" for="vc-note">Примітка</label><input class="input" id="vc-note" maxlength="300" placeholder="Напр.: пробіг, комплектація"></div></div>' +
         '<button class="btn btn-primary" id="vc-make-btn" onclick="VinCert.create()"><i class="ti ti-file-certificate"></i> Сформувати довідку PDF</button>' +
@@ -76,6 +91,7 @@ const VinCert = (() => {
     try{
       const d = await VinTools.decode($('vc-vin').value);
       st.data = d; st.manualEuro = false;
+      aucLinks(d);
       $('vc-vin').value = d.vin;
       $('vc-make').value = d.make || ''; $('vc-model').value = d.model || ''; $('vc-year').value = d.year || '';
       $('vc-fuel').value = d.fuel || ''; $('vc-cc').value = d.cc || ''; $('vc-cm').value = d.country || ''; $('vc-co').value = d.country || '';
@@ -117,6 +133,27 @@ const VinCert = (() => {
     el.style.borderColor = ok ? '' : 'var(--red)';
     $('vc-reg-hint').textContent = el.value && !ok && el.value.length >= 10 ? 'Перевірте дату — формат ДД.ММ.РРРР' : 'З техпаспорта (поле B), напр. 15.03.2016. Необовʼязково — робить оцінку класу точнішою.';
     estimate();
+  }
+  function aucLinks(d){
+    const v = encodeURIComponent(d.vin);
+    const L = [['Copart', 'https://www.copart.com/lotSearchResults?free=true&query=' + v],
+               ['IAAI', 'https://www.iaai.com/Search?Keyword=' + v],
+               ['Архів stat.vin', 'https://stat.vin/cars/' + v],
+               ['Пошук у Google', 'https://www.google.com/search?q=%22' + v + '%22+copart+OR+iaai']];
+    $('vc-auc-links').innerHTML = L.map(x => '<a class="btn btn-ghost btn-sm" href="' + x[1] + '" target="_blank" rel="noopener nofollow"><i class="ti ti-external-link"></i>' + x[0] + '</a>').join('');
+    ['vc-a-src','vc-a-lot','vc-a-date','vc-a-price','vc-a-dmg','vc-a-title','vc-a-odo'].forEach(id => $(id).value = '');
+    const na = d.market === 'na';
+    $('vc-auc').open = na;
+    $('vc-auc-hint').textContent = na ? '· авто з ринку США/Канади — ймовірно, з аукціону' : '· якщо авто куплене на аукціоні';
+  }
+  function dateMask(el){
+    const raw = el.value.replace(/\D/g, '').slice(0, 8);
+    el.value = raw.length > 4 ? raw.slice(0, 2) + '.' + raw.slice(2, 4) + '.' + raw.slice(4) : raw.length > 2 ? raw.slice(0, 2) + '.' + raw.slice(2) : raw;
+  }
+  function auction(){
+    const a = { source: $('vc-a-src').value, lot: $('vc-a-lot').value.trim(), date: $('vc-a-date').value.trim(),
+                price: +$('vc-a-price').value || null, damage: $('vc-a-dmg').value.trim(), title: $('vc-a-title').value, odometer: $('vc-a-odo').value.trim() };
+    return Object.values(a).some(Boolean) ? a : null;
   }
   function manual(){ st.manualEuro = true; }
   function basis(){ estimate(); }
@@ -163,6 +200,12 @@ const VinCert = (() => {
         '<div><div style="font-size:12px;color:#6b7280">Екологічний клас</div><div style="font-size:24px;font-weight:700">' + esc(c.euro || '—') + '</div></div>' +
         '<div style="flex:1;font-size:12px;color:#374151"><b>' + esc(BASIS[c.euro_basis] || '') + '</b>' + (c.euro_note && !confirmed ? '<br>' + esc(c.euro_note) : '') + '</div>' +
       '</div>' +
+      (c.auction ? '<div style="margin-top:14px;border:1px solid #e5e7eb;border-radius:10px;padding:12px 14px">' +
+        '<div style="font-weight:700;margin-bottom:6px">Історія аукціону</div><div style="display:flex;flex-wrap:wrap;gap:6px 22px;font-size:12px;color:#374151">' +
+        [['Аукціон', c.auction.source], ['Лот', c.auction.lot], ['Дата продажу', c.auction.date], ['Ціна продажу', c.auction.price ? '$' + Number(c.auction.price).toLocaleString('uk-UA') : ''],
+         ['Пошкодження', c.auction.damage], ['Документи', c.auction.title], ['Пробіг', c.auction.odometer]]
+          .filter(x => x[1]).map(x => '<span><span style="color:#6b7280">' + x[0] + ':</span> <b>' + esc(x[1]) + '</b></span>').join('') +
+        '</div><div style="font-size:10.5px;color:#6b7280;margin-top:6px">Внесено брокером за даними аукціону.</div></div>' : '') +
       (c.note ? '<p style="margin-top:12px;font-size:12px;color:#374151"><b>Примітка:</b> ' + esc(c.note) + '</p>' : '') +
       '<p style="font-size:10.5px;color:#6b7280;margin-top:14px">Довідка має інформаційний характер і не є офіційним документом. Дані отримано за структурою VIN-коду (WMI, ISO 3779) та з відкритої бази NHTSA. ' +
         'Орієнтовний екологічний клас визначено за строками введення норм Euro в ЄС; остаточно клас підтверджують сертифікат відповідності (COC) або поле V.9 свідоцтва про реєстрацію. ' +
@@ -199,7 +242,7 @@ const VinCert = (() => {
       country_mfg: $('vc-cm').value.trim() || null, country_origin: $('vc-co').value.trim() || null, first_reg: regIso() || null,
       euro: $('vc-euro').value.trim() || null, euro_basis: $('vc-basis').value,
       euro_note: $('vc-basis').value === 'estimate' ? (st.note || null) : null,
-      client: $('vc-client').value.trim() || null, note: $('vc-note').value.trim() || null
+      client: $('vc-client').value.trim() || null, note: $('vc-note').value.trim() || null, auction: auction()
     };
     if (!VinTools.valid(c.vin)) return msg('Перевірте VIN — 17 символів.');
     if (!c.make) return msg('Вкажіть марку авто.');
@@ -227,6 +270,7 @@ const VinCert = (() => {
     const text = 'Довідка про авто ' + [c.make, c.model, c.year].filter(Boolean).join(' ') + ' (VIN ' + c.vin + ')\n' +
       'Екологічний клас: ' + (c.euro || '—') + (c.euro_basis === 'estimate' ? ' (орієнтовно)' : '') + '\n' +
       (c.country_mfg ? 'Країна виробництва: ' + c.country_mfg + '\n' : '') +
+      (c.auction && (c.auction.source || c.auction.price) ? 'Аукціон: ' + [c.auction.source, c.auction.date, c.auction.price ? '$' + c.auction.price : '', c.auction.damage].filter(Boolean).join(', ') + '\n' : '') +
       (st.broker.name || '') + (st.broker.phone ? ', ' + st.broker.phone : '') + '\n' +
       (st.url ? 'PDF: ' + st.url + '\n' : '') + 'Перевірка: ' + verify;
     st.msg = text;
@@ -241,5 +285,5 @@ const VinCert = (() => {
       '</div>' + (uploading ? '<div class="hint"><i class="ti ti-loader-2"></i> Створюємо посилання на PDF для месенджерів…</div>' : '');
   }
 
-  return { mount, decode, estimate, manual, basis, create, regInput };
+  return { mount, decode, estimate, manual, basis, create, regInput, dateMask };
 })();

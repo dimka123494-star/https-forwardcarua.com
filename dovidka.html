@@ -51,6 +51,11 @@ const BASIS = { estimate:'Орієнтовно — за датою реєстр�
         '<div class="text-sm" style="text-align:right;max-width:60%">' + esc(BASIS[c.euro_basis] || '') + '</div></div>' +
       (c.euro_basis === 'estimate' && c.euro_note ? '<p class="text-xs text-muted">' + esc(c.euro_note) + '</p>' : '') +
     '</div>' +
+    (c.auction ? '<div class="card" style="margin-top:16px"><h2 class="h-sm" style="margin-bottom:6px">Історія аукціону</h2>' +
+      r('Аукціон', c.auction.source) + r('Лот', c.auction.lot) + r('Дата продажу', c.auction.date) +
+      r('Ціна продажу', c.auction.price ? '$' + Number(c.auction.price).toLocaleString('uk-UA') : '') + r('Пошкодження', c.auction.damage) +
+      r('Документи', c.auction.title) + r('Пробіг', c.auction.odometer) +
+      '<p class="text-xs text-muted" style="margin-top:8px">Внесено брокером за даними аукціону.</p></div>' : '') +
     '<div class="card" style="margin-top:16px"><div class="text-xs text-muted">Видав брокер</div>' +
       '<div style="font-weight:600;margin:4px 0">' + esc(b.name || '') + (b.is_verified ? ' <i class="ti ti-rosette-discount-check" style="color:var(--green)" title="Контакти перевірено"></i>' : '') + '</div>' +
       '<div class="text-sm text-muted">' + esc([b.city, b.phone].filter(Boolean).join(' · ')) + '</div>' +
