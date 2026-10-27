@@ -4,8 +4,10 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { createHmac } from "node:crypto";
 
-const MERCHANT = Deno.env.get("WFP_MERCHANT") ?? "";      // напр. forwardcarua_com
-const SECRET   = Deno.env.get("WFP_SECRET") ?? "";        // секретний ключ WayForPay
+// Ключі могли бути збережені під різними назвами — беремо першу задану
+const pick = (...names: string[]) => names.map((n) => Deno.env.get(n)).find((v) => v && v.trim())?.trim() ?? "";
+const MERCHANT = pick("WFP_MERCHANT", "WAYFORPAY_MERCHANT", "WAYFORPAY_MERCHANT_ACCOUNT", "WAYFORPAY_LOGIN", "WFP_MERCHANT_ACCOUNT", "MERCHANT_ACCOUNT");      // напр. forwardcarua_com
+const SECRET   = pick("WFP_SECRET", "WAYFORPAY_SECRET", "WAYFORPAY_SECRET_KEY", "WAYFORPAY_MERCHANT_SECRET", "WFP_SECRET_KEY", "MERCHANT_SECRET_KEY");        // секретний ключ WayForPay
 const DOMAIN   = "forwardcarua.com";
 
 const PLANS: Record<string, { label: string; month: number; year: number }> = {
@@ -16,14 +18,16 @@ const PLANS: Record<string, { label: string; month: number; year: number }> = {
 
 const CORS = {
   "Access-Control-Allow-Origin": "https://forwardcarua.com",
-  "Access-Control-Allow-Headers": "authorization, content-type",
+  "Access-Control-Allow-Headers": "authorization, content-type, apikey",
   "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
 };
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   // Перевірка налаштувань для адмінки: чи задані ключі (самі ключі не повертаємо)
-  if (req.method === "GET") return json({ ok: true, merchant: !!MERCHANT, secret: !!SECRET });
+  if (req.method === "GET") return json({ ok: true, merchant: !!MERCHANT, secret: !!SECRET,
+    // лише НАЗВИ змінних, схожих на ключі оплати (значення не віддаємо)
+    names: Object.keys(Deno.env.toObject()).filter((k) => /WFP|WAYFOR|MERCHANT/i.test(k)) });
   if (!MERCHANT || !SECRET) return json({ error: "not_configured" }, 503);
 
   try {

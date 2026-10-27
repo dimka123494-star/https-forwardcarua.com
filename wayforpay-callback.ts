@@ -4,7 +4,8 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { createHmac } from "node:crypto";
 
-const SECRET = Deno.env.get("WFP_SECRET") ?? "";
+const SECRET = ["WFP_SECRET", "WAYFORPAY_SECRET", "WAYFORPAY_SECRET_KEY", "WAYFORPAY_MERCHANT_SECRET", "WFP_SECRET_KEY", "MERCHANT_SECRET_KEY"]
+  .map((n) => Deno.env.get(n)).find((v) => v && v.trim())?.trim() ?? "";
 const hmac = (s: string) => createHmac("md5", SECRET).update(s, "utf8").digest("hex");
 
 // WayForPay шле JSON у тілі, інколи з Content-Type form-urlencoded — тоді весь JSON стає ключем форми
