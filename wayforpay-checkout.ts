@@ -4,8 +4,8 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { createHmac } from "node:crypto";
 
-const MERCHANT = Deno.env.get("WFP_MERCHANT")!;      // напр. forwardcarua_com
-const SECRET   = Deno.env.get("WFP_SECRET")!;        // секретний ключ WayForPay
+const MERCHANT = Deno.env.get("WFP_MERCHANT") ?? "";      // напр. forwardcarua_com
+const SECRET   = Deno.env.get("WFP_SECRET") ?? "";        // секретний ключ WayForPay
 const DOMAIN   = "forwardcarua.com";
 
 const PLANS: Record<string, { label: string; month: number; year: number }> = {
@@ -17,11 +17,14 @@ const PLANS: Record<string, { label: string; month: number; year: number }> = {
 const CORS = {
   "Access-Control-Allow-Origin": "https://forwardcarua.com",
   "Access-Control-Allow-Headers": "authorization, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
 };
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
+  // Перевірка налаштувань для адмінки: чи задані ключі (самі ключі не повертаємо)
+  if (req.method === "GET") return json({ ok: true, merchant: !!MERCHANT, secret: !!SECRET });
+  if (!MERCHANT || !SECRET) return json({ error: "not_configured" }, 503);
 
   try {
     // 1. Авторизація: платити може лише залогінений брокер
@@ -47,10 +50,11 @@ Deno.serve(async (req) => {
     // 3. Фіксуємо намір оплати
     const orderReference = `sub-${broker.id}-${Date.now()}`;
     const orderDate = Math.floor(Date.now() / 1000);
-    await sb.from("payments").insert({
+    const { error: payErr } = await sb.from("payments").insert({
       broker_id: broker.id, plan, period, amount,
-      order_reference: orderReference, status: "pending",
+      order_reference: orderReference, wayforpay_order_id: orderReference, status: "pending",
     });
+    if (payErr) { console.error("payments insert:", payErr); return json({ error: "server_error" }, 500); }
 
     // 4. Підпис HMAC_MD5 за специфікацією WayForPay
     const signatureBase = [
@@ -72,7 +76,9 @@ Deno.serve(async (req) => {
       productCount: [1],
       clientEmail: broker.email ?? user.email,
       language: "UA",
-      returnUrl: "https://forwardcarua.com/kabinet",
+      // Повернення клієнта WayForPay робить POST-запитом — статичний сайт його не прийме,
+      // тому повертаємо через функцію, яка перенаправляє в кабінет
+      returnUrl: `${Deno.env.get("SUPABASE_URL")}/functions/v1/wayforpay-callback?return=1`,
       serviceUrl: `${Deno.env.get("SUPABASE_URL")}/functions/v1/wayforpay-callback`,
     });
   } catch (e) {

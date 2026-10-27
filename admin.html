@@ -686,9 +686,12 @@ function renderPayments(){
 async function checkWfp(){
   const el = document.getElementById('wfpStatus');
   try{
-    const r = await fetch(CHECKOUT_FN, { method:'OPTIONS' });
-    el.textContent = r.ok ? 'функція розгорнута' : 'функція недоступна';
-    el.style.color = r.ok ? 'var(--green)' : 'var(--red)';
+    const r = await fetch(CHECKOUT_FN, { headers: { Authorization: 'Bearer ' + SUPABASE_ANON, apikey: SUPABASE_ANON } });
+    const d = r.ok ? await r.json() : null;
+    const ok = d && d.merchant && d.secret;
+    el.textContent = !d ? 'функція недоступна' : ok ? 'працює, ключі WayForPay задані'
+      : 'функція розгорнута, але не задані ключі ' + [!d.merchant && 'WFP_MERCHANT', !d.secret && 'WFP_SECRET'].filter(Boolean).join(' і ') + ' (Supabase → Edge Functions → Secrets)';
+    el.style.color = ok ? 'var(--green)' : 'var(--red)';
   }catch{ el.textContent = 'функція недоступна'; el.style.color = 'var(--red)'; }
 }
 
