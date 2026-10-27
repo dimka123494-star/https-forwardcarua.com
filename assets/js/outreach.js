@@ -360,7 +360,7 @@
       '<td class="text-xs text-muted">' + timeAgo(c.created_at) + (c.comment ? '<div>' + esc(c.comment) + '</div>' : '') + '</td>' +
       '<td><div class="row-actions">' +
         (c.status === 'new' ? '<button class="btn-quiet" onclick="Outreach.claimVerify(\'' + c.id + '\')">1. Підтвердив по телефону</button>' : '<span class="text-xs" style="color:var(--green)"><i class="ti ti-check"></i> Телефон підтверджено</span>') +
-        '<button class="btn btn-primary btn-sm" onclick="Outreach.claimInvite(\'' + c.id + '\')">' + (c.status === 'new' ? '' : '2. ') + 'Запросити в кабінет</button>' +
+        '<button class="btn btn-primary btn-sm" onclick="Outreach.claimInvite(\'' + c.id + '\')">' + (c.status === 'new' ? '' : '2. ') + 'Опублікувати й запросити</button>' +
         '<button class="btn-quiet" onclick="Outreach.claimReject(\'' + c.id + '\')">Відхилити</button></div></td></tr>').join('');
   }
   async function claimSet(id, status){
@@ -377,13 +377,19 @@
     const set = (k, v) => { const el = $(k); if (el) el.value = v || ''; };
     set('i-name', c.company); set('i-email', c.email); set('i-phone', c.phone);
     set('i-about', c.comment || '');
+    // місто й область — з картки залучення (дані реєстру)
+    const p = list.find(x => x.edrpou === c.edrpou);
+    if (p){ set('i-city', p.city); const r = $('i-region'); if (r && p.region) r.value = p.region; if (!c.phone && p.phone) set('i-phone', p.phone); }
     window.__claimInvite = c;
+    const b = $('i-btn'); if (b) b.textContent = 'Опублікувати й надіслати доступ';
+    const m = $('i-msg'); if (m){ m.className = 'msg show msg-ok'; m.textContent = 'Компанію перевірено — профіль зʼявиться в каталозі одразу, а на email прийде лист для входу в кабінет.'; }
   }
   async function afterClaimInvite(){
     const c = window.__claimInvite; if (!c) return; window.__claimInvite = null;
     await claimSet(c.id, 'invited');
     const p = list.find(x => x.edrpou === c.edrpou);
-    if (p) try{ Object.assign(p, await saveProspect({ id:p.id, status:'invited', email: p.email || c.email, phone: p.phone || c.phone, contact_person: p.contact_person || c.contact_name })); refresh(); }catch(e){}
+    // профіль уже опубліковано — картка залучення переходить у «Зареєструвались»
+    if (p) try{ Object.assign(p, await saveProspect({ id:p.id, status:'registered', email: p.email || c.email, phone: p.phone || c.phone, contact_person: p.contact_person || c.contact_name })); refresh(); }catch(e){}
   }
 
   async function init(){

@@ -138,7 +138,7 @@
         <div class="table-wrap table-scroll"><table>
           <thead><tr><th>Компанія</th><th>Контактна особа</th><th>Контакти</th><th>Коли</th><th></th></tr></thead>
           <tbody id="oClaimsList"></tbody></table></div>
-        <p class="hint"><b>Два кроки:</b> 1) зателефонуйте на офіційний номер компанії й переконайтеся, що людина справді її представляє; 2) натисніть «Запросити в кабінет» — компанія отримає доступ на email, профіль стане підтвердженим, а заявка зникне з цього списку.
+        <p class="hint"><b>Два кроки:</b> 1) зателефонуйте на офіційний номер компанії й переконайтеся, що людина справді її представляє; 2) натисніть «Опублікувати й запросити» — профіль одразу зʼявиться в каталозі, компанія отримає лист для входу в кабінет, а заявка зникне з цього списку.
           Підставки шаблонів: <code>{профіль}</code> — посилання на сторінку компанії в реєстрі.</p>
       </div>
       <div class="o-grid">
@@ -547,6 +547,8 @@ function openInvite(){
     'border-radius:var(--r-sm);padding:10px 12px;cursor:pointer;font-size:13px">' +
     '<span>' + s.icon + '</span><span>' + s.name + '</span></div>').join('');
   document.getElementById('i-msg').className = 'msg';
+  document.getElementById('i-btn').textContent = 'Надіслати запрошення';
+  window.__claimInvite = null;
   document.getElementById('inviteModal').classList.add('open');
 }
 function closeInvite(){ document.getElementById('inviteModal').classList.remove('open'); }
@@ -561,10 +563,12 @@ async function sendInvite(){
       name: v('i-name'), email: v('i-email'), city: v('i-city'),
       region: document.getElementById('i-region').value,
       phone: v('i-phone'), telegram: v('i-tg'), about: v('i-about'),
-      services: [...document.querySelectorAll('#iSvc .on')].map(el => el.dataset.name)
+      services: [...document.querySelectorAll('#iSvc .on')].map(el => el.dataset.name),
+      // заявка з реєстру, перевірена по телефону — публікуємо одразу
+      publish: !!window.__claimInvite, edrpou: window.__claimInvite ? window.__claimInvite.edrpou : undefined
     });
     m.className = 'msg show msg-ok';
-    m.textContent = 'Запрошення надіслано на ' + v('i-email');
+    m.textContent = (window.__claimInvite ? 'Профіль опубліковано в каталозі. ' : '') + 'Лист для входу надіслано на ' + v('i-email');
     if (window.Outreach) Outreach.afterInvite();
     ['i-name','i-email','i-city','i-phone','i-tg','i-about'].forEach(id => document.getElementById(id).value = '');
     document.querySelectorAll('#iSvc .on').forEach(el => el.classList.remove('on'));
@@ -572,7 +576,7 @@ async function sendInvite(){
   }catch(e){
     m.className = 'msg show msg-err'; m.textContent = e.message;
   }finally{
-    btn.disabled = false; btn.textContent = 'Надіслати запрошення';
+    btn.disabled = false; btn.textContent = window.__claimInvite ? 'Опублікувати й надіслати доступ' : 'Надіслати запрошення';
   }
 }
 
