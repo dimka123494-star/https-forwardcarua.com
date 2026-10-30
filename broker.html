@@ -90,6 +90,7 @@
 <script src="/assets/js/config.js"></script>
 <script src="/assets/js/db.js"></script>
 <script src="/assets/js/logistics.js"></script>
+<script src="/assets/js/cargo-public.js"></script>
 <script>
 let broker = null, reviews = [], filterStars = 'all', myStars = 0;
 
@@ -180,7 +181,9 @@ function render(){
     (broker.kind === 'carrier' ? '<div class="card" style="margin-bottom:16px"><div class="card-title">Транспорт і напрямки</div>' +
       ((broker.transport || []).length ? '<div class="lg-tags">' + broker.transport.map(x => '<span>' + esc(x) + '</span>').join('') + '</div>' : '') +
       ((broker.routes || []).length ? '<p class="text-sm" style="margin-top:10px"><i class="ti ti-route" style="color:var(--blue)"></i> ' + esc(broker.routes.join(', ')) + '</p>' : '') +
+      (broker.company_type === 'forwarder' ? '<p class="text-sm text-muted" style="margin-top:6px">Експедитор / логіст</p>' : '') +
       (broker.fleet ? '<p class="text-sm text-muted" style="margin-top:6px">Автопарк: ' + broker.fleet + ' авто</p>' : '') +
+      '<div id="bVehicles" style="margin-top:12px"></div>' +
       '<a class="btn btn-primary btn-sm" style="margin-top:12px" href="/perevezennya#cargoForm"><i class="ti ti-truck-delivery"></i> Розмістити вантаж</a></div>' : '') +
     ((broker.posts || []).length && typeof BORDER_POSTS !== 'undefined' ? '<div class="card" style="margin-bottom:16px"><div class="card-title">Працює в пунктах пропуску</div><div class="lg-tags">' +
       broker.posts.map(p => '<span>' + esc(postName(p)) + '</span>').join('') + '</div></div>' : '') +
@@ -246,6 +249,7 @@ function render(){
 
   bindStars();
   renderReviews();
+  if (broker.kind === 'carrier' && typeof CargoPublic !== 'undefined') CargoPublic.mountVehicles('bVehicles', broker.id);
 }
 
 function setStars(v){ filterStars = v; render(); }

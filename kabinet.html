@@ -78,6 +78,9 @@
       <div class="cab-menu">
         <button class="cab-item active" data-pane="dash"     onclick="pane('dash',this)"><i class="ti ti-layout-dashboard"></i>Дашборд</button>
         <button class="cab-item"        data-pane="cargo"    onclick="pane('cargo',this)" id="navCargo" style="display:none"><i class="ti ti-truck-delivery"></i>Вантажі <span class="cab-badge" id="cgBadge" style="display:none">0</span></button>
+        <button class="cab-item cr-only" data-pane="mycargo" onclick="pane('mycargo',this)" style="display:none"><i class="ti ti-package"></i>Мої вантажі</button>
+        <button class="cab-item cr-only" data-pane="offers"  onclick="pane('offers',this)" style="display:none"><i class="ti ti-truck"></i>Мій транспорт</button>
+        <button class="cab-item cr-only" data-pane="fleet"   onclick="pane('fleet',this)" style="display:none"><i class="ti ti-steering-wheel"></i>Автопарк</button>
         <button class="cab-item"        data-pane="requests" onclick="pane('requests',this)"><i class="ti ti-inbox"></i>Заявки <span class="cab-badge" id="reqBadge" style="display:none">0</span></button>
         <button class="cab-item"        data-pane="reviews"  onclick="pane('reviews',this)"><i class="ti ti-star"></i>Відгуки <span class="cab-badge" id="rvBadge" style="display:none">0</span></button>
         <button class="cab-item"        data-pane="calc"     onclick="pane('calc',this)"><i class="ti ti-calculator"></i>Калькулятор</button>
@@ -212,6 +215,56 @@
         <div id="cgList"><div class="text-sm text-muted">Завантаження…</div></div>
       </section>
 
+      <!-- МОЇ ВАНТАЖІ -->
+      <section class="cab-pane" id="pane-mycargo">
+        <h1 class="h-md" style="margin-bottom:.5rem">Мої вантажі</h1>
+        <p class="text-sm text-muted" style="margin-bottom:1rem">Розміщуйте вантажі своїх клієнтів — їх побачать усі перевізники біржі ВантажПоруч. Закрийте вантаж, коли знайшли машину.</p>
+        <div class="lg-grid"><div id="mcList"><div class="text-sm text-muted">Завантаження…</div></div>
+          <div class="card"><div id="mcForm"></div></div></div>
+      </section>
+
+      <!-- МІЙ ТРАНСПОРТ -->
+      <section class="cab-pane" id="pane-offers">
+        <h1 class="h-md" style="margin-bottom:.5rem">Мій вільний транспорт</h1>
+        <p class="text-sm text-muted" style="margin-bottom:1rem">Пропозиції показуються на сторінці <a href="/transport" target="_blank">«Транспорт»</a> 30 днів. Вантажовласники телефонують вам напряму.</p>
+        <div class="card" style="margin-bottom:16px">
+          <div class="card-title">Нова пропозиція</div>
+          <div class="field-row"><div class="field"><label class="label" for="of-fc">Звідки — країна *</label><select class="input" id="of-fc"></select></div>
+            <div class="field"><label class="label" for="of-fcity">Місто</label><input class="input" id="of-fcity"></div></div>
+          <div class="field-row"><div class="field"><label class="label" for="of-tc">Куди — країна *</label><select class="input" id="of-tc"></select></div>
+            <div class="field"><label class="label" for="of-tcity">Місто</label><input class="input" id="of-tcity"></div></div>
+          <div class="field-row"><div class="field"><label class="label" for="of-d1">Вільна з</label><input class="input" id="of-d1" placeholder="ДД.ММ.РРРР" maxlength="10" inputmode="numeric" oninput="CargoPublic.mask(this)"></div>
+            <div class="field"><label class="label" for="of-d2">до</label><input class="input" id="of-d2" placeholder="ДД.ММ.РРРР" maxlength="10" inputmode="numeric" oninput="CargoPublic.mask(this)"></div></div>
+          <div class="field-row"><div class="field"><label class="label" for="of-veh">Авто з автопарку</label><select class="input" id="of-veh"></select></div>
+            <div class="field"><label class="label" for="of-tr">Тип транспорту</label><select class="input" id="of-tr"></select></div></div>
+          <div class="field"><label class="label" for="of-notes">Примітка</label><input class="input" id="of-notes" maxlength="1000" placeholder="Догруз, ADR, гідроборт…"></div>
+          <div class="msg" id="ofMsg"></div>
+          <button class="btn btn-primary" onclick="ofSave()"><i class="ti ti-plus"></i> Розмістити транспорт</button>
+        </div>
+        <div id="ofList"></div>
+      </section>
+
+      <!-- АВТОПАРК -->
+      <section class="cab-pane" id="pane-fleet">
+        <h1 class="h-md" style="margin-bottom:.5rem">Автопарк</h1>
+        <p class="text-sm text-muted" style="margin-bottom:1rem">Додайте машини — після перевірки адміністратором вони отримають позначку «авто перевірено» у профілі та пропозиціях транспорту. Зміна даних авто повертає його на перевірку.</p>
+        <div class="card" style="margin-bottom:16px">
+          <div class="card-title" id="vhTitle">Додати авто</div>
+          <input type="hidden" id="vh-id">
+          <div class="field-row"><div class="field"><label class="label" for="vh-plate">Держномер *</label><input class="input" id="vh-plate" maxlength="12" placeholder="AC1234BH" style="text-transform:uppercase"></div>
+            <div class="field"><label class="label" for="vh-trailer">Номер причепа</label><input class="input" id="vh-trailer" maxlength="12" style="text-transform:uppercase"></div></div>
+          <div class="field-row"><div class="field"><label class="label" for="vh-kind">Тип кузова</label><select class="input" id="vh-kind"></select></div>
+            <div class="field"><label class="label" for="vh-make">Марка, модель</label><input class="input" id="vh-make" maxlength="60" placeholder="DAF XF"></div></div>
+          <div class="field-row"><div class="field"><label class="label" for="vh-year">Рік</label><input class="input" type="number" id="vh-year" min="1970" max="2100"></div>
+            <div class="field"><label class="label" for="vh-cap">Вантажопідйомність, т</label><input class="input" type="number" id="vh-cap" min="0" step="0.1"></div></div>
+          <div class="field" style="max-width:260px"><label class="label" for="vh-vol">Обʼєм кузова, м³</label><input class="input" type="number" id="vh-vol" min="0" step="0.1"></div>
+          <div class="msg" id="vhMsg"></div>
+          <button class="btn btn-primary" onclick="vhSave()" id="vhBtn">Додати авто</button>
+          <button class="btn btn-ghost" onclick="vhReset()" id="vhCancel" style="display:none">Скасувати</button>
+        </div>
+        <div id="vhList"></div>
+      </section>
+
       <!-- КОНСУЛЬТАЦІЇ -->
       <section class="cab-pane" id="pane-consult">
         <h1 class="h-md" style="margin-bottom:.5rem">Консультації з митних питань</h1>
@@ -319,7 +372,8 @@
             <div class="card-title" style="margin-top:1.5rem">Транспорт і напрямки</div>
             <div class="field"><label class="label">Тип транспорту</label><div class="pchips" id="pTransport"></div></div>
             <div class="field"><label class="label">Країни, куди / звідки возите</label><div class="pchips" id="pRoutes"></div></div>
-            <div class="field" style="max-width:200px"><label class="label" for="p-fleet">Кількість машин</label><input class="input" type="number" id="p-fleet" min="0" max="5000"></div>
+            <div class="field-row"><div class="field"><label class="label" for="p-ctype">Тип компанії</label><select class="input" id="p-ctype"><option value="carrier">Перевізник (власний транспорт)</option><option value="forwarder">Експедитор / логіст</option></select></div>
+              <div class="field"><label class="label" for="p-fleet">Кількість машин</label><input class="input" type="number" id="p-fleet" min="0" max="5000"></div></div>
           </div>
           <div id="pBroker">
             <div class="card-title" style="margin-top:1.5rem">Пункти пропуску й термінали, де ви працюєте</div>
@@ -355,6 +409,7 @@
 <script src="/assets/js/vin.js"></script>
 <script src="/assets/js/vin-cert.js"></script>
 <script src="/assets/js/logistics.js"></script>
+<script src="/assets/js/cargo-public.js"></script>
 <script>
 let broker = null, requests = [], myRevs = [], period = 'month', reqFilter = 'all';
 
@@ -595,7 +650,7 @@ function fillProfile(){
   if (carrier){
     chips('pTransport', TRANSPORT_TYPES, broker.transport);
     chips('pRoutes', CARGO_COUNTRIES.filter(c => c !== 'Інша країна'), broker.routes);
-    set('p-fleet', broker.fleet);
+    set('p-fleet', broker.fleet); set('p-ctype', broker.company_type || 'carrier');
   } else chips('pPosts', BORDER_POSTS, broker.posts, p => p.name);
   document.getElementById('p-region').value = broker.region || '';
 }
@@ -611,7 +666,7 @@ async function saveProfile(){
       ...(broker.kind === 'carrier'
         ? { transport: [...document.querySelectorAll('#pTransport .on')].map(e => e.dataset.v),
             routes: [...document.querySelectorAll('#pRoutes .on')].map(e => e.dataset.v),
-            fleet: Number(v('p-fleet')) || null }
+            fleet: Number(v('p-fleet')) || null, company_type: document.getElementById('p-ctype').value }
         : { posts: [...document.querySelectorAll('#pPosts .on')].map(e => e.dataset.v) })
     });
     broker = await getMyBroker();
@@ -689,6 +744,9 @@ async function csSend(){
 let cargo = [], cgResp = {}, cgContacts = {};
 async function initCargo(){
   document.getElementById('navCargo').style.display = '';
+  document.querySelectorAll('.cr-only').forEach(b => b.style.display = '');
+  const brand = document.querySelector('.nav-brand'); if (brand) brand.innerHTML = 'Вантаж<span>Поруч</span>';
+  initFleet(); initOffers(); initMyCargo();
   document.getElementById('cgCountry').innerHTML = '<option value="">Усі країни</option>' + CARGO_COUNTRIES.map(c => '<option>' + c + '</option>').join('');
   document.getElementById('cgTransport').innerHTML = '<option value="">Будь-який транспорт</option>' + TRANSPORT_TYPES.map(c => '<option>' + c + '</option>').join('');
   document.getElementById('cgMine').checked = (broker.routes || []).length > 0;
@@ -741,6 +799,94 @@ async function cgRespond(id, btn){
     renderCargo();
   }catch(e){ showToast(e.message, 'error'); btn.disabled = false; }
 }
+
+/* ---------- Автопарк ---------- */
+let vehs = [];
+const VST = { pending: ['на перевірці', 'var(--amber)'], verified: ['перевірено', 'var(--green)'], rejected: ['відхилено', 'var(--red)'] };
+async function initFleet(){
+  document.getElementById('vh-kind').innerHTML = '<option value="">—</option>' + TRANSPORT_TYPES.map(t => '<option>' + t + '</option>').join('');
+  vehs = await myVehicles(); renderFleet(); fillVehSelect();
+}
+function renderFleet(){
+  document.getElementById('vhList').innerHTML = vehs.length ? vehs.map(v =>
+    '<div class="cargo-item"><div class="spread" style="gap:10px;flex-wrap:wrap"><div><b>' + esc(v.plate) + '</b>' + (v.trailer_plate ? ' / ' + esc(v.trailer_plate) : '') +
+      ' · ' + esc([v.kind, v.make, v.year, v.capacity_t ? v.capacity_t + ' т' : '', v.volume_m3 ? v.volume_m3 + ' м³' : ''].filter(Boolean).join(' · ')) +
+      '<div class="text-xs" style="color:' + VST[v.status][1] + ';margin-top:3px"><i class="ti ti-shield-check"></i> ' + VST[v.status][0] + (v.admin_note ? ' — ' + esc(v.admin_note) : '') + '</div></div>' +
+      '<div class="row" style="gap:6px"><button class="btn btn-ghost btn-sm" onclick="vhEdit(\'' + v.id + '\')"><i class="ti ti-pencil"></i></button>' +
+      '<button class="btn btn-ghost btn-sm" onclick="vhDel(\'' + v.id + '\')"><i class="ti ti-trash"></i></button></div></div></div>').join('')
+    : '<div class="text-sm text-muted">Ще немає авто. Додайте першу машину вище.</div>';
+}
+function vhReset(){ ['vh-id','vh-plate','vh-trailer','vh-make','vh-year','vh-cap','vh-vol'].forEach(i => document.getElementById(i).value = ''); document.getElementById('vh-kind').value = '';
+  document.getElementById('vhTitle').textContent = 'Додати авто'; document.getElementById('vhBtn').textContent = 'Додати авто'; document.getElementById('vhCancel').style.display = 'none'; }
+function vhEdit(id){ const v = vehs.find(x => x.id === id); if (!v) return;
+  const set = (i, val) => document.getElementById(i).value = val ?? '';
+  set('vh-id', v.id); set('vh-plate', v.plate); set('vh-trailer', v.trailer_plate); set('vh-kind', v.kind || ''); set('vh-make', v.make); set('vh-year', v.year); set('vh-cap', v.capacity_t); set('vh-vol', v.volume_m3);
+  document.getElementById('vhTitle').textContent = 'Редагувати ' + v.plate; document.getElementById('vhBtn').textContent = 'Зберегти'; document.getElementById('vhCancel').style.display = '';
+  window.scrollTo({ top: 0, behavior: 'smooth' }); }
+async function vhSave(){
+  const g = i => document.getElementById(i).value.trim(), m = document.getElementById('vhMsg');
+  try{
+    await saveVehicle({ id: g('vh-id') || null, plate: g('vh-plate').toUpperCase(), trailer_plate: g('vh-trailer').toUpperCase(), kind: g('vh-kind'), make: g('vh-make'),
+      year: Number(g('vh-year')) || null, capacity_t: Number(g('vh-cap')) || null, volume_m3: Number(g('vh-vol')) || null });
+    m.className = 'msg msg-ok show'; m.textContent = 'Збережено. Авто передано на перевірку.';
+    vhReset(); vehs = await myVehicles(); renderFleet(); fillVehSelect();
+  }catch(e){ m.className = 'msg msg-err show'; m.textContent = e.message; }
+}
+async function vhDel(id){ try{ await deleteVehicle(id); vehs = vehs.filter(v => v.id !== id); renderFleet(); fillVehSelect(); }catch(e){ showToast(e.message, 'error'); } }
+
+/* ---------- Мій транспорт ---------- */
+let offers = [];
+function fillVehSelect(){
+  const s = document.getElementById('of-veh'); if (!s) return;
+  s.innerHTML = '<option value="">— без привʼязки —</option>' + vehs.filter(v => v.status !== 'rejected').map(v => '<option value="' + v.id + '">' + esc(v.plate + ' · ' + (v.kind || '') + (v.capacity_t ? ' · ' + v.capacity_t + ' т' : '')) + '</option>').join('');
+  s.onchange = () => { const v = vehs.find(x => x.id === s.value); if (v && v.kind) document.getElementById('of-tr').value = v.kind; };
+}
+async function initOffers(){
+  const c = '<option value="">Оберіть</option>' + CARGO_COUNTRIES.map(x => '<option>' + x + '</option>').join('');
+  document.getElementById('of-fc').innerHTML = c; document.getElementById('of-tc').innerHTML = c;
+  document.getElementById('of-tr').innerHTML = '<option value="">—</option>' + TRANSPORT_TYPES.map(t => '<option>' + t + '</option>').join('');
+  offers = await myOffers(); renderOffers();
+}
+const dIso = v => { const m = String(v || '').match(/^(\d{2})\.(\d{2})\.(\d{4})$/); return m ? m[3] + '-' + m[2] + '-' + m[1] : ''; };
+const dUa = d => d ? d.split('-').reverse().join('.') : '';
+function renderOffers(){
+  document.getElementById('ofList').innerHTML = offers.length ? offers.map(o =>
+    '<div class="cargo-item"' + (o.status === 'closed' ? ' style="opacity:.55"' : '') + '><div class="spread" style="gap:10px;flex-wrap:wrap"><div>' +
+      '<div class="cargo-route">' + esc([o.from_city, o.from_country].filter(Boolean).join(', ')) + ' → ' + esc([o.to_city, o.to_country].filter(Boolean).join(', ')) + '</div>' +
+      '<div class="text-xs text-muted">' + esc([o.transport, o.date_from ? 'з ' + dUa(o.date_from) : '', o.date_to ? 'до ' + dUa(o.date_to) : '', o.notes].filter(Boolean).join(' · ')) + '</div></div>' +
+      '<button class="btn btn-ghost btn-sm" onclick="ofToggle(\'' + o.id + '\',\'' + (o.status === 'open' ? 'closed' : 'open') + '\')">' + (o.status === 'open' ? 'Зняти' : 'Повернути') + '</button></div></div>').join('')
+    : '<div class="text-sm text-muted">Ще немає пропозицій.</div>';
+}
+async function ofSave(){
+  const g = i => document.getElementById(i).value.trim(), m = document.getElementById('ofMsg');
+  const v = vehs.find(x => x.id === g('of-veh'));
+  try{
+    await saveOffer({ from_country: g('of-fc'), from_city: g('of-fcity'), to_country: g('of-tc'), to_city: g('of-tcity'),
+      date_from: dIso(g('of-d1')), date_to: dIso(g('of-d2')), transport: g('of-tr') || (v && v.kind) || '', vehicle_id: g('of-veh'),
+      capacity_t: v ? v.capacity_t : null, volume_m3: v ? v.volume_m3 : null, notes: g('of-notes') });
+    m.className = 'msg msg-ok show'; m.textContent = 'Транспорт розміщено на біржі.';
+    offers = await myOffers(); renderOffers(); track('truck_offer');
+  }catch(e){ m.className = 'msg msg-err show'; m.textContent = e.message; }
+}
+async function ofToggle(id, st){ try{ await setOfferStatus(id, st); offers.find(o => o.id === id).status = st; renderOffers(); }catch(e){ showToast(e.message, 'error'); } }
+
+/* ---------- Мої вантажі ---------- */
+let myCargo = [];
+async function initMyCargo(){
+  CargoPublic.mountForm('mcForm');
+  const set = (i, v) => { const el = document.getElementById(i); if (el && v) el.value = v; };
+  set('cg-name', broker.name); set('cg-company', broker.name); set('cg-phone', broker.phone); set('cg-tg', broker.telegram || broker.email);
+  CargoPublic.onSent = async () => { myCargo = await myPostedCargo(); renderMyCargo(); setTimeout(() => { CargoPublic.mountForm('mcForm'); set('cg-name', broker.name); set('cg-company', broker.name); set('cg-phone', broker.phone); set('cg-tg', broker.telegram || broker.email); }, 2500); };
+  myCargo = await myPostedCargo(); renderMyCargo();
+}
+function renderMyCargo(){
+  document.getElementById('mcList').innerHTML = myCargo.length ? myCargo.map(x =>
+    '<div class="cargo-item"' + (x.status === 'closed' ? ' style="opacity:.55"' : '') + '><div class="cargo-route">' + esc([x.from_city, x.from_country].filter(Boolean).join(', ')) + ' → ' + esc([x.to_city, x.to_country].filter(Boolean).join(', ')) + '</div>' +
+      '<div class="text-sm">' + esc(x.cargo) + '</div><div class="spread" style="margin-top:6px"><span class="text-xs text-muted">' + fmtDate(x.created_at) + ' · відгуків перевізників: <b>' + x.responses_count + '</b></span>' +
+      '<button class="btn btn-ghost btn-sm" onclick="mcToggle(\'' + x.id + '\',\'' + (x.status === 'open' ? 'closed' : 'open') + '\')">' + (x.status === 'open' ? 'Закрити' : 'Відкрити') + '</button></div></div>').join('')
+    : '<div class="card"><div class="text-sm text-muted">Ви ще не розміщували вантажів. Заповніть форму праворуч.</div></div>';
+}
+async function mcToggle(id, st){ try{ await setMyCargoStatus(id, st); myCargo.find(x => x.id === id).status = st; renderMyCargo(); }catch(e){ showToast(e.message, 'error'); } }
 
 /* ---------- Візитівка ---------- */
 const bc = { color: '#10B981', theme: 'dark' };

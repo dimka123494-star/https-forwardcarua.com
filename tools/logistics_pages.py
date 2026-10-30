@@ -1,119 +1,224 @@
-# Розділ для перевізників і логістів. Виконується з build.py (exec), тому бачить page(), write(), E, SITE, faq_html тощо.
+# Біржа «ВантажПоруч» (перевізники, логісти, вантажі, транспорт) і карта пунктів пропуску.
+# Виконується з build.py (exec), тому бачить page(), write(), E, SITE, faq_html, STATIC_NAV тощо.
+
+BRAND = 'ВантажПоруч'
+
+def freight_nav(active=''):
+    links = [('/perevezennya', 'Головна'), ('/vantazhi', 'Вантажі'), ('/transport', 'Транспорт'), ('/perevizhnyky', 'Перевізники'),
+             ('/punkty-propusku', 'Пункти пропуску'), ('/dlya-perevizhnykiv', 'Для перевізників')]
+    a = ''.join('<a class="nav-link%s" href="%s">%s</a>' % (' active' if h == active else '', h, t) for h, t in links)
+    m = ''.join('<a href="%s">%s</a>' % (h, t) for h, t in links)
+    return ('<nav class="nav">\n  <a class="nav-brand" href="/perevezennya">Вантаж<span>Поруч</span></a>\n'
+            '  <div class="nav-links">' + a + '</div>\n'
+            '  <div class="nav-actions">\n    <a class="btn btn-ghost btn-sm" id="loginBtn" href="/vhid">Увійти</a>\n'
+            '    <a class="btn btn-primary btn-sm" href="/perevezennya#cargoForm"><i class="ti ti-plus"></i>Додати вантаж</a>\n'
+            '    <button class="nav-burger" onclick="toggleMenu()" aria-label="Меню"><i class="ti ti-menu-2"></i></button>\n  </div>\n</nav>\n\n'
+            '<div class="mobile-menu" id="menu">' + m + '<a href="/vhid?role=carrier">Реєстрація перевізника</a><a href="/">Митні брокери — МитнийБрокер</a>'
+            '<a href="/vhid" id="menuAuth">Увійти в кабінет</a></div>\n\n')
+
+FREIGHT_NOTE = ('<section class="container"><p class="text-xs text-muted" style="padding:1rem 0 0">' + BRAND +
+                ' — біржа вантажів і транспорту від команди <a href="/">МитнийБрокер</a>: перевізники, експедитори, вантажовласники та митні брокери в одному місці.</p></section>')
+
+AUTH_JS = ('<script>(async()=>{try{const u=await currentUser();if(!u)return;const b=document.getElementById("loginBtn");'
+           'if(b){b.textContent="Кабінет";b.href="/kabinet";}const m=document.getElementById("menuAuth");if(m){m.textContent="Мій кабінет";m.href="/kabinet";}}catch(e){}})();</script>\n')
+
+def fpage(path, title, desc, body, ld, active, scripts=''):
+    html_ = page(path, title, desc, body + FREIGHT_NOTE, ld, active=None, scripts=scripts + AUTH_JS)
+    assert STATIC_NAV in html_, 'freight nav: не знайдено STATIC_NAV'
+    return (html_.replace(STATIC_NAV, freight_nav(active))
+                 .replace('<meta property="og:site_name" content="МитнийБрокер">', '<meta property="og:site_name" content="' + BRAND + '">'))
 
 CARGO_FAQ = [
- ('Скільки коштує розмістити заявку на перевезення?',
-  'Нічого. Заявку бачать перевізники, зареєстровані на платформі, і ті, хто готовий взяти вантаж, телефонують вам напряму. Комісії з перевезення ми не беремо.'),
- ('Хто побачить мої контакти?',
-  'Опис вантажу бачать зареєстровані перевізники, а ваш телефон і email — лише ті з них, хто відгукнувся на заявку. На публічних сторінках сайту контакти не показуються.'),
+ ('Скільки коштує розмістити вантаж?',
+  'Нічого. Вантаж бачать усі відвідувачі біржі, а ваші контакти — лише перевізники, які відгукнулися. Комісії з перевезення немає.'),
+ ('Як знайти вільну машину?',
+  'Відкрийте розділ «Транспорт»: там перевізники розміщують вільні машини з маршрутом і датою. Телефонуйте напряму.'),
  ('Чи можна одразу знайти митного брокера?',
-  'Так. Позначте «потрібне митне оформлення» — і скористайтеся каталогом брокерів або картою пунктів пропуску, щоб знайти брокера на кордоні чи в місці доставки.'),
+  'Так. Позначте «потрібне митне оформлення» — і скористайтеся каталогом брокерів МитнийБрокер або картою пунктів пропуску.'),
+ ('Що означає «авто перевірено»?',
+  'Перевізник додав машину з держномером і характеристиками, а адміністратор біржі перевірив дані. Це додатковий сигнал надійності.'),
 ]
 
 CARRIER_FAQ = [
  ('Скільки коштує розміщення перевізника?',
-  'Профіль у каталозі перевізників безкоштовний. На безкоштовному тарифі можна відгукнутися на 5 заявок на місяць, на платних (від 299 грн) — без обмежень, плюс вища позиція в каталозі.'),
- ('Звідки беруться заявки на перевезення?',
-  'Від власників вантажів, логістів і митних брокерів, які оформлюють імпорт та експорт: вони залишають заявку на forwardcarua.com, а ви бачите її в кабінеті й відгукуєтесь.'),
- ('Ви берете комісію з рейсу?',
-  'Ні. Ціну й умови ви погоджуєте із замовником напряму.'),
+  'Профіль, автопарк і пропозиції транспорту — безкоштовно. На безкоштовному тарифі можна відкрити контакти 5 вантажів на місяць, на платних (від 299 грн) — без обмежень, плюс вища позиція.'),
+ ('Чи підходить біржа експедиторам і логістам?',
+  'Так. Під час реєстрації оберіть «Експедитор / логіст»: ви зможете і шукати транспорт, і розміщувати вантажі своїх клієнтів, і відгукуватися на вантажі.'),
+ ('Ви берете комісію з рейсу?', 'Ні. Ціну й умови ви погоджуєте із замовником напряму.'),
 ]
 
 LOG_SCRIPTS = ('<script src="/assets/js/config.js"></script>\n<script src="/assets/js/db.js"></script>\n'
                '<script src="/assets/js/logistics.js"></script>\n<script src="/assets/js/cargo-public.js"></script>\n')
 
+FORM_CARD = ('<div class="card" id="cargoForm"><div id="cargoFormMount"></div></div>')
 
-def cargo_page():
+
+def freight_home():
     body = (
-        '<section class="container page-hero"><div class="crumbs"><a href="/">Каталог</a> › Перевезення</div>'
-        '<h1 class="h-lg">Перевезення вантажів<br><span style="color:var(--blue)">з Європи, в Європу та по Україні</span></h1>'
-        '<p class="lead">Опишіть вантаж — заявку побачать перевізники платформи, і ті, хто готовий взяти рейс, зателефонують вам. '
-        'Безкоштовно, без комісії. Потрібне митне оформлення — тут же знайдете брокера.</p>'
-        '<div class="row" style="margin-top:1.5rem"><a class="btn btn-primary" href="#cargoForm" style="padding:13px 26px"><i class="ti ti-truck-delivery"></i>Розмістити вантаж</a>'
-        '<a class="btn btn-ghost" href="/punkty-propusku" style="padding:13px 22px">Брокери в пунктах пропуску</a>'
-        '<a class="btn btn-ghost" href="/dlya-perevizhnykiv" style="padding:13px 22px">Я перевізник</a></div></section>'
+        '<section class="container page-hero"><div class="crumbs">' + BRAND + ' › Біржа вантажів</div>'
+        '<h1 class="h-lg">Біржа вантажів і транспорту<br><span style="color:var(--blue)">з Європи, в Європу та по Україні</span></h1>'
+        '<p class="lead">Розмістіть вантаж — перевізники відгукнуться самі. Шукаєте рейс — відкрийте стрічку вантажів. '
+        'Без комісії. Митне оформлення й брокери на кордоні — поруч.</p>'
+        '<div class="row" style="margin-top:1.5rem"><a class="btn btn-primary" href="#cargoForm" style="padding:13px 26px"><i class="ti ti-package"></i>Додати вантаж</a>'
+        '<a class="btn btn-ghost" href="/vantazhi" style="padding:13px 22px"><i class="ti ti-list-search"></i>Знайти вантаж</a>'
+        '<a class="btn btn-ghost" href="/transport" style="padding:13px 22px"><i class="ti ti-truck"></i>Знайти транспорт</a></div></section>'
         '<section class="container" style="padding-bottom:1rem"><div class="lg-grid">'
-        '<div class="card" id="cargoForm"><div id="cargoFormMount"></div></div>'
-        '<div class="lg-side">'
-        '<div class="card"><i class="ti ti-users" style="color:var(--blue);font-size:22px"></i><h3 class="h-sm" style="margin:.4rem 0">Перевізники відгукуються самі</h3>'
-        '<p class="text-sm text-muted">Заявка йде всім перевізникам платформи. Відгукнутись і побачити ваш телефон можуть лише зареєстровані компанії.</p></div>'
-        '<div class="card"><i class="ti ti-file-certificate" style="color:var(--blue);font-size:22px"></i><h3 class="h-sm" style="margin:.4rem 0">Митне оформлення поруч</h3>'
-        '<p class="text-sm text-muted">Експортна чи імпортна декларація, транзит T1, оформлення на кордоні — <a href="/">каталог брокерів</a> і <a href="/punkty-propusku">карта пунктів пропуску</a>.</p></div>'
-        '<div class="card"><i class="ti ti-calculator" style="color:var(--blue);font-size:22px"></i><h3 class="h-sm" style="margin:.4rem 0">Митні платежі заздалегідь</h3>'
-        '<p class="text-sm text-muted">Порахуйте мито, акциз і ПДВ у <a href="/kalkulyator-rozmytnennya">калькуляторі</a> — або попросіть розрахунок за кодом УКТ ЗЕД у брокера.</p></div>'
-        '</div></div></section>'
-        '<section class="container" style="padding:2rem 0 1rem"><div class="spread" style="margin-bottom:1rem;flex-wrap:wrap;gap:10px">'
-        '<h2 class="h-md">Перевізники на платформі</h2>'
-        '<div class="row" style="gap:8px"><select class="input" id="fTransport" style="width:auto"><option value="">Будь-який транспорт</option></select>'
-        '<select class="input" id="fRoute" style="width:auto"><option value="">Будь-яка країна</option></select></div></div>'
-        '<div id="carrierList" class="lg-carriers"><div class="text-sm text-muted">Завантаження…</div></div></section>'
-        '<section class="container seo"><h3>Часті запитання</h3><div style="max-width:820px">' + faq_html(CARGO_FAQ) + '</div></section>'
-        + region_links())
-    ld = [crumbs_ld([('Каталог', '/'), ('Перевезення', '/perevezennya')]), faq_ld(CARGO_FAQ)]
-    write('perevezennya.html', page('/perevezennya',
-          'Перевезення вантажів: заявка перевізникам безкоштовно | МитнийБрокер',
-          'Розмістіть заявку на перевезення вантажу з Європи, в Європу чи по Україні — перевізники зателефонують самі. Тент, реф, контейнер, автовоз, збірні вантажі. Митне оформлення поруч.',
-          body, ld, active='/perevezennya', scripts=LOG_SCRIPTS + '<script>CargoPublic.mountForm("cargoFormMount");CargoPublic.mountCarriers("carrierList");</script>\n'))
+        '<div><div class="spread" style="margin-bottom:10px"><h2 class="h-sm">Свіжі вантажі</h2><a href="/vantazhi" class="text-sm">Усі вантажі →</a></div><div id="homeCargo"></div>'
+        '<div class="spread" style="margin:1.5rem 0 10px"><h2 class="h-sm">Вільний транспорт</h2><a href="/transport" class="text-sm">Увесь транспорт →</a></div><div id="homeOffers"></div></div>'
+        '<div class="lg-side">' + FORM_CARD + '</div></div></section>'
+        '<section class="container seo"><div class="seo-grid">'
+        '<div class="card"><i class="ti ti-truck-delivery"></i><h3>Перевізникам</h3><p>Стрічка вантажів, пропозиції вільного транспорту, автопарк з перевіркою. <a href="/dlya-perevizhnykiv">Як це працює</a></p></div>'
+        '<div class="card"><i class="ti ti-route"></i><h3>Експедиторам і логістам</h3><p>Розміщуйте вантажі клієнтів, шукайте машини й брокерів на кордоні з одного кабінету.</p></div>'
+        '<div class="card"><i class="ti ti-building-bank"></i><h3>Митне оформлення</h3><p><a href="/punkty-propusku">Брокери в пунктах пропуску</a>, <a href="/">каталог митних брокерів</a> і <a href="/kalkulyator-rozmytnennya">калькулятор платежів</a>.</p></div>'
+        '</div><h3>Часті запитання</h3><div style="max-width:820px">' + faq_html(CARGO_FAQ) + '</div></section>')
+    ld = [crumbs_ld([(BRAND, '/perevezennya')]), faq_ld(CARGO_FAQ)]
+    write('perevezennya.html', fpage('/perevezennya',
+          'Біржа вантажів і транспорту ' + BRAND + ' — вантажі й вільні машини без комісії',
+          'Біржа вантажів ' + BRAND + ': розмістіть вантаж безкоштовно або знайдіть рейс. Перевезення з Європи, в Європу та по Україні — тент, реф, контейнер, автовоз. Митні брокери на кордоні поруч.',
+          body, ld, '/perevezennya', scripts=LOG_SCRIPTS +
+          '<script>CargoPublic.mountForm("cargoFormMount");CargoPublic.mountCargoBoard("homeCargo",{compact:true,limit:6});CargoPublic.mountOffers("homeOffers",{compact:true,limit:5});</script>\n'))
+
+
+def cargo_board_page():
+    body = ('<section class="container page-hero" style="padding-bottom:1rem"><div class="crumbs"><a href="/perevezennya">' + BRAND + '</a> › Вантажі</div>'
+            '<div class="spread" style="flex-wrap:wrap;gap:12px"><h1 class="h-lg" style="font-size:clamp(28px,5vw,40px)">Вантажі для перевезення</h1>'
+            '<a class="btn btn-primary" href="/perevezennya#cargoForm"><i class="ti ti-plus"></i>Додати вантаж</a></div>'
+            '<p class="lead">Свіжі заявки від вантажовласників, логістів і митних брокерів. Контакти замовника відкриваються зареєстрованим перевізникам.</p></section>'
+            '<section class="container" style="padding-bottom:2rem"><div id="cargoBoard"><div class="text-sm text-muted">Завантаження…</div></div></section>')
+    ld = [crumbs_ld([(BRAND, '/perevezennya'), ('Вантажі', '/vantazhi')])]
+    write('vantazhi.html', fpage('/vantazhi', 'Вантажі для перевезення — свіжі заявки | ' + BRAND,
+          'Свіжі вантажі для перевізників: маршрути з Польщі, Німеччини, Литви, Туреччини та по Україні. Тент, реф, контейнер, збірні вантажі. Відгукуйтесь і отримуйте контакти замовника.',
+          body, ld, '/vantazhi', scripts=LOG_SCRIPTS + '<script>CargoPublic.mountCargoBoard("cargoBoard");</script>\n'))
+
+
+def offers_page():
+    body = ('<section class="container page-hero" style="padding-bottom:1rem"><div class="crumbs"><a href="/perevezennya">' + BRAND + '</a> › Транспорт</div>'
+            '<div class="spread" style="flex-wrap:wrap;gap:12px"><h1 class="h-lg" style="font-size:clamp(28px,5vw,40px)">Вільний транспорт</h1>'
+            '<a class="btn btn-primary" href="/kabinet#offers"><i class="ti ti-plus"></i>Додати транспорт</a></div>'
+            '<p class="lead">Перевізники розміщують вільні машини з маршрутом і датою. Телефонуйте напряму — без посередників і комісії.</p></section>'
+            '<section class="container" style="padding-bottom:2rem"><div id="offersBoard"><div class="text-sm text-muted">Завантаження…</div></div></section>')
+    ld = [crumbs_ld([(BRAND, '/perevezennya'), ('Транспорт', '/transport')])]
+    write('transport.html', fpage('/transport', 'Вільний транспорт — машини під завантаження | ' + BRAND,
+          'Вільні вантажівки під завантаження: тент, рефрижератор, контейнеровоз, автовоз, буси. Маршрути Європа — Україна. Пряма звʼязка з перевізником.',
+          body, ld, '/transport', scripts=LOG_SCRIPTS + '<script>CargoPublic.mountOffers("offersBoard");</script>\n'))
+
+
+def carriers_catalog_page():
+    body = ('<section class="container page-hero" style="padding-bottom:1rem"><div class="crumbs"><a href="/perevezennya">' + BRAND + '</a> › Перевізники</div>'
+            '<h1 class="h-lg" style="font-size:clamp(28px,5vw,40px)">Перевізники та експедитори</h1>'
+            '<p class="lead">Компанії з автопарком, напрямками й відгуками. Позначка «авто перевірено» — машини перевірені адміністратором біржі.</p></section>'
+            '<section class="container" style="padding-bottom:2rem"><div class="row" style="gap:8px;margin-bottom:1rem">'
+            '<select class="input" id="fTransport" style="width:auto"></select><select class="input" id="fRoute" style="width:auto"></select></div>'
+            '<div id="carrierList" class="lg-carriers"><div class="text-sm text-muted">Завантаження…</div></div></section>')
+    ld = [crumbs_ld([(BRAND, '/perevezennya'), ('Перевізники', '/perevizhnyky')])]
+    write('perevizhnyky.html', fpage('/perevizhnyky', 'Перевізники та експедитори — каталог | ' + BRAND,
+          'Каталог перевізників і експедиторів: тип транспорту, напрямки, автопарк, відгуки. Міжнародні й внутрішні перевезення вантажів.',
+          body, ld, '/perevizhnyky', scripts=LOG_SCRIPTS + '<script>CargoPublic.mountCarriers("carrierList");</script>\n'))
 
 
 def carriers_landing():
     benefits = [
-        ('ti-truck-delivery', 'Заявки на вантажі', 'Власники вантажів, логісти й митні брокери розміщують заявки — ви бачите маршрут, вантаж, вагу й дату та відгукуєтесь.'),
-        ('ti-id-badge-2', 'Профіль у каталозі', 'Тип транспорту, напрямки, автопарк, відгуки й «перевірено». Клієнти знаходять вас за транспортом і країною.'),
-        ('ti-building-bank', 'Брокери в пунктах пропуску', 'Карта брокерів на Ягодині, Шегинях, Чопі, у портах — оформлення на кордоні без пошуку контактів.'),
+        ('ti-list-search', 'Стрічка вантажів', 'Свіжі вантажі з фільтром за країною й транспортом — у кабінеті та на сайті. Відгукнулись — бачите телефон замовника.'),
+        ('ti-truck', 'Вільний транспорт', 'Розміщуйте вільні машини з маршрутом і датою — вантажовласники телефонують вам напряму.'),
+        ('ti-shield-check', 'Автопарк з перевіркою', 'Додайте машини з держномером і характеристиками — після перевірки отримаєте позначку «авто перевірено».'),
+        ('ti-route', 'Для експедиторів', 'Розміщуйте вантажі клієнтів, шукайте машини, бачте всі свої заявки й відгуки перевізників в одному кабінеті.'),
+        ('ti-building-bank', 'Брокери на кордоні', 'Карта брокерів на Ягодині, Шегинях, Чопі, у портах — оформлення без пошуку контактів.'),
         ('ti-calculator', 'Митний калькулятор', 'Мито, акциз і ПДВ за кодом УКТ ЗЕД, з урахуванням віку вантажівок, — щоб відповісти клієнту одразу.'),
-        ('ti-qrcode', 'Електронна візитівка', 'Сторінка з контактами й QR-кодом — для водіїв, вантажовідправників і підпису в листах.'),
+        ('ti-qrcode', 'Електронна візитівка', 'Сторінка з контактами й QR-кодом — для вантажовідправників і підпису в листах.'),
         ('ti-scale', 'Юрист і бухгалтер', 'На платних тарифах — безкоштовні консультації: протоколи про порушення митних правил, затримання вантажу, ПДВ на перевезення.'),
     ]
     cards = ''.join('<div class="card"><i class="ti %s"></i><h3>%s</h3><p>%s</p></div>' % b for b in benefits)
     body = (
-        '<section class="container page-hero"><div class="crumbs"><a href="/">Каталог</a> › <a href="/perevezennya">Перевезення</a> › Для перевізників</div>'
-        '<h1 class="h-lg">Вантажі для перевізників —<br><span style="color:var(--blue)">без комісії з рейсу</span></h1>'
-        '<p class="lead">Отримуйте заявки на перевезення від власників вантажів, логістів і митних брокерів. Профіль безкоштовний, '
-        'на платних тарифах — безлімітні відгуки й вища позиція в каталозі.</p>'
+        '<section class="container page-hero"><div class="crumbs"><a href="/perevezennya">' + BRAND + '</a> › Для перевізників</div>'
+        '<h1 class="h-lg">Вантажі для перевізників і логістів —<br><span style="color:var(--blue)">без комісії з рейсу</span></h1>'
+        '<p class="lead">' + BRAND + ' — біржа вантажів і транспорту: стрічка вантажів, вільні машини, автопарк з перевіркою й митні брокери на кордоні. '
+        'Профіль безкоштовний, на платних тарифах — безлімітні контакти вантажів і вища позиція.</p>'
         '<div class="row" style="margin-top:1.75rem"><a class="btn btn-primary" href="/vhid?role=carrier" style="padding:13px 26px;font-size:15px">'
-        '<i class="ti ti-user-plus"></i>Зареєструватись як перевізник</a><a class="btn btn-ghost" href="/perevezennya" style="padding:13px 22px">Каталог перевізників</a></div>'
-        '</section>'
+        '<i class="ti ti-user-plus"></i>Зареєструватись безкоштовно</a><a class="btn btn-ghost" href="/instruktsiya-perevizhnyka" style="padding:13px 22px">Інструкція</a>'
+        '<a class="btn btn-ghost" href="/vantazhi" style="padding:13px 22px">Стрічка вантажів</a></div></section>'
         '<section class="seo container"><h2>Що ви отримуєте</h2><div class="seo-grid">' + cards + '</div></section>'
         '<section class="seo container"><div class="prose" style="max-width:820px">'
         '<h2>Як це працює</h2><ol>'
-        '<li><strong>Реєстрація — 3 хвилини.</strong> Компанія, телефон, тип транспорту й напрямки.</li>'
-        '<li><strong>Дивіться заявки.</strong> У кабінеті — стрічка вантажів з фільтром за країною й типом транспорту.</li>'
-        '<li><strong>Відгукуйтесь.</strong> Натискаєте «Відгукнутись» — бачите телефон замовника й домовляєтесь напряму.</li></ol>'
+        '<li><strong>Реєстрація — 3 хвилини.</strong> Компанія, телефон, перевізник чи експедитор, тип транспорту й напрямки.</li>'
+        '<li><strong>Додайте автопарк.</strong> Держномер, тип, вантажопідйомність — після перевірки машини отримають позначку.</li>'
+        '<li><strong>Шукайте вантажі й розміщуйте транспорт.</strong> Відгукуйтесь на вантажі, а вільні машини публікуйте в розділі «Транспорт».</li></ol>'
         '<h2>Тарифи</h2>'
         '<table><tr><th>Тариф</th><th>Ціна</th><th>Що дає</th></tr>'
-        '<tr><td>Безкоштовний</td><td>0 грн</td><td>Профіль у каталозі, 5 відгуків на заявки на місяць</td></tr>'
-        '<tr><td>Стандарт</td><td>299 грн/міс</td><td>Безлімітні відгуки, візитівка з QR, калькулятор УКТ ЗЕД, консультації юриста й бухгалтера</td></tr>'
+        '<tr><td>Безкоштовний</td><td>0 грн</td><td>Профіль, автопарк, пропозиції транспорту, контакти 5 вантажів на місяць</td></tr>'
+        '<tr><td>Стандарт</td><td>299 грн/міс</td><td>Безлімітні контакти вантажів, візитівка з QR, калькулятор УКТ ЗЕД, консультації юриста й бухгалтера</td></tr>'
         '<tr><td>Про</td><td>599 грн/міс</td><td>Усе зі «Стандарт» + вища позиція в каталозі, значок ТОП</td></tr>'
         '<tr><td>Преміум</td><td>999 грн/міс</td><td>Перша позиція в каталозі, персональний менеджер</td></tr></table>'
         '</div><h3>Часті запитання</h3><div style="max-width:820px">' + faq_html(CARRIER_FAQ) + '</div>'
         '<div class="cta-band"><h3>Розмістіть профіль перевізника безкоштовно</h3>'
         '<p>Реєстрація займає кілька хвилин. Платіжна картка не потрібна.</p>'
-        '<div class="row"><a class="btn btn-primary" href="/vhid?role=carrier"><i class="ti ti-user-plus"></i>Зареєструватись</a></div></div></section>')
-    ld = [crumbs_ld([('Каталог', '/'), ('Перевезення', '/perevezennya'), ('Для перевізників', '/dlya-perevizhnykiv')]), faq_ld(CARRIER_FAQ)]
-    write('dlya-perevizhnykiv.html', page('/dlya-perevizhnykiv',
-          'Заявки на вантажі для перевізників без комісії | МитнийБрокер',
-          'Отримуйте заявки на перевезення вантажів з Європи, в Європу та по Україні. Безкоштовний профіль перевізника, відгуки на вантажі, брокери в пунктах пропуску.',
-          body, ld, active='/perevezennya'))
+        '<div class="row"><a class="btn btn-primary" href="/vhid?role=carrier"><i class="ti ti-user-plus"></i>Зареєструватись</a>'
+        '<a class="btn btn-ghost" href="/instruktsiya-perevizhnyka">Інструкція</a></div></div></section>')
+    ld = [crumbs_ld([(BRAND, '/perevezennya'), ('Для перевізників', '/dlya-perevizhnykiv')]), faq_ld(CARRIER_FAQ)]
+    write('dlya-perevizhnykiv.html', fpage('/dlya-perevizhnykiv',
+          'Вантажі для перевізників і логістів без комісії | ' + BRAND,
+          'Біржа вантажів ' + BRAND + ' для перевізників і експедиторів: стрічка вантажів, вільний транспорт, автопарк з перевіркою, брокери на кордоні. Безкоштовний профіль.',
+          body, ld, '/dlya-perevizhnykiv'))
+
+
+INSTR_C = [
+ ('reyestratsiya', 'Реєстрація', '''
+<ol><li>Відкрийте <a href="/vhid?role=carrier">реєстрацію</a> й оберіть «Я перевізник».</li>
+<li>Вкажіть email, телефон і пароль, потім — назву компанії, область, <strong>тип компанії</strong> (перевізник чи експедитор / логіст), тип транспорту, країни й кількість машин.</li>
+<li>Після реєстрації відкриється кабінет на вкладці «Вантажі».</li></ol>'''),
+ ('avtopark', 'Автопарк і перевірка авто', '''
+<p>Кабінет → <strong>«Автопарк»</strong> → «Додати авто»: держномер (і номер причепа), тип кузова, марка, рік, вантажопідйомність і обʼєм.</p>
+<p>Нове авто отримує статус «на перевірці». Адміністратор біржі перевіряє дані й ставить <strong>«авто перевірено»</strong> — позначка зʼявляється у профілі та в пропозиціях транспорту. Якщо змінити дані авто, воно повертається на перевірку.</p>'''),
+ ('vantazhi', 'Стрічка вантажів і відгуки', '''
+<p>Кабінет → <strong>«Вантажі»</strong> (або сторінка <a href="/vantazhi">«Вантажі»</a>). Фільтруйте за країною й транспортом; «Лише мої напрямки» показує вантажі під ваш профіль.</p>
+<p>Натисніть <strong>«Відгукнутись»</strong> — побачите імʼя, телефон, Telegram та email замовника й домовляйтесь напряму. На безкоштовному тарифі — 5 відгуків на місяць, на платних — без обмежень.</p>'''),
+ ('transport', 'Пропозиції вільного транспорту', '''
+<p>Кабінет → <strong>«Мій транспорт»</strong> → вкажіть звідки й куди, дати, тип транспорту й оберіть машину з автопарку. Пропозиція зʼявиться на сторінці <a href="/transport">«Транспорт»</a> на 30 днів; коли машину завантажили — натисніть «Зняти».</p>'''),
+ ('ekspedytory', 'Для експедиторів: розміщення вантажів', '''
+<p>Кабінет → <strong>«Мої вантажі»</strong> → «Додати вантаж». Контакти підставляються з профілю. Усі ваші вантажі видно в одному списку з кількістю відгуків; закрийте вантаж, коли знайшли машину.</p>'''),
+ ('kordon', 'Митне оформлення й брокери на кордоні', '''
+<p>Сторінка <a href="/punkty-propusku">«Пункти пропуску»</a> — брокери на Ягодині, Шегинях, Краківці, Чопі, Порубному, в портах. У кабінеті також є митний калькулятор (мито, акциз з урахуванням віку вантажівок, ПДВ) і довідка по VIN.</p>'''),
+ ('taryfy', 'Тарифи', '''
+<p>Профіль, автопарк і пропозиції транспорту — безкоштовно. Платні тарифи (від 299 грн/міс) дають безлімітні відгуки на вантажі, візитівку з QR, консультації юриста й бухгалтера, вищу позицію в каталозі. Оплата — кабінет → «Підписка».</p>'''),
+ ('pidtrymka', 'Підтримка', '''
+<p>Питання й пропозиції — <a href="mailto:custom@forwardcarua.com">custom@forwardcarua.com</a>.</p>'''),
+]
+
+def carrier_instruction():
+    toc = ''.join('<li><a href="#%s">%s</a></li>' % (a, t) for a, t, _ in INSTR_C)
+    secs = ''.join('<h2 id="%s">%d. %s</h2>%s' % (a, i + 1, t, b) for i, (a, t, b) in enumerate(INSTR_C))
+    body = ('<article class="container-narrow page-hero"><div class="crumbs"><a href="/perevezennya">' + BRAND + '</a> › <a href="/dlya-perevizhnykiv">Для перевізників</a> › Інструкція</div>'
+            '<h1 class="h-lg" style="font-size:clamp(28px,5vw,40px)">Інструкція для перевізників і експедиторів</h1>'
+            '<p class="lead">Як зареєструватися, додати автопарк, знаходити вантажі й розміщувати вільний транспорт на біржі ' + BRAND + '.</p>'
+            '<div class="card" style="margin:1.5rem 0"><div class="card-title">Зміст</div><ol class="text-sm" style="padding-left:1.2rem;line-height:1.9">' + toc + '</ol></div>'
+            '<div class="prose">' + secs + '</div>'
+            '<div class="cta-band"><h3>Готові почати?</h3><div class="row"><a class="btn btn-primary" href="/vhid?role=carrier">Зареєструватись</a></div></div></article>')
+    ld = [crumbs_ld([(BRAND, '/perevezennya'), ('Для перевізників', '/dlya-perevizhnykiv'), ('Інструкція', '/instruktsiya-perevizhnyka')])]
+    write('instruktsiya-perevizhnyka.html', fpage('/instruktsiya-perevizhnyka', 'Інструкція для перевізників і експедиторів | ' + BRAND,
+          'Покрокова інструкція біржі ' + BRAND + ': реєстрація перевізника, автопарк і перевірка авто, стрічка вантажів, пропозиції транспорту, розміщення вантажів експедиторами.',
+          body, ld, '/dlya-perevizhnykiv'))
 
 
 def posts_page():
     body = (
-        '<section class="container page-hero"><div class="crumbs"><a href="/">Каталог</a> › Пункти пропуску</div>'
+        '<section class="container page-hero"><div class="crumbs"><a href="/perevezennya">' + BRAND + '</a> › Пункти пропуску</div>'
         '<h1 class="h-lg">Митні брокери в пунктах пропуску</h1>'
         '<p class="lead">Ягодин, Шегині, Краківець, Чоп, Порубне, порти Одеси — оберіть пункт пропуску чи митний термінал і зв\'яжіться з брокером, '
         'який оформлює вантажі й авто саме там: експорт, імпорт, транзит T1, гарантії.</p></section>'
         '<section class="container" style="padding-bottom:2rem"><input class="input" id="postFind" placeholder="Пошук: Ягодин, Чоп, Одеса…" style="max-width:420px;margin-bottom:1rem">'
         '<div id="postsMount" class="lg-posts"><div class="text-sm text-muted">Завантаження…</div></div>'
         '<div class="cta-band"><h3>Ви брокер і працюєте на кордоні?</h3><p>Відмітьте пункти пропуску в профілі — і перевізники знайдуть вас тут.</p>'
-        '<div class="row"><a class="btn btn-primary" href="/vhid?role=broker">Зареєструватись</a><a class="btn btn-ghost" href="/kabinet#profile">Відмітити в кабінеті</a></div></div></section>'
-        + region_links())
-    ld = [crumbs_ld([('Каталог', '/'), ('Пункти пропуску', '/punkty-propusku')])]
-    write('punkty-propusku.html', page('/punkty-propusku',
-          'Митні брокери в пунктах пропуску: Ягодин, Шегині, Чоп, Одеса | МитнийБрокер',
+        '<div class="row"><a class="btn btn-primary" href="/vhid?role=broker">Зареєструватись</a><a class="btn btn-ghost" href="/kabinet#profile">Відмітити в кабінеті</a></div></div></section>')
+    ld = [crumbs_ld([(BRAND, '/perevezennya'), ('Пункти пропуску', '/punkty-propusku')])]
+    write('punkty-propusku.html', fpage('/punkty-propusku',
+          'Митні брокери в пунктах пропуску: Ягодин, Шегині, Чоп, Одеса | ' + BRAND,
           'Знайдіть митного брокера в потрібному пункті пропуску чи митному терміналі: Ягодин, Устилуг, Шегині, Краківець, Рава-Руська, Чоп, Порубне, порти Одеси. Оформлення вантажів і авто на кордоні.',
-          body, ld, active='/perevezennya', scripts=LOG_SCRIPTS + '<script>CargoPublic.mountPosts("postsMount");</script>\n'))
+          body, ld, '/punkty-propusku', scripts=LOG_SCRIPTS + '<script>CargoPublic.mountPosts("postsMount");</script>\n'))
 
 
-cargo_page()
+freight_home()
+cargo_board_page()
+offers_page()
+carriers_catalog_page()
 carriers_landing()
+carrier_instruction()
 posts_page()

@@ -16,7 +16,7 @@
   };
   const CH = { whatsapp:'WhatsApp', viber:'Viber', telegram:'Telegram', email:'Email', copy:'Скопійовано', call:'Дзвінок' };
 
-  let list = [], tpls = [], brokersIdx = null, filt = { q:'', status:'', region:'' }, cur = null, curTpl = null;
+  let seg = 'broker', allList = [], allTpls = [], list = [], tpls = [], brokersIdx = null, filt = { q:'', status:'', region:'' }, cur = null, curTpl = null;
   const $ = id => document.getElementById(id);
   const digits = p => String(p || '').replace(/\D/g, '');
   const normPhone = p => { let d = digits(p); if (d.length === 10 && d[0] === '0') d = '38' + d; if (d.length === 9) d = '380' + d; return d; };
@@ -46,10 +46,42 @@
     return data;
   }
 
+  /* ---------------- сегменти: брокери / перевізники ---------------- */
+  const segOf = x => (x && x.segment) || 'broker';
+  function applySeg(){
+    list = allList.filter(p => segOf(p) === seg);
+    tpls = allTpls.filter(t => segOf(t) === seg);
+  }
+  function setSeg(v){
+    seg = v; applySeg();
+    document.querySelectorAll('#oSeg .chip').forEach(c => c.classList.toggle('active', c.dataset.s === v));
+    const h = document.querySelector('#pane-outreach h1');
+    if (h) h.firstChild.textContent = (v === 'carrier' ? 'Залучення перевізників і логістів ' : 'Залучення брокерів ');
+    document.querySelectorAll('.o-broker-only').forEach(e => e.style.display = v === 'carrier' ? 'none' : '');
+    linksBox(); refresh();
+  }
+  function linksBox(){
+    const L = links(null);
+    const rows = seg === 'carrier'
+      ? [['Біржа ВантажПоруч', L.pres], ['Для перевізників', L.landing], ['Інструкція перевізника', L.instr], ['Реєстрація перевізника', L.reg]]
+      : [['Презентація', L.pres], ['Інструкція', L.instr], ['Реєстрація брокера', L.reg]];
+    $('oLinks').innerHTML = rows.map(x =>
+      '<div class="spread" style="gap:8px;padding:6px 0"><a href="' + x[1] + '" target="_blank" rel="noopener" class="text-sm">' + x[0] + '</a>' +
+      '<button class="btn-quiet" onclick="navigator.clipboard.writeText(\'' + x[1] + '\').then(()=>showToast(\'Скопійовано\'))"><i class="ti ti-copy"></i> Копіювати</button></div>').join('');
+  }
+
   /* ---------------- посилання і шаблони ---------------- */
   function links(p){
     const ref = 'utm_source=outreach&utm_medium=invite&utm_content=' + (p && p.id ? p.id.slice(0, 8) : 'manual');
     const reg = REGION_LOC[(p && p.region) || ''];
+    if (seg === 'carrier') return {
+      pres: SITE + '/perevezennya?' + ref,
+      landing: SITE + '/dlya-perevizhnykiv?' + ref,
+      instr: SITE + '/instruktsiya-perevizhnyka?' + ref,
+      reg: SITE + '/vhid?role=carrier&' + ref,
+      regionPage: SITE + '/vantazhi?' + ref,
+      profile: SITE + '/perevizhnyky?' + ref
+    };
     return {
       pres: SITE + '/prezentatsiya?' + ref,
       instr: SITE + '/instruktsiya?' + ref,
@@ -75,7 +107,10 @@
       .replace(/\{інструкція\}/g, L.instr)
       .replace(/\{реєстрація\}/g, L.reg)
       .replace(/\{сторінка_області\}/g, L.regionPage)
-      .replace(/\{профіль\}/g, L.profile);
+      .replace(/\{профіль\}/g, L.profile)
+      .replace(/\{біржа\}/g, L.landing || SITE + '/dlya-perevizhnykiv')
+      .replace(/\{пункти\}/g, SITE + '/punkty-propusku')
+      .replace(/\{кабінет\}/g, SITE + '/kabinet');
   }
 
   /* ---------------- автоматичне визначення «зареєструвався» ---------------- */
@@ -88,7 +123,7 @@
       if (b.phone) byPhone[normPhone(b.phone).slice(-9)] = b;
     });
     const upd = [];
-    list.forEach(p => {
+    allList.forEach(p => {
       if (p.status === 'registered') return;
       const b = (p.email && byEmail[p.email.toLowerCase().trim()]) || (p.phone && digits(p.phone).length >= 9 && byPhone[normPhone(p.phone).slice(-9)]);
       if (b){ p.status = 'registered'; p.broker_id = b.id; upd.push(saveProspect({ id:p.id, status:'registered', broker_id:b.id })); }
@@ -229,10 +264,10 @@
     const row = { name:v('name'), contact_person:v('contact_person') || null, phone:v('phone') || null, email:v('email') || null,
                   telegram:v('telegram') || null, city:v('city') || null, region:$('pe-region').value || null,
                   source:v('source') || null, notes:v('notes') || null };
-    if (cur) row.id = cur.id;
+    if (cur) row.id = cur.id; else row.segment = seg;
     try{
       const saved = await saveProspect(row);
-      if (cur) Object.assign(cur, saved); else list.unshift(saved);
+      if (cur) Object.assign(cur, saved); else { allList.unshift(saved); applySeg(); }
       $('peModal').classList.remove('open'); refresh(); showToast('Збережено');
     }catch(e){ showToast(e.message, 'error'); }
   }
@@ -241,7 +276,7 @@
     const sb = await db();
     const { error } = await sb.from('prospects').delete().eq('id', cur.id);
     if (error) return showToast('Не вдалося видалити', 'error');
-    list = list.filter(p => p.id !== cur.id); $('peModal').classList.remove('open'); refresh();
+    allList = allList.filter(p => p.id !== cur.id); applySeg(); $('peModal').classList.remove('open'); refresh();
   }
   async function setStatus(id, s){
     const p = list.find(x => x.id === id); if (!p) return;
@@ -281,11 +316,11 @@
     const src = $('impSource').value.trim() || null;
     const seen = new Set(list.map(p => (p.email || '').toLowerCase()).filter(Boolean).concat(list.map(p => normPhone(p.phone).slice(-9)).filter(x => x.length === 9)));
     const fresh = rows.filter(r => !(r.email && seen.has(r.email.toLowerCase())) && !(r.phone && seen.has(normPhone(r.phone).slice(-9))))
-                      .map(r => ({ ...r, source: src }));
+                      .map(r => ({ ...r, source: src, segment: seg }));
     const sb = await db();
     const { data, error } = await sb.from('prospects').insert(fresh).select();
     if (error) return showToast('Імпорт не вдався: ' + error.message, 'error');
-    list = (data || []).concat(list); refresh();
+    allList = (data || []).concat(allList); applySeg(); refresh();
     syncRegistered().then(refresh).catch(() => {});
     $('impModal').classList.remove('open'); $('impText').value = '';
     showToast('Додано ' + (data || []).length + (rows.length - fresh.length ? ', дублікатів пропущено: ' + (rows.length - fresh.length) : ''));
@@ -306,18 +341,19 @@
     const t = tpls[i], sb = await db();
     const row = { title:$('tt-' + i).value.trim() || 'Шаблон', subject:$('ts-' + i).value.trim() || null, body:$('tb-' + i).value, updated_at:new Date().toISOString() };
     const q = t.id ? sb.from('outreach_templates').update(row).eq('id', t.id).select().single()
-                   : sb.from('outreach_templates').insert({ ...row, sort: tpls.length }).select().single();
+                   : sb.from('outreach_templates').insert({ ...row, segment: seg, sort: allTpls.length }).select().single();
     const { data, error } = await q;
     if (error) return showToast('Не збереглося', 'error');
+    const k = allTpls.indexOf(t); if (k >= 0) allTpls[k] = data; else allTpls.push(data);
     tpls[i] = data; showToast('Шаблон збережено');
   }
   async function tplDel(i){
     const t = tpls[i];
     if (!confirm('Видалити шаблон «' + t.title + '»?')) return;
     if (t.id){ const sb = await db(); await sb.from('outreach_templates').delete().eq('id', t.id); }
-    tpls.splice(i, 1); tplOpen();
+    allTpls = allTpls.filter(x => x !== t); tpls.splice(i, 1); tplOpen();
   }
-  function tplAdd(){ tpls.push({ title:'Новий шаблон', subject:'', body:'Добрий день{, імʼя}!\n\n…\n\nПрезентація: {презентація}\nРеєстрація: {реєстрація}' }); tplOpen(); }
+  function tplAdd(){ tpls.push({ segment: seg, title:'Новий шаблон', subject:'', body:'Добрий день{, імʼя}!\n\n…\n\n' + (seg === 'carrier' ? 'Біржа: {біржа}\nІнструкція: {інструкція}' : 'Презентація: {презентація}') + '\nРеєстрація: {реєстрація}' }); tplOpen(); }
 
   /* ---------------- старт ---------------- */
   /* ---------------- реєстр Держмитслужби: імпорт і заявки на підтвердження ---------------- */
@@ -395,13 +431,10 @@
   async function init(){
     $('oRegion').innerHTML = '<option value="">Усі області</option>' + REGIONS.map(r => '<option>' + r + '</option>').join('');
     $('oStatus').innerHTML = '<option value="">Усі статуси</option>' + Object.keys(STATUS).map(k => '<option value="' + k + '">' + STATUS[k].l + '</option>').join('');
-    const L = links(null);
-    $('oLinks').innerHTML = [['Презентація', L.pres], ['Інструкція', L.instr], ['Реєстрація брокера', L.reg]].map(x =>
-      '<div class="spread" style="gap:8px;padding:6px 0"><a href="' + x[1] + '" target="_blank" rel="noopener" class="text-sm">' + x[0] + '</a>' +
-      '<button class="btn-quiet" onclick="navigator.clipboard.writeText(\'' + x[1] + '\').then(()=>showToast(\'Скопійовано\'))"><i class="ti ti-copy"></i> Копіювати</button></div>').join('');
+    linksBox();
     try{
-      [list, tpls] = await Promise.all([loadProspects(), loadTemplates()]);
-      refresh();
+      [allList, allTpls] = await Promise.all([loadProspects(), loadTemplates()]);
+      applySeg(); refresh();
       loadClaims().catch(() => {});
       syncRegistered().then(refresh).catch(() => {});
     }catch(e){
@@ -410,7 +443,7 @@
   }
 
   window.Outreach = {
-    init, compose, edit, saveEdit, del, setStatus, send, official,
+    init, setSeg, compose, edit, saveEdit, del, setStatus, send, official,
     pickTpl(i, btn){ curTpl = tpls[i]; document.querySelectorAll('#cmpTpl .chip').forEach(c => c.classList.toggle('active', c === btn)); fillText(); },
     filter(k, v){ filt[k] = v; table(); },
     importOpen(){ $('impModal').classList.add('open'); importPreview(); }, importPreview, doImport,

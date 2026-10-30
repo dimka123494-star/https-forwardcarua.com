@@ -140,6 +140,8 @@
         <div class="field"><label class="label" for="bp-exp">Досвід, років</label>
           <input class="input" type="number" id="bp-exp" min="0" max="60" placeholder="5"></div>
         <div id="carrierFields" style="display:none">
+          <div class="field"><label class="label" for="bp-ctype">Хто ви</label>
+            <select class="input" id="bp-ctype"><option value="carrier">Перевізник — маю власний транспорт</option><option value="forwarder">Експедитор / логіст — організовую перевезення</option></select></div>
           <div class="field"><label class="label">Тип транспорту</label><div class="chips" id="cfTransport"></div></div>
           <div class="field"><label class="label">Країни, куди / звідки возите</label><div class="chips" id="cfRoutes"></div></div>
           <div class="field"><label class="label" for="bp-fleet">Кількість машин</label>
@@ -297,7 +299,7 @@ async function step2(){
       phone:      document.getElementById('bp-phone').value.trim() || null,
       telegram:   document.getElementById('bp-tg').value.trim() || null,
       ...(role === 'carrier' ? {
-        kind: 'carrier',
+        kind: 'carrier', company_type: document.getElementById('bp-ctype').value,
         transport: [...document.querySelectorAll('#cfTransport .on')].map(e => e.dataset.v),
         routes: [...document.querySelectorAll('#cfRoutes .on')].map(e => e.dataset.v),
         fleet: Number(document.getElementById('bp-fleet').value) || null

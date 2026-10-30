@@ -106,7 +106,7 @@ function authMessage(m){
 
 /* ================= КАТАЛОГ ================= */
 
-const BROKER_FIELDS = 'id, name, city, region, plan, plan_expires_at, rating_avg, rating_count, experience, is_verified, views_count, about, phone, telegram, whatsapp, viber, instagram, facebook, tiktok, youtube, created_at, card_color, card_theme, card_tagline, website, logo_url, kind, transport, routes, fleet, posts';
+const BROKER_FIELDS = 'id, name, city, region, plan, plan_expires_at, rating_avg, rating_count, experience, is_verified, views_count, about, phone, telegram, whatsapp, viber, instagram, facebook, tiktok, youtube, created_at, card_color, card_theme, card_tagline, website, logo_url, kind, transport, routes, fleet, posts, company_type';
 
 async function listBrokers({ region = '', city = '', service = '', search = '', sort = 'plan', verifiedOnly = false, kind = 'broker' } = {}){
   const sb = await sbReady();
@@ -375,6 +375,84 @@ async function postBrokers(){
   if (error) console.error('postBrokers:', error);
   return data || [];
 }
+/* ---------- Біржа ВантажПоруч: автопарк, пропозиції транспорту ---------- */
+async function myBrokerId(){ const b = await getMyBroker(); if (!b) throw new Error('Спочатку створіть профіль'); return b.id; }
+async function myVehicles(){
+  const sb = await sbReady(); const id = await myBrokerId();
+  const { data, error } = await sb.from('vehicles').select('*').eq('carrier_id', id).order('created_at');
+  if (error) console.error('myVehicles:', error);
+  return data || [];
+}
+async function saveVehicle(v){
+  const sb = await sbReady();
+  const row = { plate: v.plate, trailer_plate: v.trailer_plate || null, kind: v.kind || null, make: v.make || null,
+    year: v.year || null, capacity_t: v.capacity_t || null, volume_m3: v.volume_m3 || null };
+  if (!/^[A-ZА-ЯІЇЄ0-9\s-]{4,12}$/i.test(row.plate || '')) throw new Error('Вкажіть держномер авто (4–12 символів)');
+  const q = v.id ? sb.from('vehicles').update(row).eq('id', v.id).select().single()
+                 : sb.from('vehicles').insert({ ...row, carrier_id: await myBrokerId() }).select().single();
+  const { data, error } = await q;
+  if (error){ console.error('saveVehicle:', error); throw new Error('Не вдалося зберегти авто'); }
+  return data;
+}
+async function deleteVehicle(id){
+  const sb = await sbReady();
+  const { error } = await sb.from('vehicles').delete().eq('id', id);
+  if (error) throw new Error('Не вдалося видалити авто');
+}
+async function carrierVehicles(carrierId){
+  const sb = await sbReady();
+  const { data } = await sb.from('vehicles').select('id, plate, kind, make, year, capacity_t, volume_m3, status').eq('carrier_id', carrierId).neq('status', 'rejected').order('created_at');
+  return data || [];
+}
+async function myOffers(){
+  const sb = await sbReady(); const id = await myBrokerId();
+  const { data } = await sb.from('truck_offers').select('*').eq('carrier_id', id).order('created_at', { ascending: false }).limit(50);
+  return data || [];
+}
+async function saveOffer(o){
+  const sb = await sbReady();
+  if (!o.from_country || !o.to_country) throw new Error('Вкажіть звідки й куди');
+  const row = { from_country: o.from_country, from_city: o.from_city || null, to_country: o.to_country, to_city: o.to_city || null,
+    date_from: o.date_from || null, date_to: o.date_to || null, transport: o.transport || null, vehicle_id: o.vehicle_id || null,
+    capacity_t: o.capacity_t || null, volume_m3: o.volume_m3 || null, notes: o.notes || null, carrier_id: await myBrokerId() };
+  const { error } = await sb.from('truck_offers').insert(row);
+  if (error){ console.error('saveOffer:', error); throw new Error('Не вдалося розмістити транспорт'); }
+}
+async function setOfferStatus(id, status){
+  const sb = await sbReady();
+  const { error } = await sb.from('truck_offers').update({ status }).eq('id', id);
+  if (error) throw new Error('Не вдалося змінити статус');
+}
+async function publicOffers(){
+  const sb = await sbReady();
+  const { data, error } = await sb.from('truck_offers')
+    .select('*, brokers(id, name, city, phone, telegram, viber, is_verified, plan, plan_expires_at, logo_url), vehicles(plate, kind, make, capacity_t, volume_m3, status)')
+    .eq('status', 'open').order('created_at', { ascending: false }).limit(300);
+  if (error) console.error('publicOffers:', error);
+  return data || [];
+}
+async function myPostedCargo(){
+  const sb = await sbReady(); const id = await myBrokerId();
+  const { data } = await sb.from('cargo_requests').select('*').eq('posted_by', id).order('created_at', { ascending: false }).limit(100);
+  return data || [];
+}
+async function setMyCargoStatus(id, status){
+  const sb = await sbReady();
+  const { error } = await sb.from('cargo_requests').update({ status }).eq('id', id);
+  if (error) throw new Error('Не вдалося змінити статус');
+}
+async function adminVehicles(){
+  const sb = await sbReady();
+  const { data, error } = await sb.from('vehicles').select('*, brokers(name, phone)').order('created_at', { ascending: false }).limit(500);
+  if (error) throw new Error('Не вдалося завантажити автопарк');
+  return data || [];
+}
+async function adminSetVehicle(id, status, note){
+  const sb = await sbReady();
+  const { error } = await sb.from('vehicles').update({ status, admin_note: note || null }).eq('id', id);
+  if (error) throw new Error('Не вдалося змінити статус авто');
+}
+
 async function adminCargo(){
   const sb = await sbReady();
   const { data, error } = await sb.from('cargo_requests').select('*, cargo_contacts(*)').order('created_at', { ascending: false }).limit(300);
@@ -504,7 +582,7 @@ async function updateMyBroker(updates){
   const user = await currentUser();
   if (!user) throw new Error('Сесія завершилась — увійдіть знову');
   const allowed = ['name','city','region','about','experience','phone','telegram',
-                   'whatsapp','viber','instagram','facebook','tiktok','youtube','website','transport','routes','fleet','posts'];
+                   'whatsapp','viber','instagram','facebook','tiktok','youtube','website','transport','routes','fleet','posts','company_type'];
   if ('website' in updates && updates.website){
     let w = String(updates.website).trim();
     if (!/^https?:\/\//i.test(w)) w = 'https://' + w;

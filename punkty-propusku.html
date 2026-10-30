@@ -3,14 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Митні брокери в пунктах пропуску: Ягодин, Шегині, Чоп, Одеса | МитнийБрокер</title>
+<title>Митні брокери в пунктах пропуску: Ягодин, Шегині, Чоп, Одеса | ВантажПоруч</title>
 <meta name="description" content="Знайдіть митного брокера в потрібному пункті пропуску чи митному терміналі: Ягодин, Устилуг, Шегині, Краківець, Рава-Руська, Чоп, Порубне, порти Одеси. Оформлення вантажів і авто на кордоні.">
 <link rel="canonical" href="https://forwardcarua.com/punkty-propusku">
 <meta name="theme-color" content="#0a0f0d">
 <meta property="og:type" content="article">
-<meta property="og:site_name" content="МитнийБрокер">
+<meta property="og:site_name" content="ВантажПоруч">
 <meta property="og:locale" content="uk_UA">
-<meta property="og:title" content="Митні брокери в пунктах пропуску: Ягодин, Шегині, Чоп, Одеса | МитнийБрокер">
+<meta property="og:title" content="Митні брокери в пунктах пропуску: Ягодин, Шегині, Чоп, Одеса | ВантажПоруч">
 <meta property="og:description" content="Знайдіть митного брокера в потрібному пункті пропуску чи митному терміналі: Ягодин, Устилуг, Шегині, Краківець, Рава-Руська, Чоп, Порубне, порти Одеси. Оформлення вантажів і авто на кордоні.">
 <meta property="og:url" content="https://forwardcarua.com/punkty-propusku">
 <script async src="https://www.googletagmanager.com/gtag/js?id=AW-18171698074"></script>
@@ -26,7 +26,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.7.0/dist/tabler-icons.min.css">
 <link rel="stylesheet" href="/assets/css/app.css">
 
-<script type="application/ld+json">{"@context": "https://schema.org", "@graph": [{"@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Каталог", "item": "https://forwardcarua.com/"}, {"@type": "ListItem", "position": 2, "name": "Пункти пропуску", "item": "https://forwardcarua.com/punkty-propusku"}]}]}</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@graph": [{"@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "ВантажПоруч", "item": "https://forwardcarua.com/perevezennya"}, {"@type": "ListItem", "position": 2, "name": "Пункти пропуску", "item": "https://forwardcarua.com/punkty-propusku"}]}]}</script>
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="icon" href="/favicon.ico" sizes="any">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
@@ -37,39 +37,19 @@
 </head>
 <body>
 <nav class="nav">
-  <a class="nav-brand" href="/">Митний<span>Брокер</span></a>
-  <div class="nav-links">
-    <a class="nav-link" href="/">Каталог</a>
-    <a class="nav-link" href="/taryfy">Тарифи</a>
-    <a class="nav-link" href="/kalkulyator-rozmytnennya">Калькулятор</a>
-    <a class="nav-link" href="/zayavka">Заявка</a>
-    <a class="nav-link active" href="/perevezennya">Перевезення</a>
-    <a class="nav-link" href="/dlya-brokeriv">Для брокерів</a>
-    <a class="nav-link" href="/statti/">Статті</a>
-  </div>
+  <a class="nav-brand" href="/perevezennya">Вантаж<span>Поруч</span></a>
+  <div class="nav-links"><a class="nav-link" href="/perevezennya">Головна</a><a class="nav-link" href="/vantazhi">Вантажі</a><a class="nav-link" href="/transport">Транспорт</a><a class="nav-link" href="/perevizhnyky">Перевізники</a><a class="nav-link active" href="/punkty-propusku">Пункти пропуску</a><a class="nav-link" href="/dlya-perevizhnykiv">Для перевізників</a></div>
   <div class="nav-actions">
     <a class="btn btn-ghost btn-sm" id="loginBtn" href="/vhid">Увійти</a>
-    <a class="btn btn-primary btn-sm" id="regBtn" href="/vhid?role=broker"><i class="ti ti-user-plus"></i>Стати брокером</a>
+    <a class="btn btn-primary btn-sm" href="/perevezennya#cargoForm"><i class="ti ti-plus"></i>Додати вантаж</a>
     <button class="nav-burger" onclick="toggleMenu()" aria-label="Меню"><i class="ti ti-menu-2"></i></button>
   </div>
 </nav>
 
-<div class="mobile-menu" id="menu">
-  <a href="/">Каталог брокерів</a>
-  <a href="/taryfy">Тарифи для брокерів</a>
-  <a href="/kalkulyator-rozmytnennya">Калькулятор розмитнення</a>
-  <a href="/zayavka">Залишити заявку</a>
-  <a href="/perevezennya">Перевезення вантажів</a>
-  <a href="/punkty-propusku">Брокери в пунктах пропуску</a>
-  <a href="/dlya-perevizhnykiv">Для перевізників</a>
-  <a href="/dlya-brokeriv">Для брокерів</a>
-  <a href="/statti/">Корисні статті</a>
-  <a href="/vhid" id="menuAuth">Увійти в кабінет</a>
-  <a href="/terms">Публічна оферта</a>
-</div>
+<div class="mobile-menu" id="menu"><a href="/perevezennya">Головна</a><a href="/vantazhi">Вантажі</a><a href="/transport">Транспорт</a><a href="/perevizhnyky">Перевізники</a><a href="/punkty-propusku">Пункти пропуску</a><a href="/dlya-perevizhnykiv">Для перевізників</a><a href="/vhid?role=carrier">Реєстрація перевізника</a><a href="/">Митні брокери — МитнийБрокер</a><a href="/vhid" id="menuAuth">Увійти в кабінет</a></div>
 
 
-<div class="page"><section class="container page-hero"><div class="crumbs"><a href="/">Каталог</a> › Пункти пропуску</div><h1 class="h-lg">Митні брокери в пунктах пропуску</h1><p class="lead">Ягодин, Шегині, Краківець, Чоп, Порубне, порти Одеси — оберіть пункт пропуску чи митний термінал і зв'яжіться з брокером, який оформлює вантажі й авто саме там: експорт, імпорт, транзит T1, гарантії.</p></section><section class="container" style="padding-bottom:2rem"><input class="input" id="postFind" placeholder="Пошук: Ягодин, Чоп, Одеса…" style="max-width:420px;margin-bottom:1rem"><div id="postsMount" class="lg-posts"><div class="text-sm text-muted">Завантаження…</div></div><div class="cta-band"><h3>Ви брокер і працюєте на кордоні?</h3><p>Відмітьте пункти пропуску в профілі — і перевізники знайдуть вас тут.</p><div class="row"><a class="btn btn-primary" href="/vhid?role=broker">Зареєструватись</a><a class="btn btn-ghost" href="/kabinet#profile">Відмітити в кабінеті</a></div></div></section><section class="seo container"><h2>Митні брокери за областями</h2><div class="region-links"><a href="/brokery/vinnytska">Вінницька область</a><a href="/brokery/volynska">Волинська область</a><a href="/brokery/dnipropetrovska">Дніпропетровська область</a><a href="/brokery/donetska">Донецька область</a><a href="/brokery/zhytomyrska">Житомирська область</a><a href="/brokery/zakarpatska">Закарпатська область</a><a href="/brokery/zaporizka">Запорізька область</a><a href="/brokery/ivano-frankivska">Івано-Франківська область</a><a href="/brokery/kyivska">Київська область</a><a href="/brokery/kirovohradska">Кіровоградська область</a><a href="/brokery/luhanska">Луганська область</a><a href="/brokery/lvivska">Львівська область</a><a href="/brokery/mykolaivska">Миколаївська область</a><a href="/brokery/odeska">Одеська область</a><a href="/brokery/poltavska">Полтавська область</a><a href="/brokery/rivnenska">Рівненська область</a><a href="/brokery/sumska">Сумська область</a><a href="/brokery/ternopilska">Тернопільська область</a><a href="/brokery/kharkivska">Харківська область</a><a href="/brokery/khersonska">Херсонська область</a><a href="/brokery/khmelnytska">Хмельницька область</a><a href="/brokery/cherkaska">Черкаська область</a><a href="/brokery/chernivetska">Чернівецька область</a><a href="/brokery/chernihivska">Чернігівська область</a><a href="/brokery/kyiv">Київ</a></div></section></div>
+<div class="page"><section class="container page-hero"><div class="crumbs"><a href="/perevezennya">ВантажПоруч</a> › Пункти пропуску</div><h1 class="h-lg">Митні брокери в пунктах пропуску</h1><p class="lead">Ягодин, Шегині, Краківець, Чоп, Порубне, порти Одеси — оберіть пункт пропуску чи митний термінал і зв'яжіться з брокером, який оформлює вантажі й авто саме там: експорт, імпорт, транзит T1, гарантії.</p></section><section class="container" style="padding-bottom:2rem"><input class="input" id="postFind" placeholder="Пошук: Ягодин, Чоп, Одеса…" style="max-width:420px;margin-bottom:1rem"><div id="postsMount" class="lg-posts"><div class="text-sm text-muted">Завантаження…</div></div><div class="cta-band"><h3>Ви брокер і працюєте на кордоні?</h3><p>Відмітьте пункти пропуску в профілі — і перевізники знайдуть вас тут.</p><div class="row"><a class="btn btn-primary" href="/vhid?role=broker">Зареєструватись</a><a class="btn btn-ghost" href="/kabinet#profile">Відмітити в кабінеті</a></div></div></section><section class="container"><p class="text-xs text-muted" style="padding:1rem 0 0">ВантажПоруч — біржа вантажів і транспорту від команди <a href="/">МитнийБрокер</a>: перевізники, експедитори, вантажовласники та митні брокери в одному місці.</p></section></div>
 <footer class="footer">
   <div class="footer-inner">
     <div>
@@ -83,7 +63,7 @@
         <a href="/taryfy">Тарифи</a>
         <a href="/kalkulyator-rozmytnennya">Калькулятор розмитнення</a>
         <a href="/reyestr-brokeriv">Реєстр брокерів</a>
-        <a href="/perevezennya">Перевезення вантажів</a>
+        <a href="/perevezennya">Біржа вантажів ВантажПоруч</a>
         <a href="/punkty-propusku">Брокери в пунктах пропуску</a>
         <a href="/dlya-perevizhnykiv">Для перевізників</a>
         <a href="/statti/">Статті</a>
@@ -111,5 +91,6 @@
 <script src="/assets/js/logistics.js"></script>
 <script src="/assets/js/cargo-public.js"></script>
 <script>CargoPublic.mountPosts("postsMount");</script>
+<script>(async()=>{try{const u=await currentUser();if(!u)return;const b=document.getElementById("loginBtn");if(b){b.textContent="Кабінет";b.href="/kabinet";}const m=document.getElementById("menuAuth");if(m){m.textContent="Мій кабінет";m.href="/kabinet";}}catch(e){}})();</script>
 </body>
 </html>

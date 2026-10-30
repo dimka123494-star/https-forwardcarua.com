@@ -128,10 +128,14 @@
         <div class="row" style="gap:8px">
           <button class="btn btn-ghost btn-sm" onclick="Outreach.tplOpen()"><i class="ti ti-template"></i> Шаблони</button>
           <button class="btn btn-ghost btn-sm" onclick="Outreach.importOpen()"><i class="ti ti-table-import"></i> Імпорт списку</button>
-          <button class="btn btn-ghost btn-sm" onclick="Outreach.importRegistry()"><i class="ti ti-building-bank"></i> Імпорт з реєстру Держмитслужби</button>
+          <button class="btn btn-ghost btn-sm o-broker-only" onclick="Outreach.importRegistry()"><i class="ti ti-building-bank"></i> Імпорт з реєстру Держмитслужби</button>
           <button class="btn btn-ghost btn-sm" onclick="Outreach.compose(null)"><i class="ti ti-message"></i> Текст без контакту</button>
           <button class="btn btn-primary btn-sm" onclick="Outreach.edit(null)"><i class="ti ti-user-plus"></i> Додати контакт</button>
         </div>
+      </div>
+      <div class="chips" id="oSeg" style="margin-bottom:1rem">
+        <button class="chip active" data-s="broker" onclick="Outreach.setSeg('broker')"><i class="ti ti-briefcase"></i> Митні брокери</button>
+        <button class="chip" data-s="carrier" onclick="Outreach.setSeg('carrier')"><i class="ti ti-truck"></i> Перевізники та логісти (ВантажПоруч)</button>
       </div>
       <div class="stat-grid" id="oStats" style="margin-bottom:1.25rem"></div>
       <div id="oClaims" style="display:none;margin-bottom:1.5rem">
@@ -205,6 +209,12 @@
         <thead><tr><th>Маршрут і вантаж</th><th>Замовник</th><th>Відгуки</th><th>Коли</th><th></th></tr></thead>
         <tbody id="cgAdmList"></tbody></table></div>
       <p class="hint">Контакти замовника бачать лише перевізники, які відгукнулися. Закрита заявка зникає зі стрічки перевізників.</p>
+      <div class="spread" style="margin:1.5rem 0 .75rem"><h2 class="h-sm">Автопарк перевізників <span class="text-sm text-muted" id="vhAdmTotal"></span></h2>
+        <select class="input" style="width:170px" id="vhAdmF" onchange="renderVehAdm()"><option value="pending">На перевірці</option><option value="">Усі</option><option value="verified">Перевірені</option><option value="rejected">Відхилені</option></select></div>
+      <div class="table-wrap table-scroll"><table>
+        <thead><tr><th>Авто</th><th>Перевізник</th><th>Статус</th><th></th></tr></thead>
+        <tbody id="vhAdmList"></tbody></table></div>
+      <p class="hint">Перевірте номер (напр. через сервіс МВС «Перевірка транспортного засобу» або за техпаспортом, який перевізник надішле на запит) і підтвердьте. Будь-яка зміна даних авто перевізником повертає його на перевірку.</p>
     </section>
 
     <!-- КОНСУЛЬТАЦІЇ -->
@@ -421,6 +431,7 @@ async function loadAll(){
   renderDash(); renderBrokers(brokers); renderPending(); renderRequests(requests); renderPayments(); renderReviews();
   try { consults = await adminConsultations(); renderConsults(); } catch(e){ console.error(e); }
   try { cargoAdm = await adminCargo(); renderCargoAdm(); } catch(e){ console.error(e); }
+  try { vehAdm = await adminVehicles(); renderVehAdm(); } catch(e){ console.error(e); }
 }
 
 /* ---------- Вантажі ---------- */
@@ -442,6 +453,31 @@ function renderCargoAdm(){
 }
 async function toggleCargo(id, status){
   try{ await adminCloseCargo(id, status); cargoAdm.find(c => c.id === id).status = status; renderCargoAdm(); }
+  catch(e){ showToast(e.message, 'error'); }
+}
+
+/* ---------- Автопарк ---------- */
+let vehAdm = [];
+const VHS = { pending: 'на перевірці', verified: 'перевірено', rejected: 'відхилено' };
+function renderVehAdm(){
+  const f = document.getElementById('vhAdmF').value, list = vehAdm.filter(v => !f || v.status === f);
+  const pend = vehAdm.filter(v => v.status === 'pending').length;
+  document.getElementById('vhAdmTotal').textContent = '· ' + vehAdm.length + (pend ? ', на перевірці ' + pend : '');
+  const b = document.getElementById('cgAdmBadge'); if (pend) { b.textContent = (Number(b.textContent) || 0) + pend; b.style.display = ''; }
+  document.getElementById('vhAdmList').innerHTML = list.length ? list.map(v => {
+    const br = v.brokers || {};
+    return '<tr><td><div style="font-weight:500">' + esc(v.plate) + (v.trailer_plate ? ' / ' + esc(v.trailer_plate) : '') + '</div><div class="text-xs text-muted">' +
+      esc([v.kind, v.make, v.year, v.capacity_t ? v.capacity_t + ' т' : '', v.volume_m3 ? v.volume_m3 + ' м³' : ''].filter(Boolean).join(' · ')) + '</div></td>' +
+      '<td class="text-sm"><a href="/broker/' + esc(v.carrier_id) + '" target="_blank">' + esc(br.name || '') + '</a><div class="text-xs">' + esc(br.phone || '') + '</div></td>' +
+      '<td class="text-sm">' + VHS[v.status] + (v.admin_note ? '<div class="text-xs text-muted">' + esc(v.admin_note) + '</div>' : '') + '</td>' +
+      '<td style="white-space:nowrap">' + (v.status !== 'verified' ? '<button class="btn-quiet" onclick="setVeh(\'' + v.id + '\',\'verified\')">Підтвердити</button> ' : '') +
+        (v.status !== 'rejected' ? '<button class="btn-quiet" onclick="setVeh(\'' + v.id + '\',\'rejected\')">Відхилити</button>' : '') + '</td></tr>';
+  }).join('') : '<tr><td colspan="4" class="text-sm text-muted">Немає авто з таким статусом.</td></tr>';
+}
+async function setVeh(id, status){
+  let note = '';
+  if (status === 'rejected') { note = (window.prompt('Причина (перевізник побачить її в кабінеті):', 'Номер не підтверджено') || '').trim(); }
+  try{ await adminSetVehicle(id, status, note); const v = vehAdm.find(x => x.id === id); v.status = status; v.admin_note = note || null; renderVehAdm(); showToast('Збережено'); }
   catch(e){ showToast(e.message, 'error'); }
 }
 

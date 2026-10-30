@@ -559,7 +559,7 @@ def registry_list():
 registry_list()
 
 # ---------------------------------------------------------------- sitemap
-urls = [('/', '1.0'), ('/taryfy', '0.6'), ('/zayavka', '0.8'), ('/kalkulyator-rozmytnennya', '0.9'), ('/dlya-brokeriv', '0.9'), ('/reyestr-brokeriv', '0.5'), ('/prezentatsiya', '0.6'), ('/instruktsiya', '0.6'), ('/statti/', '0.6'), ('/terms', '0.3'), ('/perevezennya', '0.8'), ('/dlya-perevizhnykiv', '0.7'), ('/punkty-propusku', '0.7')]
+urls = [('/', '1.0'), ('/taryfy', '0.6'), ('/zayavka', '0.8'), ('/kalkulyator-rozmytnennya', '0.9'), ('/dlya-brokeriv', '0.9'), ('/reyestr-brokeriv', '0.5'), ('/prezentatsiya', '0.6'), ('/instruktsiya', '0.6'), ('/statti/', '0.6'), ('/terms', '0.3'), ('/perevezennya', '0.8'), ('/vantazhi', '0.8'), ('/transport', '0.7'), ('/perevizhnyky', '0.7'), ('/dlya-perevizhnykiv', '0.7'), ('/instruktsiya-perevizhnyka', '0.5'), ('/punkty-propusku', '0.7')]
 urls += [('/brokery/' + r['slug'], '0.8') for r in REGIONS]
 urls += [('/statti/%s/' % a['slug'], '0.7') for a in ARTICLES]
 urls += [('/kompaniya/' + r['code'], '0.3') for r in REG]
