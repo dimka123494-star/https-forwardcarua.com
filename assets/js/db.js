@@ -342,7 +342,7 @@ async function createBrokerProfile(fields){
 /* ---------- Перевезення ---------- */
 const CARGO_ERR = { bad_name: 'Вкажіть ім\'я', bad_phone: 'Вкажіть коректний телефон', bad_cargo: 'Опишіть вантаж',
   bad_route: 'Вкажіть країну завантаження і доставки', too_many: 'Ви вже надіслали кілька заявок — ми передамо їх перевізникам',
-  not_carrier: 'Відгукуватися можуть лише перевізники', closed: 'Заявка вже закрита',
+  not_carrier: 'Відгукуватися можуть лише перевізники', closed: 'Заявка вже закрита', bad_price: 'Вкажіть коректну ставку',
   limit: 'На безкоштовному тарифі — 5 відгуків на місяць. Оберіть платний тариф для безлімітних відгуків.' };
 const cargoErr = e => { const k = Object.keys(CARGO_ERR).find(k => (e && e.message || '').includes(k)); return new Error(k ? CARGO_ERR[k] : 'Не вдалося виконати дію. Спробуйте ще раз'); };
 async function createCargoRequest(p){
@@ -360,12 +360,12 @@ async function cargoBoard(){
 }
 async function myCargoResponses(){
   const sb = await sbReady();
-  const { data } = await sb.from('cargo_responses').select('cargo_id, created_at');
+  const { data } = await sb.from('cargo_responses').select('cargo_id, created_at, price, currency, comment, status');
   return data || [];
 }
-async function respondCargo(id){
+async function respondCargo(id, offer){
   const sb = await sbReady();
-  const { data, error } = await sb.rpc('respond_cargo', { cid: id });
+  const { data, error } = await sb.rpc('respond_cargo', offer ? { cid: id, p: offer } : { cid: id });
   if (error){ console.error('respondCargo:', error); throw cargoErr(error); }
   return data;
 }
@@ -807,4 +807,33 @@ async function cancelInvite(brokerId){
   const { error } = await sb.from('brokers')
     .delete().eq('id', brokerId).is('claimed_at', null);
   if (error) throw new Error('Не вдалося скасувати запрошення');
+}
+
+/* ---------- Кабінет вантажовласника ---------- */
+async function myShipperCargo(){
+  const sb = await sbReady(); const u = await currentUser(); if (!u) return [];
+  const { data, error } = await sb.from('cargo_requests').select('*').eq('owner_user', u.id).order('created_at', { ascending: false }).limit(200);
+  if (error) console.error('myShipperCargo:', error);
+  return data || [];
+}
+async function cargoOffers(cid){
+  const sb = await sbReady();
+  const { data, error } = await sb.rpc('cargo_offers', { cid });
+  if (error){ console.error('cargoOffers:', error); throw new Error('Не вдалося завантажити пропозиції'); }
+  return data || [];
+}
+async function setOfferStatus2(rid, st){
+  const sb = await sbReady();
+  const { error } = await sb.rpc('set_offer_status', { rid, st });
+  if (error){ console.error('setOfferStatus:', error); throw new Error('Не вдалося змінити статус пропозиції'); }
+}
+async function myFavorites(){
+  const sb = await sbReady();
+  const { data } = await sb.from('client_favorites').select('carrier_id, note, created_at, brokers(id, name, city, region, phone, telegram, is_verified, rating_avg, rating_count, fleet, transport, routes, plan, logo_url)').order('created_at', { ascending: false });
+  return data || [];
+}
+async function toggleFavorite(carrierId, on){
+  const sb = await sbReady();
+  const { error } = on ? await sb.from('client_favorites').upsert({ carrier_id: carrierId }) : await sb.from('client_favorites').delete().eq('carrier_id', carrierId);
+  if (error){ console.error('toggleFavorite:', error); throw new Error('Не вдалося зберегти'); }
 }

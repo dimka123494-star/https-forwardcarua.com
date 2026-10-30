@@ -7,7 +7,7 @@ const CargoPublic = (() => {
     const el = $(id); if (!el) return;
     el.innerHTML =
       '<h2 class="h-sm" style="margin-bottom:.25rem">Заявка на перевезення</h2>' +
-      '<p class="text-sm text-muted" style="margin-bottom:1rem">Безкоштовно. Перевізники зателефонують самі.</p>' +
+      '<p class="text-sm text-muted" style="margin-bottom:1rem" id="cg-sub">Безкоштовно. Перевізники надсилають ставки — ви обираєте.</p>' +
       '<div class="field-row"><div class="field"><label class="label" for="cg-fc">Звідки — країна *</label><select class="input" id="cg-fc">' + opts(CARGO_COUNTRIES, 'Оберіть') + '</select></div>' +
         '<div class="field"><label class="label" for="cg-fcity">Місто</label><input class="input" id="cg-fcity" placeholder="Напр.: Варшава"></div></div>' +
       '<div class="field-row"><div class="field"><label class="label" for="cg-tc">Куди — країна *</label><select class="input" id="cg-tc">' + opts(CARGO_COUNTRIES, 'Оберіть') + '</select></div>' +
@@ -17,6 +17,9 @@ const CargoPublic = (() => {
         '<div class="field"><label class="label" for="cg-v">Обʼєм, м³</label><input class="input" type="number" id="cg-v" min="0" step="0.1"></div></div>' +
       '<div class="field-row"><div class="field"><label class="label" for="cg-tr">Транспорт</label><select class="input" id="cg-tr">' + opts(TRANSPORT_TYPES, 'Будь-який') + '</select></div>' +
         '<div class="field"><label class="label" for="cg-date">Дата завантаження</label><input class="input" id="cg-date" placeholder="ДД.ММ.РРРР" inputmode="numeric" maxlength="10" oninput="CargoPublic.mask(this)"></div></div>' +
+      '<div class="field-row"><div class="field"><label class="label" for="cg-price">Ваша ставка</label><div style="display:flex;gap:6px"><input class="input" type="number" id="cg-price" min="0" step="1" placeholder="порожньо — запит ставок">' +
+        '<select class="input" id="cg-cur" style="width:92px">' + CURRENCIES.map(c => '<option>' + c + '</option>').join('') + '</select></div></div>' +
+        '<div class="field"><label class="label" for="cg-pay">Оплата</label><select class="input" id="cg-pay">' + opts(PAY_TERMS, 'Не важливо') + '</select></div></div>' +
       '<label class="check-row"><input type="checkbox" id="cg-customs"> Потрібне митне оформлення (експорт / імпорт / транзит)</label>' +
       '<div class="field"><label class="label" for="cg-notes">Деталі</label><textarea class="input" id="cg-notes" maxlength="1500" placeholder="Габарити, ADR, температурний режим, бюджет…"></textarea></div>' +
       '<div class="field-row"><div class="field"><label class="label" for="cg-name">Ваше імʼя *</label><input class="input" id="cg-name" autocomplete="name"></div>' +
@@ -53,12 +56,16 @@ const CargoPublic = (() => {
       await createCargoRequest({
         from_country: v('cg-fc'), from_city: v('cg-fcity'), to_country: v('cg-tc'), to_city: v('cg-tcity'),
         cargo: v('cg-cargo'), weight_t: v('cg-w'), volume_m3: v('cg-v'), transport: v('cg-tr'), load_date: isoDate(v('cg-date')),
+        price: v('cg-price'), currency: v('cg-cur'), pay_terms: v('cg-pay'),
         customs: $('cg-customs').checked, notes: v('cg-notes'), name: v('cg-name'), company: v('cg-company'), phone: v('cg-phone'),
         telegram: tg.includes('@') && !tg.startsWith('@') ? '' : tg, email: tg.includes('@') && !tg.startsWith('@') ? tg : ''
       });
+      const logged = await currentUser().catch(() => null);
       $(btn.parentElement.id).innerHTML = '<div style="text-align:center;padding:1.5rem 0"><i class="ti ti-circle-check" style="font-size:44px;color:var(--green)"></i>' +
-        '<h3 class="h-sm" style="margin:.6rem 0">Заявку надіслано перевізникам</h3><p class="text-sm text-muted">Перевізники, які готові взяти рейс, зателефонують вам. ' +
-        'Потрібне митне оформлення? <a href="/punkty-propusku">Брокери в пунктах пропуску</a> або <a href="/">каталог брокерів</a>.</p></div>';
+        '<h3 class="h-sm" style="margin:.6rem 0">Вантаж опубліковано на біржі</h3><p class="text-sm text-muted">' +
+        (logged ? 'Ставки перевізників зʼявляться в кабінеті: <a href="/moi-zayavky#cargo">Мої вантажі</a>. ' :
+          'Перевізники зателефонують вам. Щоб бачити й порівнювати їхні ставки онлайн, <a href="/vhid?next=/moi-zayavky%23cargo">створіть кабінет вантажовласника</a> — наступні вантажі будуть там. ') +
+        'Потрібне митне оформлення? <a href="/punkty-propusku">Брокери в пунктах пропуску</a>.</p></div>';
       if (typeof CargoPublic.onSent === 'function') CargoPublic.onSent();
     }catch(e){ fail(e.message); btn.disabled = false; btn.innerHTML = '<i class="ti ti-send"></i>Надіслати перевізникам'; }
   }
@@ -132,6 +139,8 @@ const CargoPublic = (() => {
       (extra || '') + '</div>';
   }
   const fval = (p, k) => ($(p + k) || {}).value || '';
+  const money = (v, c) => Number(v).toLocaleString('uk-UA') + ' ' + (c || 'UAH');
+  const priceTag = x => x.price ? '<span class="fx-badge ok">' + money(x.price, x.currency) + '</span>' : '<span class="fx-badge">запит ставок</span>';
 
   let cargoAll = [], respSet = {};
   async function mountCargoBoard(id, o = {}){
@@ -139,18 +148,18 @@ const CargoPublic = (() => {
     if (!o.compact) el.insertAdjacentHTML('beforebegin', filterBar('cb'));
     try{ cargoAll = await cargoBoard(); }catch(e){ cargoAll = []; }
     const m = await whoAmI();
-    if (m && m.kind === 'carrier'){ try{ (await myCargoResponses()).forEach(r => respSet[r.cargo_id] = 1); }catch(e){} }
+    if (m && m.kind === 'carrier'){ try{ (await myCargoResponses()).forEach(r => respSet[r.cargo_id] = r); }catch(e){} }
     const draw = () => {
       const f = fval('cb', 'From'), t = fval('cb', 'To'), tr = fval('cb', 'Tr');
       const list = cargoAll.filter(x => (!f || x.from_country === f) && (!t || x.to_country === t) && (!tr || !x.transport || x.transport === tr)).slice(0, o.limit || 500);
       const btn = x => m && m.kind === 'carrier'
-        ? '<button class="btn btn-primary btn-sm" onclick="CargoPublic.respond(\'' + x.id + '\',this)">' + (respSet[x.id] ? 'Контакти' : 'Відгукнутись') + '</button>'
+        ? '<button class="btn btn-primary btn-sm" onclick="CargoPublic.respond(\'' + x.id + '\',this)">' + (respSet[x.id] ? 'Моя ставка й контакти' : 'Запропонувати ставку') + '</button>'
         : '<a class="btn btn-ghost btn-sm" href="/vhid?role=carrier&next=/vantazhi">Контакти — для перевізників</a>';
       el.innerHTML = list.length ? list.map(x =>
         '<div class="fx-row" id="cg-' + x.id + '"><div class="fx-main"><div class="cargo-route">' + route(x) + '</div>' +
           '<div class="fx-what">' + esc(x.cargo) + '</div>' +
           '<div class="fx-meta">' + [x.weight_t ? x.weight_t + ' т' : '', x.volume_m3 ? x.volume_m3 + ' м³' : '', x.transport || 'будь-який транспорт',
-            x.load_date ? '<i class="ti ti-calendar"></i> ' + fmtD(x.load_date) : '', x.customs ? '<span class="fx-badge">митне оформлення</span>' : ''].filter(Boolean).join(' · ') + '</div>' +
+            x.load_date ? '<i class="ti ti-calendar"></i> ' + fmtD(x.load_date) : '', x.pay_terms ? esc(x.pay_terms) : '', priceTag(x), x.customs ? '<span class="fx-badge">митне оформлення</span>' : ''].filter(Boolean).join(' · ') + '</div>' +
           (x.notes && !o.compact ? '<div class="fx-notes">' + esc(x.notes) + '</div>' : '') + '</div>' +
           '<div class="fx-side"><div class="text-xs text-muted">' + ago(x.created_at) + (x.responses_count ? ' · відгуків: ' + x.responses_count : '') + '</div>' + btn(x) + '</div></div>').join('')
         : '<div class="card"><div class="text-sm text-muted">Вантажів за цим фільтром поки немає. <a href="/perevezennya#cargoForm">Додайте свій вантаж</a> — його побачать усі перевізники.</div></div>';
@@ -158,15 +167,39 @@ const CargoPublic = (() => {
     ['From', 'To', 'Tr'].forEach(k => { const s = $('cb' + k); if (s) s.onchange = draw; });
     draw();
   }
-  async function respond(id, btn){
-    btn.disabled = true;
-    try{
-      const c = await respondCargo(id); respSet[id] = 1;
-      const row = $('cg-' + id);
-      row.querySelector('.fx-side').innerHTML = '<div class="fx-contact"><b>' + esc(c.name) + '</b>' + (c.company ? '<div class="text-xs">' + esc(c.company) + '</div>' : '') +
+  /* Форма ставки перевізника — спільна для біржі та кабінету */
+  let myVeh = null;
+  async function offerForm(cid, box, prev, onDone){
+    if (myVeh === null){ try{ myVeh = (await myVehicles()).filter(v => v.status !== 'rejected'); }catch(e){ myVeh = []; } }
+    prev = prev && typeof prev === 'object' ? prev : {};
+    const locked = prev.status && prev.status !== 'new';
+    box.innerHTML = '<div class="fx-offer">' +
+      (locked ? '<div class="text-sm" style="margin-bottom:6px">' + (prev.status === 'accepted' ? '<b style="color:var(--green)">Вантажовласник обрав вас</b>' : 'Вантажовласник обрав іншого перевізника') + '</div>' :
+      '<div style="display:flex;gap:6px"><input class="input" type="number" min="0" step="1" id="of-p-' + cid + '" placeholder="Ставка" value="' + (prev.price || '') + '">' +
+        '<select class="input" id="of-c-' + cid + '" style="width:86px">' + CURRENCIES.map(c => '<option' + (c === (prev.currency || 'UAH') ? ' selected' : '') + '>' + c + '</option>').join('') + '</select></div>' +
+      (myVeh.length ? '<select class="input" id="of-v-' + cid + '"><option value="">Авто — не вказувати</option>' + myVeh.map(v => '<option value="' + v.id + '">' + esc(v.plate + ' · ' + (v.kind || '')) + (v.status === 'verified' ? ' ✓' : '') + '</option>').join('') + '</select>' : '') +
+      '<input class="input" id="of-m-' + cid + '" maxlength="500" placeholder="Коментар: дата подачі, умови" value="' + esc(prev.comment || '') + '">' +
+      '<button class="btn btn-primary btn-sm" id="of-b-' + cid + '">' + (prev.created_at ? 'Оновити ставку' : 'Надіслати ставку') + '</button>') +
+      '<div class="fx-contact-box"></div></div>';
+    const showContacts = c => { if (!c) return; box.querySelector('.fx-contact-box').innerHTML = '<div class="fx-contact"><b>' + esc(c.name) + '</b>' + (c.company ? '<div class="text-xs">' + esc(c.company) + '</div>' : '') +
         '<a href="' + telHref(c.phone) + '">' + esc(c.phone) + '</a>' + (c.telegram ? '<a href="' + tgHref(c.telegram) + '" target="_blank" rel="noopener">' + esc(c.telegram) + '</a>' : '') +
-        (c.email ? '<a href="mailto:' + esc(c.email) + '">' + esc(c.email) + '</a>' : '') + '</div>';
-    }catch(e){ showToast(e.message, 'error'); btn.disabled = false; }
+        (c.email ? '<a href="mailto:' + esc(c.email) + '">' + esc(c.email) + '</a>' : '') + '</div>'; };
+    if (prev.created_at){ try{ showContacts(await respondCargo(cid)); }catch(e){} }
+    const b = $('of-b-' + cid); if (!b) return;
+    b.onclick = async () => {
+      b.disabled = true;
+      const o = { price: $('of-p-' + cid).value, currency: $('of-c-' + cid).value, comment: $('of-m-' + cid).value.trim(), vehicle_id: ($('of-v-' + cid) || {}).value || '' };
+      try{
+        const c = await respondCargo(cid, o); showContacts(c);
+        b.textContent = 'Оновити ставку'; b.disabled = false; showToast('Ставку надіслано вантажовласнику');
+        if (typeof track === 'function') track('cargo_response');
+        if (onDone) onDone({ ...o, status: 'new', created_at: prev.created_at || new Date().toISOString() });
+      }catch(e){ showToast(e.message, 'error'); b.disabled = false; }
+    };
+  }
+  async function respond(id, btn){
+    const box = $('cg-' + id).querySelector('.fx-side');
+    await offerForm(id, box, respSet[id], r => { respSet[id] = r; });
   }
 
   let offersAll = [];
@@ -205,5 +238,5 @@ const CargoPublic = (() => {
         (v.status === 'verified' ? ' <span class="fx-badge ok"><i class="ti ti-shield-check"></i> перевірено</span>' : ' <span class="fx-badge">на перевірці</span>') + '</div>').join('');
   }
 
-  return { mountForm, mountCarriers, mountPosts, send, mask, mountCargoBoard, mountOffers, respond, mountVehicles };
+  return { offerForm, priceTag, mountForm, mountCarriers, mountPosts, send, mask, mountCargoBoard, mountOffers, respond, mountVehicles };
 })();

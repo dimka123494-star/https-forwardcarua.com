@@ -300,3 +300,15 @@ tr:hover td{background:rgba(255,255,255,.02)}
 .fx-veh{padding:7px 0;border-top:.5px solid var(--border);font-size:13.5px}
 .fx-tabs{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
 @media(max-width:700px){.fx-row{flex-direction:column}.fx-side{align-items:flex-start;text-align:left;max-width:none}.fx-contact{text-align:left}}
+
+/* Ставки перевізників / кабінет вантажовласника */
+.fx-offer{display:flex;flex-direction:column;gap:6px;width:270px;max-width:100%}
+.fx-offer .input{padding:7px 10px;font-size:13px}
+.of-card{display:flex;gap:12px;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;padding:12px 0;border-top:.5px solid var(--border)}
+.of-card:first-child{border-top:0}
+.of-price{font-weight:700;font-size:17px;white-space:nowrap}
+.of-acc{background:rgba(29,158,117,.08);border-radius:10px;padding:12px}
+.sh-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:1.25rem}
+.sh-tabs .chip{display:inline-flex;gap:6px;align-items:center}
+.sh-pane{display:none}.sh-pane.on{display:block}
+@media(max-width:700px){.fx-offer{width:100%}}

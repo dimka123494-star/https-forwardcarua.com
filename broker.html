@@ -108,6 +108,20 @@ function starRow(n, size = 14){
   return h;
 }
 
+/* Вантажовласник може додати перевізника в обрані */
+async function favButton(){
+  try{
+    if (!await currentUser() || await getMyBroker()) return;
+    const on = (await myFavorites()).some(f => f.carrier_id === broker.id);
+    const cta = document.querySelector('.b-cta'); if (!cta) return;
+    const b = document.createElement('button'); b.className = 'btn btn-ghost';
+    const draw = v => b.innerHTML = '<i class="ti ti-star' + (v ? '-filled' : '') + '" style="color:var(--amber)"></i> ' + (v ? 'В обраних' : 'В обрані перевізники');
+    let v = on; draw(v);
+    b.onclick = async () => { try{ await toggleFavorite(broker.id, !v); v = !v; draw(v); }catch(e){ showToast(e.message, 'error'); } };
+    cta.appendChild(b);
+  }catch(e){}
+}
+
 async function load(){
   const id = brokerIdFromUrl();
   const el = document.getElementById('content');
@@ -228,7 +242,7 @@ function render(){
     '</div>' +
     '<div id="rvList"></div>' +
 
-    '<div class="card" style="margin-top:1.5rem">' +
+    '<div class="card" id="vidguk" style="margin-top:1.5rem">' +
       '<h3 class="h-sm" style="margin-bottom:1rem">Залишити відгук</h3>' +
       '<p class="text-sm text-muted" style="margin-bottom:1rem">Відгук з\'явиться на сторінці після перевірки модератором.</p>' +
       '<div class="star-pick" id="spRow">' +
@@ -250,6 +264,8 @@ function render(){
   bindStars();
   renderReviews();
   if (broker.kind === 'carrier' && typeof CargoPublic !== 'undefined') CargoPublic.mountVehicles('bVehicles', broker.id);
+  if (location.hash === '#vidguk') setTimeout(() => document.getElementById('vidguk').scrollIntoView({ behavior: 'smooth' }), 300);
+  if (broker.kind === 'carrier') favButton();
 }
 
 function setStars(v){ filterStars = v; render(); }

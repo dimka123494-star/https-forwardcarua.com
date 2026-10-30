@@ -218,7 +218,7 @@
       <!-- МОЇ ВАНТАЖІ -->
       <section class="cab-pane" id="pane-mycargo">
         <h1 class="h-md" style="margin-bottom:.5rem">Мої вантажі</h1>
-        <p class="text-sm text-muted" style="margin-bottom:1rem">Розміщуйте вантажі своїх клієнтів — їх побачать усі перевізники біржі ВантажПоруч. Закрийте вантаж, коли знайшли машину.</p>
+        <p class="text-sm text-muted" style="margin-bottom:1rem">Розміщуйте вантажі своїх клієнтів — перевізники біржі ВантажПоруч надсилають ставки. Порівняйте пропозиції й оберіть перевізника.</p>
         <div class="lg-grid"><div id="mcList"><div class="text-sm text-muted">Завантаження…</div></div>
           <div class="card"><div id="mcForm"></div></div></div>
       </section>
@@ -410,6 +410,7 @@
 <script src="/assets/js/vin-cert.js"></script>
 <script src="/assets/js/logistics.js"></script>
 <script src="/assets/js/cargo-public.js"></script>
+<script src="/assets/js/shipper.js"></script>
 <script>
 let broker = null, requests = [], myRevs = [], period = 'month', reqFilter = 'all';
 
@@ -751,7 +752,7 @@ async function initCargo(){
   document.getElementById('cgTransport').innerHTML = '<option value="">Будь-який транспорт</option>' + TRANSPORT_TYPES.map(c => '<option>' + c + '</option>').join('');
   document.getElementById('cgMine').checked = (broker.routes || []).length > 0;
   [cargo, resp] = await Promise.all([cargoBoard(), myCargoResponses()]);
-  cgResp = {}; resp.forEach(r => cgResp[r.cargo_id] = r.created_at);
+  cgResp = {}; resp.forEach(r => cgResp[r.cargo_id] = r);
   const fresh = cargo.filter(c => !cgResp[c.id] && Date.now() - new Date(c.created_at) < 3 * 864e5).length;
   const b = document.getElementById('cgBadge'); b.textContent = fresh; b.style.display = fresh ? '' : 'none';
   if (!location.hash) pane('cargo', document.getElementById('navCargo'));
@@ -760,7 +761,7 @@ async function initCargo(){
 let resp = [];
 function cgQuota(){
   const m = new Date(); m.setDate(1); m.setHours(0, 0, 0, 0);
-  const used = Object.values(cgResp).filter(d => new Date(d) >= m).length;
+  const used = Object.values(cgResp).filter(d => new Date(d.created_at || d) >= m).length;
   document.getElementById('cgQuota').innerHTML = BizCard.paid(broker) ? 'Безлімітні відгуки на вашому тарифі.'
     : 'Безкоштовний тариф: використано <b>' + used + ' з 5</b> відгуків цього місяця. <a href="#billing" onclick="pane(\'billing\',document.querySelector(\'[data-pane=billing]\'))">Безліміт — від 299 грн/міс</a>.';
 }
@@ -777,13 +778,11 @@ function renderCargo(){
       '<div class="cargo-route">' + esc([x.from_city, x.from_country].filter(Boolean).join(', ')) + ' <i class="ti ti-arrow-right" style="color:var(--blue)"></i> ' + esc([x.to_city, x.to_country].filter(Boolean).join(', ')) + '</div>' +
       '<div style="margin-top:4px">' + esc(x.cargo) + '</div>' +
       '<div class="text-xs text-muted" style="margin-top:4px">' + [x.weight_t ? x.weight_t + ' т' : '', x.volume_m3 ? x.volume_m3 + ' м³' : '', x.transport || 'будь-який транспорт',
-        x.load_date ? 'завантаження ' + fmtD(x.load_date) : '', x.customs ? 'потрібне митне оформлення' : ''].filter(Boolean).map(esc).join(' · ') + '</div>' +
+        x.load_date ? 'завантаження ' + fmtD(x.load_date) : '', x.pay_terms || '', x.customs ? 'потрібне митне оформлення' : ''].filter(Boolean).map(esc).join(' · ') + ' ' + CargoPublic.priceTag(x) + '</div>' +
       (x.notes ? '<div class="text-sm text-muted" style="margin-top:6px;white-space:pre-line">' + esc(x.notes) + '</div>' : '') +
       '<div class="text-xs text-muted" style="margin-top:6px">' + timeAgoUa(x.created_at) + (x.responses_count ? ' · відгуків: ' + x.responses_count : '') + '</div></div>' +
-      '<div>' + (ct ? '' : '<button class="btn ' + (done ? 'btn-ghost' : 'btn-primary') + ' btn-sm" onclick="cgRespond(\'' + x.id + '\', this)">' + (done ? 'Показати контакти' : '<i class="ti ti-hand-click"></i> Відгукнутись') + '</button>') + '</div></div>' +
-      (ct ? '<div class="cs-ans" style="margin-top:10px"><b>' + esc(ct.name) + '</b>' + (ct.company ? ', ' + esc(ct.company) : '') + '<br>' +
-        '<a href="' + telHref(ct.phone) + '">' + esc(ct.phone) + '</a>' + (ct.telegram ? ' · <a href="' + tgHref(ct.telegram) + '" target="_blank" rel="noopener">' + esc(ct.telegram) + '</a>' : '') +
-        (ct.email ? ' · <a href="mailto:' + esc(ct.email) + '">' + esc(ct.email) + '</a>' : '') + '</div>' : '') +
+      '<div id="cgo-' + x.id + '">' + (ct ? '' : '<button class="btn ' + (done ? 'btn-ghost' : 'btn-primary') + ' btn-sm" onclick="cgRespond(\'' + x.id + '\', this)">' +
+        (done ? (cgResp[x.id].price ? 'Моя ставка: ' + Number(cgResp[x.id].price).toLocaleString('uk-UA') + ' ' + (cgResp[x.id].currency || '') : 'Мій відгук і контакти') : '<i class="ti ti-currency-hryvnia"></i> Запропонувати ставку') + '</button>') + '</div></div>' +
       '</div>';
   }).join('') : '<div class="empty"><strong>Заявок за цим фільтром поки немає</strong>Нові вантажі з\'являються тут щойно замовник розміщує заявку на <a href="/perevezennya" target="_blank">сторінці перевезень</a>.</div>';
 }
@@ -793,11 +792,10 @@ function timeAgoUa(d){
 }
 async function cgRespond(id, btn){
   btn.disabled = true;
-  try{
-    cgContacts[id] = await respondCargo(id);
-    if (!cgResp[id]){ cgResp[id] = new Date().toISOString(); const x = cargo.find(c => c.id === id); if (x) x.responses_count++; track('cargo_response'); }
-    renderCargo();
-  }catch(e){ showToast(e.message, 'error'); btn.disabled = false; }
+  await CargoPublic.offerForm(id, document.getElementById('cgo-' + id), cgResp[id], r => {
+    if (!cgResp[id]){ const x = cargo.find(c => c.id === id); if (x) x.responses_count++; }
+    cgResp[id] = r; cgQuota();
+  });
 }
 
 /* ---------- Автопарк ---------- */
@@ -880,13 +878,9 @@ async function initMyCargo(){
   myCargo = await myPostedCargo(); renderMyCargo();
 }
 function renderMyCargo(){
-  document.getElementById('mcList').innerHTML = myCargo.length ? myCargo.map(x =>
-    '<div class="cargo-item"' + (x.status === 'closed' ? ' style="opacity:.55"' : '') + '><div class="cargo-route">' + esc([x.from_city, x.from_country].filter(Boolean).join(', ')) + ' → ' + esc([x.to_city, x.to_country].filter(Boolean).join(', ')) + '</div>' +
-      '<div class="text-sm">' + esc(x.cargo) + '</div><div class="spread" style="margin-top:6px"><span class="text-xs text-muted">' + fmtDate(x.created_at) + ' · відгуків перевізників: <b>' + x.responses_count + '</b></span>' +
-      '<button class="btn btn-ghost btn-sm" onclick="mcToggle(\'' + x.id + '\',\'' + (x.status === 'open' ? 'closed' : 'open') + '\')">' + (x.status === 'open' ? 'Закрити' : 'Відкрити') + '</button></div></div>').join('')
-    : '<div class="card"><div class="text-sm text-muted">Ви ще не розміщували вантажів. Заповніть форму праворуч.</div></div>';
+  Shipper.mount(document.getElementById('mcList'), myCargo, { onRepeat: Shipper.fillForm,
+    empty: 'Ви ще не розміщували вантажів. Заповніть форму праворуч — перевізники надішлють ставки сюди.' });
 }
-async function mcToggle(id, st){ try{ await setMyCargoStatus(id, st); myCargo.find(x => x.id === id).status = st; renderMyCargo(); }catch(e){ showToast(e.message, 'error'); } }
 
 /* ---------- Візитівка ---------- */
 const bc = { color: '#10B981', theme: 'dark' };

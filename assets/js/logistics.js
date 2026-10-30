@@ -36,3 +36,5 @@ const BORDER_POSTS = [
   { id: 'kyiv-msz',    name: 'Київ — митні пости та МЛС', country: '',          region: 'м. Київ' }
 ];
 const postName = id => (BORDER_POSTS.find(p => p.id === id) || {}).name || id;
+const CURRENCIES = ['UAH', 'EUR', 'USD', 'PLN'];
+const PAY_TERMS = ['Готівка при завантаженні', 'Готівка при вивантаженні', 'Безготівка з ПДВ', 'Безготівка без ПДВ', 'Передоплата', 'Відстрочка оплати'];
