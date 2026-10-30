@@ -129,6 +129,7 @@
         '<div class="field-row">' +
           '<div class="field"><label class="label" for="cc-exc-qty" id="cc-exc-qty-l">Кількість для акцизу</label><input class="input" id="cc-exc-qty" type="number" min="0" step="any"></div>' +
           '<div class="field" id="cc-exc-abv-f" style="display:none"><label class="label" for="cc-exc-abv">Міцність, % об.</label><input class="input" id="cc-exc-abv" type="number" min="0" max="100" step="0.1"></div>' +
+          '<div class="field" id="cc-exc-age-f" style="display:none"><label class="label" for="cc-exc-age">Вік (скільки років використовувався)</label><select class="input" id="cc-exc-age" onchange="CustomsCalc.excUi()"></select></div>' +
           '<div class="field" id="cc-exc-new-f" style="display:none"><label class="label" for="cc-exc-new">Стан</label><select class="input" id="cc-exc-new" onchange="CustomsCalc.excUi()"><option value="new">Новий</option><option value="used">Що використовувався</option></select></div>' +
         '</div>' +
         '<div class="hint" id="cc-exc-hint"></div>' +
@@ -574,10 +575,28 @@
     const best = r => Math.max(...r.codes.filter(hit).map(c => Math.min(c.length, code.length)));
     return hits.sort((a, b) => best(b) - best(a));
   }
+  /* ПКУ 215.3.5 / 215.3.5-2: вживані автобуси (8702) понад 8 років — коефіцієнт 50;
+     вантажні (8704) 5–8 років — коефіцієнт 40, понад 8 років — 50 (ред. Закону № 3553-IX від 16.01.2024) */
+  const AGE_K = {
+    '8704': [['', 'до 5 років', 1], ['5-8', 'від 5 до 8 років — коефіцієнт 40', 40], ['8+', 'понад 8 років — коефіцієнт 50', 50]],
+    '8702': [['', 'до 8 років', 1], ['8+', 'понад 8 років — коефіцієнт 50', 50]]
+  };
+  function ageRules(row){ const c = (row && row.codes[0]) || ''; return AGE_K[c.slice(0, 4)] || null; }
+  function rowIsNew(row){ return /›\s*нові\s*$/.test(row.descr || '') || (/^нові\s/.test(row.rate) && $('cc-exc-new').value === 'new'); }
   function excNow(){
     const i = parseInt($('cc-exc-var').value, 10);
     const row = excMatches[i]; if (!row) return null;
-    return parseExcise(row, $('cc-exc-new').value === 'new');
+    const x = parseExcise(row, $('cc-exc-new').value === 'new');
+    const rules = ageRules(row);
+    if (x && rules && x.base === 'cc' && !rowIsNew(row)){
+      const r = rules.find(a => a[0] === $('cc-exc-age').value);
+      if (r && r[2] !== 1){
+        const k = r[2];
+        x.note = (x.note ? x.note + '; ' : '') + 'вік ' + r[1].replace(' — коефіцієнт ' + k, '') + ': ставка × ' + k + ' (ПКУ ' + (row.codes[0].startsWith('8704') ? '215.3.5-2' : '215.3.5') + ')';
+        x.rate = +(x.rate * k).toFixed(4);
+      }
+    }
+    return x;
   }
   function excUi(){
     const auto = $('cc-exc-type').value === 'auto';
@@ -586,6 +605,15 @@
     if (!auto) return;
     const row = excMatches[parseInt($('cc-exc-var').value, 10)];
     $('cc-exc-new-f').style.display = row && /^нові\s/.test(row.rate) ? '' : 'none';
+    const rules = ageRules(row), ageSel = $('cc-exc-age');
+    const showAge = !!rules && !rowIsNew(row);
+    if (rules && ageSel.dataset.g !== row.codes[0].slice(0, 4)){
+      const prev = ageSel.value;
+      ageSel.innerHTML = rules.map(a => '<option value="' + a[0] + '">' + a[1] + '</option>').join('');
+      ageSel.dataset.g = row.codes[0].slice(0, 4);
+      if (rules.some(a => a[0] === prev)) ageSel.value = prev;
+    }
+    $('cc-exc-age-f').style.display = showAge ? '' : 'none';
     const x = excNow();
     $('cc-exc-abv-f').style.display = x && x.base === 'pure' ? '' : 'none';
     $('cc-exc-qty').parentElement.style.display = x && x.base === 'pct' ? 'none' : '';
