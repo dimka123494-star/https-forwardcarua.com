@@ -392,7 +392,11 @@
     const sb = await db();
     const { count } = await sb.from('carrier_registry').select('edrpou', { count: 'exact', head: true });
     const { data: last } = await sb.from('carrier_registry').select('updated_at').order('updated_at', { ascending: false }).limit(1);
-    $('utbInfo').textContent = 'У базі: ' + (count || 0) + ' ліцензованих вантажних перевізників' + (last && last[0] ? ', оновлено ' + fmtDate(last[0].updated_at) : '') + '.';
+    const { data: run } = await sb.from('utb_runs').select('finished_at, new_carriers, note').not('finished_at', 'is', null).order('id', { ascending: false }).limit(1);
+    const rr = run && run[0];
+    $('utbInfo').textContent = 'У базі: ' + (count || 0) + ' ліцензованих вантажних перевізників' + (last && last[0] ? ', оновлено ' + fmtDate(last[0].updated_at) : '') +
+      (rr ? (rr.note ? ' (останнє оновлення: ' + rr.note + ')' : rr.new_carriers ? ', нових за останнє оновлення: ' + rr.new_carriers : '') : '') +
+      '. Реєстр оновлюється автоматично 1-го числа щомісяця.';
     utbCount();
   }
   function utbCount(){
