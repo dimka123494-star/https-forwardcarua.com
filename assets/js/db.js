@@ -360,12 +360,16 @@ async function cargoBoard(){
 }
 async function myCargoResponses(){
   const sb = await sbReady();
-  const { data } = await sb.from('cargo_responses').select('cargo_id, created_at, price, currency, comment, status');
+  let { data, error } = await sb.from('cargo_responses').select('cargo_id, created_at, price, currency, comment, status');
+  // до оновлення бази колонок ставки ще немає — беремо базові поля
+  if (error) ({ data } = await sb.from('cargo_responses').select('cargo_id, created_at'));
   return data || [];
 }
 async function respondCargo(id, offer){
   const sb = await sbReady();
-  const { data, error } = await sb.rpc('respond_cargo', offer ? { cid: id, p: offer } : { cid: id });
+  let { data, error } = await sb.rpc('respond_cargo', offer ? { cid: id, p: offer } : { cid: id });
+  // до оновлення бази функція приймає лише cid — відгук без ставки
+  if (error && offer && /function|schema cache|PGRST202/i.test(error.message + (error.code || ''))) ({ data, error } = await sb.rpc('respond_cargo', { cid: id }));
   if (error){ console.error('respondCargo:', error); throw cargoErr(error); }
   return data;
 }
