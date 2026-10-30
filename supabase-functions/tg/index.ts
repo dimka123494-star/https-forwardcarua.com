@@ -77,7 +77,8 @@ async function handleEvent(ev: string, id: string) {
       (!c.transport || !b.transport?.length || b.transport.includes(c.transport)));
     const subs = await subsFor(match.map((b: any) => b.user_id), "cargo");
     const text = `🚚 <b>Новий вантаж на вашому напрямку</b>\n${esc(route(c))}\n${esc(c.cargo)}` +
-      `\n${[c.weight_t ? c.weight_t + " т" : "", c.volume_m3 ? c.volume_m3 + " м³" : "", c.transport || "будь-який транспорт",
+      `\n${[c.distance_km ? c.distance_km + " км" : "", c.weight_t ? c.weight_t + " т" : "", c.volume_m3 ? c.volume_m3 + " м³" : "",
+        c.length_m && c.width_m && c.height_m ? `${c.length_m}×${c.width_m}×${c.height_m} м` : "", c.places ? c.places + " місць" : "", c.transport || "будь-який транспорт",
         c.load_date ? "завантаження " + fmtD(c.load_date) : ""].filter(Boolean).map(esc).join(" · ")}` +
       `\n${c.price ? "Ставка: <b>" + esc(money(c.price, c.currency)) + "</b>" : "Запит ставок"}${c.customs ? " · митне оформлення" : ""}`;
     for (const s of subs.slice(0, 500)) if (await send(s.chat_id, text, ["Запропонувати ставку", `${SITE}/kabinet#cargo`])) sent++;

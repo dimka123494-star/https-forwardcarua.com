@@ -18,7 +18,8 @@ const Shipper = (() => {
       '<div class="spread" style="gap:10px;align-items:flex-start;flex-wrap:wrap"><div style="min-width:0">' +
         '<div class="cargo-route">' + esc(routeTxt(x)) + '</div>' +
         '<div style="margin-top:3px">' + esc(x.cargo) + '</div>' +
-        '<div class="text-xs text-muted" style="margin-top:4px">' + [x.weight_t ? x.weight_t + ' т' : '', x.volume_m3 ? x.volume_m3 + ' м³' : '', x.transport || 'будь-який транспорт',
+        '<div class="text-xs text-muted" style="margin-top:4px">' + (x.distance_km ? '<a href="' + cargoMapsUrl(x) + '" target="_blank" rel="noopener"><i class="ti ti-route"></i> ' + x.distance_km.toLocaleString('uk-UA') + ' км</a> · ' : '') +
+          [x.weight_t ? x.weight_t + ' т' : '', x.volume_m3 ? x.volume_m3 + ' м³' : '', cargoDims(x), x.transport || 'будь-який транспорт',
           x.load_date ? 'завантаження ' + fmtD(x.load_date) : '', x.pay_terms || ''].filter(Boolean).map(esc).join(' · ') + ' ' +
           (x.price ? '<span class="fx-badge ok">' + money(x.price, x.currency) + '</span>' : '<span class="fx-badge">запит ставок</span>') + '</div>' +
         '<div class="text-xs text-muted" style="margin-top:4px">' + fmtDate(x.created_at) + ' · ' +
@@ -115,9 +116,11 @@ const Shipper = (() => {
     const set = (i, v) => { const el = $(i); if (el && v !== null && v !== undefined) el.value = v; };
     set('cg-fc', x.from_country); set('cg-fcity', x.from_city || ''); set('cg-tc', x.to_country); set('cg-tcity', x.to_city || '');
     set('cg-cargo', x.cargo); set('cg-w', x.weight_t ?? ''); set('cg-v', x.volume_m3 ?? ''); set('cg-tr', x.transport || '');
+    set('cg-l', x.length_m ?? ''); set('cg-wd', x.width_m ?? ''); set('cg-h', x.height_m ?? ''); set('cg-pl', x.places ?? '');
     set('cg-price', x.price ?? ''); set('cg-cur', x.currency || 'UAH'); set('cg-pay', x.pay_terms || ''); set('cg-notes', x.notes || '');
     set('cg-date', '');
     const c = $('cg-customs'); if (c) c.checked = !!x.customs;
+    if (typeof CargoPublic !== 'undefined' && CargoPublic.planRoute) CargoPublic.planRoute();
     const f = $('cg-date'); if (f){ f.focus(); f.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
     showToast('Дані підставлено — вкажіть нову дату завантаження');
   }

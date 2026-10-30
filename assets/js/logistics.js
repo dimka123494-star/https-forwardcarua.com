@@ -38,3 +38,17 @@ const BORDER_POSTS = [
 const postName = id => (BORDER_POSTS.find(p => p.id === id) || {}).name || id;
 const CURRENCIES = ['UAH', 'EUR', 'USD', 'PLN'];
 const PAY_TERMS = ['Готівка при завантаженні', 'Готівка при вивантаженні', 'Безготівка з ПДВ', 'Безготівка без ПДВ', 'Передоплата', 'Відстрочка оплати'];
+/* ISO-коди країн — для пошуку міст на карті */
+const COUNTRY_CODES = { 'Україна':'ua', 'Польща':'pl', 'Німеччина':'de', 'Литва':'lt', 'Латвія':'lv', 'Естонія':'ee', 'Чехія':'cz', 'Словаччина':'sk',
+  'Угорщина':'hu', 'Румунія':'ro', 'Молдова':'md', 'Болгарія':'bg', 'Австрія':'at', 'Нідерланди':'nl', 'Бельгія':'be', 'Франція':'fr', 'Італія':'it',
+  'Іспанія':'es', 'Данія':'dk', 'Швеція':'se', 'Фінляндія':'fi', 'Велика Британія':'gb', 'Туреччина':'tr', 'Грузія':'ge', 'Казахстан':'kz', 'Китай':'cn', 'США':'us' };
+/* Підпис габаритів і кілометражу для карток вантажу */
+function cargoDims(x){
+  const d = [x.length_m, x.width_m, x.height_m].every(v => v) ? x.length_m + '×' + x.width_m + '×' + x.height_m + ' м' : '';
+  return [d, x.places ? x.places + ' місць' : ''].filter(Boolean).join(', ');
+}
+function cargoMapsUrl(x){
+  const p = (c, ct, la, lo) => la && lo ? la + ',' + lo : [c, ct].filter(Boolean).join(', ');
+  return 'https://www.google.com/maps/dir/?api=1&travelmode=driving&origin=' + encodeURIComponent(p(x.from_city, x.from_country, x.from_lat, x.from_lon)) +
+    '&destination=' + encodeURIComponent(p(x.to_city, x.to_country, x.to_lat, x.to_lon));
+}

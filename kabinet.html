@@ -779,7 +779,8 @@ function renderCargo(){
     return '<div class="cargo-item"><div class="spread" style="gap:10px;align-items:flex-start;flex-wrap:wrap"><div>' +
       '<div class="cargo-route">' + esc([x.from_city, x.from_country].filter(Boolean).join(', ')) + ' <i class="ti ti-arrow-right" style="color:var(--blue)"></i> ' + esc([x.to_city, x.to_country].filter(Boolean).join(', ')) + '</div>' +
       '<div style="margin-top:4px">' + esc(x.cargo) + '</div>' +
-      '<div class="text-xs text-muted" style="margin-top:4px">' + [x.weight_t ? x.weight_t + ' т' : '', x.volume_m3 ? x.volume_m3 + ' м³' : '', x.transport || 'будь-який транспорт',
+      '<div class="text-xs text-muted" style="margin-top:4px">' + (x.distance_km ? '<a href="' + cargoMapsUrl(x) + '" target="_blank" rel="noopener"><i class="ti ti-route"></i> ' + x.distance_km.toLocaleString('uk-UA') + ' км</a> · ' : '') +
+        [x.weight_t ? x.weight_t + ' т' : '', x.volume_m3 ? x.volume_m3 + ' м³' : '', cargoDims(x), x.transport || 'будь-який транспорт',
         x.load_date ? 'завантаження ' + fmtD(x.load_date) : '', x.pay_terms || '', x.customs ? 'потрібне митне оформлення' : ''].filter(Boolean).map(esc).join(' · ') + ' ' + CargoPublic.priceTag(x) + '</div>' +
       (x.notes ? '<div class="text-sm text-muted" style="margin-top:6px;white-space:pre-line">' + esc(x.notes) + '</div>' : '') +
       '<div class="text-xs text-muted" style="margin-top:6px">' + timeAgoUa(x.created_at) + (x.responses_count ? ' · відгуків: ' + x.responses_count : '') + '</div></div>' +

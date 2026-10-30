@@ -12,9 +12,15 @@ const CargoPublic = (() => {
         '<div class="field"><label class="label" for="cg-fcity">Місто</label><input class="input" id="cg-fcity" placeholder="Напр.: Варшава"></div></div>' +
       '<div class="field-row"><div class="field"><label class="label" for="cg-tc">Куди — країна *</label><select class="input" id="cg-tc">' + opts(CARGO_COUNTRIES, 'Оберіть') + '</select></div>' +
         '<div class="field"><label class="label" for="cg-tcity">Місто</label><input class="input" id="cg-tcity" placeholder="Напр.: Київ"></div></div>' +
+      '<div class="cg-route"><div class="cg-map" id="cg-map"></div><div class="text-sm" id="cg-km"><i class="ti ti-route"></i> Вкажіть міста завантаження й доставки — порахуємо кілометраж і покажемо маршрут.</div></div>' +
       '<div class="field"><label class="label" for="cg-cargo">Що веземо *</label><input class="input" id="cg-cargo" maxlength="200" placeholder="Напр.: обладнання на палетах, 8 палет"></div>' +
       '<div class="field-row"><div class="field"><label class="label" for="cg-w">Вага, т</label><input class="input" type="number" id="cg-w" min="0" step="0.1"></div>' +
         '<div class="field"><label class="label" for="cg-v">Обʼєм, м³</label><input class="input" type="number" id="cg-v" min="0" step="0.1"></div></div>' +
+      '<label class="label">Габарити вантажу, м <span class="text-muted" style="text-transform:none;letter-spacing:0">(довжина × ширина × висота)</span></label>' +
+      '<div class="cg-dims"><input class="input" type="number" id="cg-l" min="0" step="0.01" placeholder="Довжина"><span>×</span>' +
+        '<input class="input" type="number" id="cg-wd" min="0" step="0.01" placeholder="Ширина"><span>×</span>' +
+        '<input class="input" type="number" id="cg-h" min="0" step="0.01" placeholder="Висота">' +
+        '<input class="input" type="number" id="cg-pl" min="1" step="1" placeholder="Місць / палет" title="Кількість місць або палет"></div>' +
       '<div class="field-row"><div class="field"><label class="label" for="cg-tr">Транспорт</label><select class="input" id="cg-tr">' + opts(TRANSPORT_TYPES, 'Будь-який') + '</select></div>' +
         '<div class="field"><label class="label" for="cg-date">Дата завантаження</label><input class="input" id="cg-date" placeholder="ДД.ММ.РРРР" inputmode="numeric" maxlength="10" oninput="CargoPublic.mask(this)"></div></div>' +
       '<div class="field-row"><div class="field"><label class="label" for="cg-price">Ваша ставка</label><div style="display:flex;gap:6px"><input class="input" type="number" id="cg-price" min="0" step="1" placeholder="порожньо — запит ставок">' +
@@ -29,6 +35,84 @@ const CargoPublic = (() => {
       '<label class="check-row"><input type="checkbox" id="cg-ok" checked> Погоджуюсь з <a href="/terms#privacy" target="_blank">обробкою персональних даних</a></label>' +
       '<div class="msg" id="cg-msg"></div>' +
       '<button class="btn btn-primary btn-block" id="cg-btn" onclick="CargoPublic.send()"><i class="ti ti-send"></i>Надіслати перевізникам</button>';
+    route_ = {}; map_ = null;
+    ['cg-fc', 'cg-tc', 'cg-fcity', 'cg-tcity'].forEach(i => $(i).addEventListener('change', planRoute));
+    ['cg-fcity', 'cg-tcity'].forEach(i => $(i).addEventListener('input', () => { clearTimeout(rt_); rt_ = setTimeout(planRoute, 1200); }));
+    $('cg-price').addEventListener('input', kmLine); $('cg-cur').addEventListener('change', kmLine);
+    ['cg-l', 'cg-wd', 'cg-h'].forEach(i => $(i).addEventListener('input', autoVolume));
+  }
+
+  /* ---------- Габарити: обʼєм рахуємо сам, якщо не вказано ---------- */
+  let volAuto = false;
+  function autoVolume(){
+    const l = +$('cg-l').value, w = +$('cg-wd').value, h = +$('cg-h').value, vEl = $('cg-v');
+    if (l && w && h && (!vEl.value || volAuto)){ vEl.value = Math.round(l * w * h * 10) / 10; volAuto = true; }
+  }
+
+  /* ---------- Карта й кілометраж: OpenStreetMap (Nominatim + OSRM) ---------- */
+  let route_ = {}, map_ = null, layer_ = null, rt_ = null, seq_ = 0;
+  const geoCache = {};
+  function loadLeaflet(){
+    if (window.L) return Promise.resolve();
+    return new Promise((ok, bad) => {
+      const css = document.createElement('link'); css.rel = 'stylesheet'; css.href = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css'; document.head.appendChild(css);
+      const js = document.createElement('script'); js.src = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js'; js.onload = ok; js.onerror = bad; document.head.appendChild(js);
+    });
+  }
+  async function geocode(city, country){
+    const key = city + '|' + country; if (geoCache[key]) return geoCache[key];
+    const cc = (typeof COUNTRY_CODES !== 'undefined' && COUNTRY_CODES[country]) || '';
+    const u = 'https://nominatim.openstreetmap.org/search?format=json&limit=1&accept-language=uk&q=' + encodeURIComponent(cc ? city : city + ', ' + country) + (cc ? '&countrycodes=' + cc : '');
+    const r = await fetch(u); const d = await r.json();
+    if (!d.length) return null;
+    return geoCache[key] = [+(+d[0].lat).toFixed(5), +(+d[0].lon).toFixed(5)];
+  }
+  function kmLine(){
+    const el = $('cg-km'); if (!el || !route_.km) return;
+    const pr = +$('cg-price').value, cur = $('cg-cur').value;
+    el.innerHTML = '<i class="ti ti-route" style="color:var(--blue)"></i> <b>' + route_.km.toLocaleString('uk-UA') + ' км</b>' + (route_.approx ? ' (орієнтовно, по прямій ×1,2)' : ' автодорогами') +
+      (route_.h ? ' · ≈ ' + route_.h + ' год за кермом' : '') + (pr ? ' · <b>' + (pr / route_.km).toFixed(2) + ' ' + cur + '/км</b>' : '');
+  }
+  async function planRoute(){
+    const fc = $('cg-fc').value, tc = $('cg-tc').value, fcity = $('cg-fcity').value.trim(), tcity = $('cg-tcity').value.trim(), el = $('cg-km');
+    if (!el) return;
+    if (!fc || !tc || !fcity || !tcity){ route_ = {}; return; }
+    const my = ++seq_;
+    el.innerHTML = '<i class="ti ti-loader-2"></i> Рахуємо маршрут…';
+    try{
+      const [a, b] = await Promise.all([geocode(fcity, fc), geocode(tcity, tc)]);
+      if (my !== seq_) return;
+      if (!a || !b){ route_ = {}; el.innerHTML = '<i class="ti ti-map-pin-off"></i> Не знайшли місто ' + esc(!a ? fcity : tcity) + ' на карті — перевірте назву. Заявку можна надіслати й так.'; return; }
+      let km, h, line;
+      try{
+        const r = await (await fetch('https://router.project-osrm.org/route/v1/driving/' + a[1] + ',' + a[0] + ';' + b[1] + ',' + b[0] + '?overview=simplified&geometries=geojson')).json();
+        if (r.code !== 'Ok' || !r.routes.length) throw 0;
+        km = Math.round(r.routes[0].distance / 1000); h = Math.round(r.routes[0].duration / 3600); line = r.routes[0].geometry.coordinates.map(c => [c[1], c[0]]);
+      }catch(e){
+        const R = 6371, rad = x => x * Math.PI / 180, dLa = rad(b[0] - a[0]), dLo = rad(b[1] - a[1]);
+        const s = Math.sin(dLa / 2) ** 2 + Math.cos(rad(a[0])) * Math.cos(rad(b[0])) * Math.sin(dLo / 2) ** 2;
+        km = Math.round(2 * R * Math.asin(Math.sqrt(s)) * 1.2); line = [a, b];
+      }
+      if (my !== seq_) return;
+      route_ = { km, h, a, b, approx: line.length === 2 };
+      kmLine();
+      drawMap(line, a, b, fcity, tcity).catch(() => {});  // карта — лише ілюстрація, кілометраж уже пораховано
+    }catch(e){
+      if (my === seq_) el.innerHTML = '<i class="ti ti-route"></i> Не вдалося порахувати маршрут зараз. Заявку можна надіслати й так.';
+    }
+  }
+  async function drawMap(line, a, b, fcity, tcity){
+      await loadLeaflet();
+      const box = $('cg-map'); if (!box) return;
+      box.style.display = 'block';
+      if (!map_ || !document.body.contains(map_.getContainer())){
+        map_ = L.map(box, { scrollWheelZoom: false, attributionControl: true });
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18, attribution: '© OpenStreetMap' }).addTo(map_);
+      }
+      if (layer_) layer_.remove();
+      layer_ = L.layerGroup([L.polyline(line, { color: '#378add', weight: 4, dashArray: route_.approx ? '6 6' : null }),
+        L.circleMarker(a, { radius: 7, color: '#1d9e75', fillOpacity: 1 }).bindTooltip(fcity), L.circleMarker(b, { radius: 7, color: '#e24b4a', fillOpacity: 1 }).bindTooltip(tcity)]).addTo(map_);
+      setTimeout(() => { map_.invalidateSize(); map_.fitBounds(L.latLngBounds(line), { padding: [20, 20] }); }, 50);
   }
 
   function mask(el){
@@ -49,6 +133,9 @@ const CargoPublic = (() => {
     if (v('cg-name').length < 2) return fail('Вкажіть імʼя');
     if (v('cg-phone').replace(/\D/g, '').length < 9) return fail('Вкажіть коректний телефон');
     if (v('cg-date') && !isoDate(v('cg-date'))) return fail('Перевірте дату завантаження — формат ДД.ММ.РРРР');
+    const dims = ['cg-l', 'cg-wd', 'cg-h'].map(v).filter(Boolean).length;
+    if (dims && dims < 3) return fail('Вкажіть усі три габарити: довжину, ширину й висоту');
+    if (['cg-l', 'cg-wd', 'cg-h'].some(i => v(i) && +v(i) > (i === 'cg-l' ? 100 : 20))) return fail('Перевірте габарити — вказуються в метрах');
     if (!$('cg-ok').checked) return fail('Потрібна згода на обробку даних');
     const tg = v('cg-tg');
     btn.disabled = true; btn.textContent = 'Надсилаємо…';
@@ -57,6 +144,8 @@ const CargoPublic = (() => {
         from_country: v('cg-fc'), from_city: v('cg-fcity'), to_country: v('cg-tc'), to_city: v('cg-tcity'),
         cargo: v('cg-cargo'), weight_t: v('cg-w'), volume_m3: v('cg-v'), transport: v('cg-tr'), load_date: isoDate(v('cg-date')),
         price: v('cg-price'), currency: v('cg-cur'), pay_terms: v('cg-pay'),
+        length_m: v('cg-l'), width_m: v('cg-wd'), height_m: v('cg-h'), places: v('cg-pl'),
+        distance_km: route_.km || '', from_lat: route_.a ? route_.a[0] : '', from_lon: route_.a ? route_.a[1] : '', to_lat: route_.b ? route_.b[0] : '', to_lon: route_.b ? route_.b[1] : '',
         customs: $('cg-customs').checked, notes: v('cg-notes'), name: v('cg-name'), company: v('cg-company'), phone: v('cg-phone'),
         telegram: tg.includes('@') && !tg.startsWith('@') ? '' : tg, email: tg.includes('@') && !tg.startsWith('@') ? tg : ''
       });
@@ -158,7 +247,8 @@ const CargoPublic = (() => {
       el.innerHTML = list.length ? list.map(x =>
         '<div class="fx-row" id="cg-' + x.id + '"><div class="fx-main"><div class="cargo-route">' + route(x) + '</div>' +
           '<div class="fx-what">' + esc(x.cargo) + '</div>' +
-          '<div class="fx-meta">' + [x.weight_t ? x.weight_t + ' т' : '', x.volume_m3 ? x.volume_m3 + ' м³' : '', x.transport || 'будь-який транспорт',
+          '<div class="fx-meta">' + [x.distance_km ? '<a href="' + cargoMapsUrl(x) + '" target="_blank" rel="noopener"><i class="ti ti-route"></i> ' + x.distance_km.toLocaleString('uk-UA') + ' км</a>' : '',
+            x.weight_t ? x.weight_t + ' т' : '', x.volume_m3 ? x.volume_m3 + ' м³' : '', esc(cargoDims(x)), x.transport || 'будь-який транспорт',
             x.load_date ? '<i class="ti ti-calendar"></i> ' + fmtD(x.load_date) : '', x.pay_terms ? esc(x.pay_terms) : '', priceTag(x), x.customs ? '<span class="fx-badge">митне оформлення</span>' : ''].filter(Boolean).join(' · ') + '</div>' +
           (x.notes && !o.compact ? '<div class="fx-notes">' + esc(x.notes) + '</div>' : '') + '</div>' +
           '<div class="fx-side"><div class="text-xs text-muted">' + ago(x.created_at) + (x.responses_count ? ' · відгуків: ' + x.responses_count : '') + '</div>' + btn(x) + '</div></div>').join('')
@@ -238,5 +328,5 @@ const CargoPublic = (() => {
         (v.status === 'verified' ? ' <span class="fx-badge ok"><i class="ti ti-shield-check"></i> перевірено</span>' : ' <span class="fx-badge">на перевірці</span>') + '</div>').join('');
   }
 
-  return { offerForm, priceTag, mountForm, mountCarriers, mountPosts, send, mask, mountCargoBoard, mountOffers, respond, mountVehicles };
+  return { planRoute, offerForm, priceTag, mountForm, mountCarriers, mountPosts, send, mask, mountCargoBoard, mountOffers, respond, mountVehicles };
 })();
