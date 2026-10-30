@@ -255,6 +255,7 @@
           <code>supabase secrets set WFP_MERCHANT=…</code><br>
           <code>supabase secrets set WFP_SECRET=…</code><br><br>
           Стан функції: <span id="wfpStatus" class="text-muted">перевіряємо…</span>
+          <div style="margin-top:8px">Telegram-бот сповіщень: <span id="tgStatus" class="text-muted">перевіряємо…</span> <button class="btn-quiet" id="tgSetup" style="display:none" onclick="tgSetup()">Підключити вебхук</button></div>
         </div>
         <div class="info-box" style="margin-top:12px;border:.5px solid rgba(241,101,75,.25)">
           Ніколи не вводьте Secret Key у форму на сайті. Будь-яке поле в браузері означає, що ключ можна
@@ -765,11 +766,26 @@ async function checkWfp(){
   }catch{ el.textContent = 'функція недоступна'; el.style.color = 'var(--red)'; }
 }
 
+async function checkTg(){
+  const el = document.getElementById('tgStatus'), btn = document.getElementById('tgSetup');
+  try{
+    const d = await (await fetch(SUPABASE_URL + '/functions/v1/tg', { headers: { apikey: SUPABASE_ANON } })).json();
+    const { count } = await (await sbReady()).from('tg_subs').select('user_id', { count: 'exact', head: true });
+    if (!d.configured){ el.textContent = 'не задано секрет TG_BOT_TOKEN (Supabase → Edge Functions → Secrets)'; el.style.color = 'var(--red)'; return; }
+    el.innerHTML = '@' + esc(d.username) + (d.webhook ? ' · працює' : ' · вебхук не підключено') + ' · підписок: ' + (count || 0);
+    el.style.color = d.webhook ? 'var(--green)' : 'var(--amber)'; btn.style.display = d.webhook ? 'none' : '';
+  }catch(e){ el.textContent = 'функція недоступна'; el.style.color = 'var(--red)'; }
+}
+async function tgSetup(){
+  const d = await (await fetch(SUPABASE_URL + '/functions/v1/tg?setup=1', { headers: { apikey: SUPABASE_ANON } })).json();
+  showToast(d.ok ? 'Вебхук підключено' : 'Не вдалося: ' + (d.webhook || ''), d.ok ? 'success' : 'error'); checkTg();
+}
+
 /* ---------- Старт ---------- */
 window.addEventListener('DOMContentLoaded', async () => {
   try{
     const user = await currentUser();
-    if (user && await isAdmin(user)){ await enter(user); checkWfp(); }
+    if (user && await isAdmin(user)){ await enter(user); checkWfp(); checkTg(); }
   }catch(e){
     // Помилку старту показуємо на екрані входу, а не мовчки ковтаємо
     const m = document.getElementById('a-msg');

@@ -61,6 +61,7 @@
       <div class="lg-grid">
         <div>
           <p class="text-sm text-muted" style="margin-bottom:12px">Розмістіть вантаж — перевізники біржі ВантажПоруч надсилають ставки. Порівняйте ціну, рейтинг і перевірені авто, оберіть перевізника й зателефонуйте йому.</p>
+          <div class="card" id="tgCard" style="margin-bottom:12px"></div>
           <div id="myCargo"><div class="text-sm text-muted">Завантаження…</div></div>
         </div>
         <div class="card" style="align-self:start"><div id="shForm"></div></div>
@@ -106,6 +107,7 @@
 <script src="/assets/js/logistics.js"></script>
 <script src="/assets/js/cargo-public.js"></script>
 <script src="/assets/js/shipper.js"></script>
+<script src="/assets/js/tg-connect.js"></script>
 <script>
 async function doLogout(){ await signOut(); location.href = '/'; }
 
@@ -225,6 +227,7 @@ window.addEventListener('DOMContentLoaded', async () => {
   prof = { full_name: p?.full_name, phone: p?.phone, email: user.email };
 
   tab(location.hash.replace('#', '') || 'cargo');
+  TgConnect.mount('tgCard', { prefs: [['offers', 'Нові й оновлені ставки на мої вантажі']], hint: 'Отримуйте ставки перевізників у Telegram одразу, щойно вони надходять.' });
 });
 </script>
 </body>

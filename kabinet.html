@@ -99,6 +99,7 @@
       <section class="cab-pane active" id="pane-dash">
         <h1 class="h-md" style="margin-bottom:1.25rem">Дашборд</h1>
         <div id="upsell"></div>
+        <div class="card" id="tgCard" style="margin-bottom:1.25rem"></div>
         <div class="stat-grid" style="margin-bottom:1.25rem">
           <div class="stat"><div class="stat-val" style="color:var(--blue)" id="sViews">0</div><div class="stat-label">Переглядів профілю</div></div>
           <div class="stat"><div class="stat-val" style="color:var(--green)" id="sMonth">0</div><div class="stat-label">Заявок цього місяця</div></div>
@@ -411,6 +412,7 @@
 <script src="/assets/js/logistics.js"></script>
 <script src="/assets/js/cargo-public.js"></script>
 <script src="/assets/js/shipper.js"></script>
+<script src="/assets/js/tg-connect.js"></script>
 <script>
 let broker = null, requests = [], myRevs = [], period = 'month', reqFilter = 'all';
 
@@ -994,6 +996,10 @@ window.addEventListener('DOMContentLoaded', async () => {
   renderBilling();
   renderPayments();
 
+  TgConnect.mount('tgCard', { prefs: broker.kind === 'carrier'
+    ? [['cargo', 'Нові вантажі на моїх напрямках і статус авто'], ['offers', 'Мене обрали перевізником / ставки на мої вантажі'], ['requests', 'Заявки клієнтів']]
+    : [['requests', 'Нові заявки клієнтів'], ['offers', 'Ставки перевізників на мої вантажі']],
+    hint: broker.kind === 'carrier' ? 'Нові вантажі на ваших напрямках приходять у Telegram одразу — відгукуйтесь першим.' : 'Нові заявки клієнтів приходять у Telegram одразу — відповідайте першим.' });
   requests = await brokerRequests(broker.id);
   renderRequests();
   await renderDash();
