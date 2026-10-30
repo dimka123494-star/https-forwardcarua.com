@@ -93,7 +93,7 @@
       '<div class="card-title">Товар за УКТ ЗЕД</div>' +
       '<div class="field"><label class="label" for="cc-group">Група УКТ ЗЕД</label><select class="input" id="cc-group" onchange="CustomsCalc.group(this.value)"><option value="">Усі групи — шукати по всьому тарифу</option>' + groups + '</select></div>' +
       '<div class="field" style="position:relative"><label class="label" for="cc-find">Товар — пошук за назвою або кодом</label>' +
-        '<input class="input" id="cc-find" autocomplete="off" placeholder="Напр. фотоелектричні або 8541" oninput="CustomsCalc.find(this.value)" onfocus="CustomsCalc.find(this.value)">' +
+        '<input class="input" id="cc-find" autocomplete="off" placeholder="Напр. фотоелектричні або 8541" oninput="CustomsCalc.find(this.value)" onfocus="CustomsCalc.find(this.value)" onkeydown="if(event.key===\'Enter\'){event.preventDefault();CustomsCalc.enter(this.value)}">' +
         '<div id="cc-find-list" style="display:none;position:absolute;left:0;right:0;top:100%;z-index:50;max-height:340px;overflow-y:auto;background:var(--surface2);' +
           'border:.5px solid var(--border-strong);border-radius:var(--r-sm);box-shadow:0 20px 40px rgba(0,0,0,.45)"></div></div>' +
       '<div class="field"><label class="label" for="cc-origin">Країна походження</label><select class="input" id="cc-origin" onchange="CustomsCalc.applyRate()">' +
@@ -103,7 +103,7 @@
       '</select></div>' +
       '<div id="cc-rate-info" class="hint" style="display:none;margin:-.25rem 0 1rem;padding:10px 12px;background:var(--blue-glow);border-radius:var(--r-sm);color:var(--text)"></div>' +
       '<div class="field-row">' +
-        '<div class="field"><label class="label" for="cc-code">Код УКТ ЗЕД</label><input class="input" id="cc-code" inputmode="numeric" maxlength="13" placeholder="10 цифр"></div>' +
+        '<div class="field"><label class="label" for="cc-code">Код УКТ ЗЕД</label><input class="input" id="cc-code" inputmode="numeric" maxlength="13" placeholder="10 цифр" oninput="CustomsCalc.codeInput(this.value)"></div>' +
         '<div class="field"><label class="label" for="cc-goods-name">Опис товару</label><input class="input" id="cc-goods-name" placeholder="Напр. Насоси відцентрові"></div>' +
       '</div>' +
       '<div class="field-row">' +
@@ -502,6 +502,26 @@
     box.style.display = 'block';
   }
   document.addEventListener('click', e => { const b = $('cc-find-list'); if (b && !e.target.closest('#cc-find-list') && e.target.id !== 'cc-find') b.style.display = 'none'; });
+  // Введений вручну код (у полі «Код УКТ ЗЕД» або в пошуку + Enter): шукаємо в тарифі й підставляємо ставки та акциз
+  let codeTimer;
+  function codeInput(v){
+    clearTimeout(codeTimer);
+    const d = String(v || '').replace(/\D/g, '');
+    codeTimer = setTimeout(async () => {
+      if (d.length < 4){ if (!d.length) await applyExcise(''); return; }
+      try{ await loadGroup(d.slice(0, 2)); }catch(e){ /* довідник недоступний — акциз усе одно перевіримо */ }
+      if (d.length === 10 && byCode[d]){ if (!st.tariff || st.tariff.code !== d) pick(d); return; }
+      await applyExcise(d);
+    }, 300);
+  }
+  async function enter(q){
+    const d = String(q || '').replace(/\s/g, '');
+    if (!/^\d{4,10}$/.test(d)) return;
+    try{ await loadGroup(d.slice(0, 2)); }catch(e){ return; }
+    const exact = byCode[d.padEnd(10, '0')] || byCode[d];
+    const first = exact || Object.values(byCode).filter(r => r.code.startsWith(d)).sort((a, b) => a.code.localeCompare(b.code))[0];
+    if (first) pick(first.code);
+  }
   function pick(code){
     const r = byCode[code]; if (!r) return;
     if ($('cc-group').value !== code.slice(0, 2)) $('cc-group').value = code.slice(0, 2);
@@ -547,8 +567,11 @@
   }
   async function findExcise(code){
     let all; try{ all = await loadExcise(); }catch(e){ console.error(e); return []; }
-    const hits = all.filter(r => r.codes.some(c => code.startsWith(c)) && !(r.excl || []).some(c => code.startsWith(c)));
-    const best = r => Math.max(...r.codes.filter(c => code.startsWith(c)).map(c => c.length));
+    if (!code || code.length < 4) return [];
+    // Повний код — шукаємо ставку, під яку він підпадає; неповний (напр. 8704) — усі ставки всередині цієї позиції
+    const hit = c => code.startsWith(c) || (code.length < 10 && c.startsWith(code));
+    const hits = all.filter(r => r.codes.some(hit) && !(r.excl || []).some(c => code.startsWith(c)));
+    const best = r => Math.max(...r.codes.filter(hit).map(c => Math.min(c.length, code.length)));
     return hits.sort((a, b) => best(b) - best(a));
   }
   function excNow(){
@@ -581,7 +604,7 @@
       opt.disabled = false; sel.value = 'auto';
       $('cc-exc-var').innerHTML = excMatches.map((r, i) =>
         '<option value="' + i + '">' + esc((/^нові\s/.test(r.rate) ? 'нові / що використовувалися' : r.rate.replace(/\*/g, '') + ' ' + (r.unit || '').replace(/\*/g, '')).trim()) +
-        ' — ' + esc(r.descr.slice(0, 90)) + '</option>').join('');
+        ' — ' + (excMatches.length > 1 ? fmtCode(r.codes[0]) + ' ' : '') + esc(r.descr.slice(0, 90)) + '</option>').join('');
     } else {
       opt.disabled = true; if (sel.value === 'auto') sel.value = 'none';
     }
@@ -682,7 +705,7 @@
       $('cc-hybrid-f').style.display = f === 'hybrid' ? '' : 'none';
       $('cc-eu-f').style.display = ev ? 'none' : '';
     },
-    calc, shareFile, copy, sendLead, retry: preparePdf, group: onGroup, find, pick, applyRate, excUi,
+    calc, shareFile, copy, sendLead, retry: preparePdf, group: onGroup, find, pick, applyRate, excUi, codeInput, enter,
     _state: st
   };
 })();
