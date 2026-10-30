@@ -22,16 +22,17 @@ export default async (req: Request, ctx: Context) => {
     const kind = parts[0], id = parts[1] || "";
     if (!UUID.test(id) || !(res.headers.get("content-type") || "").includes("text/html")) return res;
 
-    const r = await fetch(`${SB}/rest/v1/brokers?id=eq.${id}&is_active=eq.true&select=name,city,region,about,card_tagline,logo_url,plan,plan_expires_at`,
+    const r = await fetch(`${SB}/rest/v1/brokers?id=eq.${id}&is_active=eq.true&select=name,city,region,about,card_tagline,logo_url,plan,plan_expires_at,kind`,
       { headers: { apikey: ANON, Authorization: `Bearer ${ANON}` } });
     const b = (await r.json())?.[0];
     if (!b) return res;
 
     const paid = b.plan && b.plan !== "free" && (!b.plan_expires_at || new Date(b.plan_expires_at) > new Date());
     const where = b.city ? `, ${b.city}` : "";
-    const title = kind === "v" ? `${b.name} — візитівка митного брокера` : `${b.name} — митний брокер${where} | МитнийБрокер`;
+    const role = b.kind === "carrier" ? "перевізник" : "митний брокер";
+    const title = kind === "v" ? `${b.name} — візитівка: ${role}` : `${b.name} — ${role}${where} | МитнийБрокер`;
     const desc = (kind === "v" && b.card_tagline ? b.card_tagline + ". " : "") +
-      (b.about ? String(b.about).slice(0, 150) : `Митний брокер ${b.name}${b.city ? " у місті " + b.city : ""}. Послуги, ціни, контакти та відгуки клієнтів.`);
+      (b.about ? String(b.about).slice(0, 150) : `${b.kind === "carrier" ? "Перевізник" : "Митний брокер"} ${b.name}${b.city ? " у місті " + b.city : ""}. Послуги, ціни, контакти та відгуки клієнтів.`);
     const canonical = `https://forwardcarua.com/${kind === "v" ? "v" : "broker"}/${id}`;
 
     let html = await res.text();

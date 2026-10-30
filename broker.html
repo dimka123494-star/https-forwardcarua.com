@@ -89,6 +89,7 @@
 
 <script src="/assets/js/config.js"></script>
 <script src="/assets/js/db.js"></script>
+<script src="/assets/js/logistics.js"></script>
 <script>
 let broker = null, reviews = [], filterStars = 'all', myStars = 0;
 
@@ -114,8 +115,9 @@ async function load(){
   broker = await getBroker(id);
   if (!broker){ el.innerHTML = notFound(); return; }
 
-  document.title = broker.name + ' — митний брокер' + (broker.city ? ', ' + broker.city : '') + ' | МитнийБрокер';
-  const desc = 'Митний брокер ' + broker.name + (broker.city ? ' у місті ' + broker.city : '') +
+  const role = broker.kind === 'carrier' ? 'перевізник' : 'митний брокер';
+  document.title = broker.name + ' — ' + role + (broker.city ? ', ' + broker.city : '') + ' | МитнийБрокер';
+  const desc = (broker.kind === 'carrier' ? 'Перевізник ' : 'Митний брокер ') + broker.name + (broker.city ? ' у місті ' + broker.city : '') +
     '. Послуги, ціни, контакти та відгуки клієнтів.';
   document.querySelector('meta[name=description]').content = desc;
   document.querySelector('link[rel=canonical]').href = 'https://forwardcarua.com/broker/' + broker.id;
@@ -175,6 +177,13 @@ function render(){
       '</div>' +
     '</div>' +
 
+    (broker.kind === 'carrier' ? '<div class="card" style="margin-bottom:16px"><div class="card-title">Транспорт і напрямки</div>' +
+      ((broker.transport || []).length ? '<div class="lg-tags">' + broker.transport.map(x => '<span>' + esc(x) + '</span>').join('') + '</div>' : '') +
+      ((broker.routes || []).length ? '<p class="text-sm" style="margin-top:10px"><i class="ti ti-route" style="color:var(--blue)"></i> ' + esc(broker.routes.join(', ')) + '</p>' : '') +
+      (broker.fleet ? '<p class="text-sm text-muted" style="margin-top:6px">Автопарк: ' + broker.fleet + ' авто</p>' : '') +
+      '<a class="btn btn-primary btn-sm" style="margin-top:12px" href="/perevezennya#cargoForm"><i class="ti ti-truck-delivery"></i> Розмістити вантаж</a></div>' : '') +
+    ((broker.posts || []).length && typeof BORDER_POSTS !== 'undefined' ? '<div class="card" style="margin-bottom:16px"><div class="card-title">Працює в пунктах пропуску</div><div class="lg-tags">' +
+      broker.posts.map(p => '<span>' + esc(postName(p)) + '</span>').join('') + '</div></div>' : '') +
     '<div class="two-col" style="margin-bottom:16px">' +
       '<div class="card"><div class="card-title">Послуги та ціни</div>' +
         (svcs.length

@@ -275,3 +275,14 @@ tr:hover td{background:rgba(255,255,255,.02)}
 .container.page-hero,.container-narrow.page-hero{padding-top:3.5rem;padding-bottom:1.5rem}
 .container.seo{padding-top:2.5rem;padding-bottom:1rem}
 @media(max-width:768px){.container.page-hero,.container-narrow.page-hero{padding-top:2rem}}
+
+/* ---------- Перевезення ---------- */
+.lg-grid{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:16px;align-items:start}
+.lg-side{display:flex;flex-direction:column;gap:12px}
+.lg-carriers,.lg-posts{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
+.lg-tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:10px}
+.lg-tags span{font-size:11.5px;padding:3px 8px;border-radius:20px;background:var(--surface2);border:.5px solid var(--border);color:var(--muted-strong)}
+.lg-pb{padding:8px 0;border-top:.5px solid var(--border)}
+.cargo-item{background:var(--surface);border:.5px solid var(--border);border-radius:var(--r);padding:1rem 1.15rem;margin-bottom:10px}
+.cargo-route{font-weight:600;font-size:15px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+@media(max-width:900px){.lg-grid{grid-template-columns:1fr}}

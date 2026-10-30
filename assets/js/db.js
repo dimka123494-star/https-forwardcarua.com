@@ -106,13 +106,13 @@ function authMessage(m){
 
 /* ================= КАТАЛОГ ================= */
 
-const BROKER_FIELDS = 'id, name, city, region, plan, plan_expires_at, rating_avg, rating_count, experience, is_verified, views_count, about, phone, telegram, whatsapp, viber, instagram, facebook, tiktok, youtube, created_at, card_color, card_theme, card_tagline, website, logo_url';
+const BROKER_FIELDS = 'id, name, city, region, plan, plan_expires_at, rating_avg, rating_count, experience, is_verified, views_count, about, phone, telegram, whatsapp, viber, instagram, facebook, tiktok, youtube, created_at, card_color, card_theme, card_tagline, website, logo_url, kind, transport, routes, fleet, posts';
 
-async function listBrokers({ region = '', city = '', service = '', search = '', sort = 'plan', verifiedOnly = false } = {}){
+async function listBrokers({ region = '', city = '', service = '', search = '', sort = 'plan', verifiedOnly = false, kind = 'broker' } = {}){
   const sb = await sbReady();
   let query = sb.from('brokers')
     .select(BROKER_FIELDS + ', broker_services(id, name, price_from, price_to)')
-    .eq('is_active', true);
+    .eq('is_active', true).eq('kind', kind);
 
   if (region) query = query.eq('region', region);
   if (verifiedOnly) query = query.eq('is_verified', true);
@@ -159,7 +159,7 @@ async function getBroker(id){
 
 async function countBrokers(){
   const sb = await sbReady();
-  const { count } = await sb.from('brokers').select('id', { count:'exact', head:true }).eq('is_active', true);
+  const { count } = await sb.from('brokers').select('id', { count:'exact', head:true }).eq('is_active', true).eq('kind', 'broker');
   return count || 0;
 }
 
@@ -339,6 +339,54 @@ async function createBrokerProfile(fields){
   return data;
 }
 
+/* ---------- Перевезення ---------- */
+const CARGO_ERR = { bad_name: 'Вкажіть ім\'я', bad_phone: 'Вкажіть коректний телефон', bad_cargo: 'Опишіть вантаж',
+  bad_route: 'Вкажіть країну завантаження і доставки', too_many: 'Ви вже надіслали кілька заявок — ми передамо їх перевізникам',
+  not_carrier: 'Відгукуватися можуть лише перевізники', closed: 'Заявка вже закрита',
+  limit: 'На безкоштовному тарифі — 5 відгуків на місяць. Оберіть платний тариф для безлімітних відгуків.' };
+const cargoErr = e => { const k = Object.keys(CARGO_ERR).find(k => (e && e.message || '').includes(k)); return new Error(k ? CARGO_ERR[k] : 'Не вдалося виконати дію. Спробуйте ще раз'); };
+async function createCargoRequest(p){
+  const sb = await sbReady();
+  const { data, error } = await sb.rpc('create_cargo_request', { p });
+  if (error){ console.error('createCargoRequest:', error); throw cargoErr(error); }
+  track('generate_lead', { service: 'Перевезення' });
+  return data;
+}
+async function cargoBoard(){
+  const sb = await sbReady();
+  const { data, error } = await sb.from('cargo_requests').select('*').eq('status', 'open').order('created_at', { ascending: false }).limit(200);
+  if (error) console.error('cargoBoard:', error);
+  return data || [];
+}
+async function myCargoResponses(){
+  const sb = await sbReady();
+  const { data } = await sb.from('cargo_responses').select('cargo_id, created_at');
+  return data || [];
+}
+async function respondCargo(id){
+  const sb = await sbReady();
+  const { data, error } = await sb.rpc('respond_cargo', { cid: id });
+  if (error){ console.error('respondCargo:', error); throw cargoErr(error); }
+  return data;
+}
+async function postBrokers(){
+  const sb = await sbReady();
+  const { data, error } = await sb.rpc('post_brokers');
+  if (error) console.error('postBrokers:', error);
+  return data || [];
+}
+async function adminCargo(){
+  const sb = await sbReady();
+  const { data, error } = await sb.from('cargo_requests').select('*, cargo_contacts(*)').order('created_at', { ascending: false }).limit(300);
+  if (error) throw new Error('Не вдалося завантажити заявки на перевезення');
+  return data || [];
+}
+async function adminCloseCargo(id, status){
+  const sb = await sbReady();
+  const { error } = await sb.from('cargo_requests').update({ status }).eq('id', id);
+  if (error) throw new Error('Не вдалося змінити статус');
+}
+
 /* ---------- Довідки по VIN ---------- */
 async function createVehicleCert(c){
   const sb = await sbReady();
@@ -456,7 +504,7 @@ async function updateMyBroker(updates){
   const user = await currentUser();
   if (!user) throw new Error('Сесія завершилась — увійдіть знову');
   const allowed = ['name','city','region','about','experience','phone','telegram',
-                   'whatsapp','viber','instagram','facebook','tiktok','youtube','website'];
+                   'whatsapp','viber','instagram','facebook','tiktok','youtube','website','transport','routes','fleet','posts'];
   if ('website' in updates && updates.website){
     let w = String(updates.website).trim();
     if (!/^https?:\/\//i.test(w)) w = 'https://' + w;
@@ -464,7 +512,7 @@ async function updateMyBroker(updates){
     updates.website = w;
   }
   const patch = {};
-  allowed.forEach(k => { if (k in updates) patch[k] = updates[k] || null; });
+  allowed.forEach(k => { if (k in updates) patch[k] = Array.isArray(updates[k]) ? updates[k] : (updates[k] || null); });
   if (!patch.name || patch.name.trim().length < 2) throw new Error('Вкажіть ім\'я або назву компанії');
 
   const { error } = await sb.from('brokers').update(patch).eq('user_id', user.id);

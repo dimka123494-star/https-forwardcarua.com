@@ -23,6 +23,8 @@
 .cs-item{background:var(--surface);border:.5px solid var(--border);border-radius:var(--r);padding:1rem 1.15rem;margin-bottom:10px}
 .cs-ans{margin-top:10px;padding:10px 12px;background:var(--surface2);border-left:2px solid var(--green);border-radius:0 var(--r-sm) var(--r-sm) 0;font-size:14px;white-space:pre-line}
 @media(max-width:768px){.cs-kinds{grid-template-columns:1fr}}
+.pchips{display:flex;flex-wrap:wrap;gap:6px}
+.pchips .chip.on{background:var(--blue-glow);border-color:var(--blue);color:var(--text)}
 .bc-grid{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:20px;align-items:start}
 .bc-phone{border:8px solid #1d2622;border-radius:34px;overflow:hidden;height:640px;background:#0a0f0d}
 .bc-phone iframe{width:100%;height:100%;border:0;display:block}
@@ -75,6 +77,7 @@
       </div>
       <div class="cab-menu">
         <button class="cab-item active" data-pane="dash"     onclick="pane('dash',this)"><i class="ti ti-layout-dashboard"></i>Дашборд</button>
+        <button class="cab-item"        data-pane="cargo"    onclick="pane('cargo',this)" id="navCargo" style="display:none"><i class="ti ti-truck-delivery"></i>Вантажі <span class="cab-badge" id="cgBadge" style="display:none">0</span></button>
         <button class="cab-item"        data-pane="requests" onclick="pane('requests',this)"><i class="ti ti-inbox"></i>Заявки <span class="cab-badge" id="reqBadge" style="display:none">0</span></button>
         <button class="cab-item"        data-pane="reviews"  onclick="pane('reviews',this)"><i class="ti ti-star"></i>Відгуки <span class="cab-badge" id="rvBadge" style="display:none">0</span></button>
         <button class="cab-item"        data-pane="calc"     onclick="pane('calc',this)"><i class="ti ti-calculator"></i>Калькулятор</button>
@@ -196,6 +199,19 @@
         </div>
       </section>
 
+      <!-- ВАНТАЖІ (перевізники) -->
+      <section class="cab-pane" id="pane-cargo">
+        <h1 class="h-md" style="margin-bottom:.5rem">Заявки на перевезення</h1>
+        <p class="text-sm text-muted" style="margin-bottom:1rem">Вантажі від власників, логістів і митних брокерів. Натисніть «Відгукнутись» — побачите контакти замовника й домовляйтесь напряму.</p>
+        <div class="row" style="gap:8px;margin-bottom:1rem;flex-wrap:wrap">
+          <select class="input" id="cgCountry" style="width:auto" onchange="renderCargo()"></select>
+          <select class="input" id="cgTransport" style="width:auto" onchange="renderCargo()"></select>
+          <label class="check-row" style="margin:0"><input type="checkbox" id="cgMine" onchange="renderCargo()"> Лише мої напрямки</label>
+        </div>
+        <div class="hint" id="cgQuota" style="margin-bottom:10px"></div>
+        <div id="cgList"><div class="text-sm text-muted">Завантаження…</div></div>
+      </section>
+
       <!-- КОНСУЛЬТАЦІЇ -->
       <section class="cab-pane" id="pane-consult">
         <h1 class="h-md" style="margin-bottom:.5rem">Консультації з митних питань</h1>
@@ -299,6 +315,17 @@
             <div class="field"><label class="label" for="p-vb">Viber</label><input class="input" id="p-vb" placeholder="+380…"></div>
           </div>
 
+          <div id="pCarrier" style="display:none">
+            <div class="card-title" style="margin-top:1.5rem">Транспорт і напрямки</div>
+            <div class="field"><label class="label">Тип транспорту</label><div class="pchips" id="pTransport"></div></div>
+            <div class="field"><label class="label">Країни, куди / звідки возите</label><div class="pchips" id="pRoutes"></div></div>
+            <div class="field" style="max-width:200px"><label class="label" for="p-fleet">Кількість машин</label><input class="input" type="number" id="p-fleet" min="0" max="5000"></div>
+          </div>
+          <div id="pBroker">
+            <div class="card-title" style="margin-top:1.5rem">Пункти пропуску й термінали, де ви працюєте</div>
+            <p class="hint" style="margin:-4px 0 8px">Перевізники знайдуть вас на сторінці <a href="/punkty-propusku" target="_blank">«Брокери в пунктах пропуску»</a>.</p>
+            <div class="pchips" id="pPosts" style="margin-bottom:1rem"></div>
+          </div>
           <div class="field"><label class="label" for="p-web">Особистий сайт</label><input class="input" id="p-web" placeholder="https://mybroker.com.ua" inputmode="url">
             <div class="hint">Посилання з'явиться у вашому профілі та на електронній візитівці.</div></div>
 
@@ -327,6 +354,7 @@
 <script src="/assets/js/bizcard.js"></script>
 <script src="/assets/js/vin.js"></script>
 <script src="/assets/js/vin-cert.js"></script>
+<script src="/assets/js/logistics.js"></script>
 <script>
 let broker = null, requests = [], myRevs = [], period = 'month', reqFilter = 'all';
 
@@ -557,6 +585,18 @@ function fillProfile(){
   set('p-about', broker.about); set('p-phone', broker.phone); set('p-tg', broker.telegram);
   set('p-wa', broker.whatsapp); set('p-vb', broker.viber); set('p-ig', broker.instagram);
   set('p-fb', broker.facebook); set('p-tt', broker.tiktok); set('p-yt', broker.youtube); set('p-web', broker.website);
+  const chips = (id, list, sel, label) => document.getElementById(id).innerHTML = list.map(x => {
+    const v = typeof x === 'string' ? x : x.id, t = label ? label(x) : x;
+    return '<button type="button" class="chip' + ((sel || []).includes(v) ? ' on' : '') + '" data-v="' + esc(v) + '" onclick="this.classList.toggle(\'on\')">' + esc(t) + '</button>';
+  }).join('');
+  const carrier = broker.kind === 'carrier';
+  document.getElementById('pCarrier').style.display = carrier ? '' : 'none';
+  document.getElementById('pBroker').style.display = carrier ? 'none' : '';
+  if (carrier){
+    chips('pTransport', TRANSPORT_TYPES, broker.transport);
+    chips('pRoutes', CARGO_COUNTRIES.filter(c => c !== 'Інша країна'), broker.routes);
+    set('p-fleet', broker.fleet);
+  } else chips('pPosts', BORDER_POSTS, broker.posts, p => p.name);
   document.getElementById('p-region').value = broker.region || '';
 }
 async function saveProfile(){
@@ -567,7 +607,12 @@ async function saveProfile(){
       name:v('p-name'), city:v('p-city'), region:document.getElementById('p-region').value,
       experience:Number(v('p-exp')) || 0, about:v('p-about'), phone:v('p-phone'), telegram:v('p-tg'),
       whatsapp:v('p-wa'), viber:v('p-vb'), instagram:v('p-ig'), facebook:v('p-fb'),
-      tiktok:v('p-tt'), youtube:v('p-yt'), website:v('p-web')
+      tiktok:v('p-tt'), youtube:v('p-yt'), website:v('p-web'),
+      ...(broker.kind === 'carrier'
+        ? { transport: [...document.querySelectorAll('#pTransport .on')].map(e => e.dataset.v),
+            routes: [...document.querySelectorAll('#pRoutes .on')].map(e => e.dataset.v),
+            fleet: Number(v('p-fleet')) || null }
+        : { posts: [...document.querySelectorAll('#pPosts .on')].map(e => e.dataset.v) })
     });
     broker = await getMyBroker();
     renderHeader();
@@ -638,6 +683,63 @@ async function csSend(){
     myCons = await myConsultations(); renderConsult();
   }catch(e){ fail(e.message); }
   btn.disabled = false;
+}
+
+/* ---------- Вантажі (перевізники) ---------- */
+let cargo = [], cgResp = {}, cgContacts = {};
+async function initCargo(){
+  document.getElementById('navCargo').style.display = '';
+  document.getElementById('cgCountry').innerHTML = '<option value="">Усі країни</option>' + CARGO_COUNTRIES.map(c => '<option>' + c + '</option>').join('');
+  document.getElementById('cgTransport').innerHTML = '<option value="">Будь-який транспорт</option>' + TRANSPORT_TYPES.map(c => '<option>' + c + '</option>').join('');
+  document.getElementById('cgMine').checked = (broker.routes || []).length > 0;
+  [cargo, resp] = await Promise.all([cargoBoard(), myCargoResponses()]);
+  cgResp = {}; resp.forEach(r => cgResp[r.cargo_id] = r.created_at);
+  const fresh = cargo.filter(c => !cgResp[c.id] && Date.now() - new Date(c.created_at) < 3 * 864e5).length;
+  const b = document.getElementById('cgBadge'); b.textContent = fresh; b.style.display = fresh ? '' : 'none';
+  if (!location.hash) pane('cargo', document.getElementById('navCargo'));
+  renderCargo();
+}
+let resp = [];
+function cgQuota(){
+  const m = new Date(); m.setDate(1); m.setHours(0, 0, 0, 0);
+  const used = Object.values(cgResp).filter(d => new Date(d) >= m).length;
+  document.getElementById('cgQuota').innerHTML = BizCard.paid(broker) ? 'Безлімітні відгуки на вашому тарифі.'
+    : 'Безкоштовний тариф: використано <b>' + used + ' з 5</b> відгуків цього місяця. <a href="#billing" onclick="pane(\'billing\',document.querySelector(\'[data-pane=billing]\'))">Безліміт — від 299 грн/міс</a>.';
+}
+function renderCargo(){
+  cgQuota();
+  const c = document.getElementById('cgCountry').value, t = document.getElementById('cgTransport').value, mine = document.getElementById('cgMine').checked;
+  const routes = broker.routes || [], tr = broker.transport || [];
+  const list = cargo.filter(x => (!c || x.from_country === c || x.to_country === c) && (!t || !x.transport || x.transport === t) &&
+    (!mine || ((!routes.length || routes.includes(x.from_country) || routes.includes(x.to_country)) && (!tr.length || !x.transport || tr.includes(x.transport)))));
+  const fmtD = d => d ? d.split('-').reverse().join('.') : '';
+  document.getElementById('cgList').innerHTML = list.length ? list.map(x => {
+    const done = !!cgResp[x.id], ct = cgContacts[x.id];
+    return '<div class="cargo-item"><div class="spread" style="gap:10px;align-items:flex-start;flex-wrap:wrap"><div>' +
+      '<div class="cargo-route">' + esc([x.from_city, x.from_country].filter(Boolean).join(', ')) + ' <i class="ti ti-arrow-right" style="color:var(--blue)"></i> ' + esc([x.to_city, x.to_country].filter(Boolean).join(', ')) + '</div>' +
+      '<div style="margin-top:4px">' + esc(x.cargo) + '</div>' +
+      '<div class="text-xs text-muted" style="margin-top:4px">' + [x.weight_t ? x.weight_t + ' т' : '', x.volume_m3 ? x.volume_m3 + ' м³' : '', x.transport || 'будь-який транспорт',
+        x.load_date ? 'завантаження ' + fmtD(x.load_date) : '', x.customs ? 'потрібне митне оформлення' : ''].filter(Boolean).map(esc).join(' · ') + '</div>' +
+      (x.notes ? '<div class="text-sm text-muted" style="margin-top:6px;white-space:pre-line">' + esc(x.notes) + '</div>' : '') +
+      '<div class="text-xs text-muted" style="margin-top:6px">' + timeAgoUa(x.created_at) + (x.responses_count ? ' · відгуків: ' + x.responses_count : '') + '</div></div>' +
+      '<div>' + (ct ? '' : '<button class="btn ' + (done ? 'btn-ghost' : 'btn-primary') + ' btn-sm" onclick="cgRespond(\'' + x.id + '\', this)">' + (done ? 'Показати контакти' : '<i class="ti ti-hand-click"></i> Відгукнутись') + '</button>') + '</div></div>' +
+      (ct ? '<div class="cs-ans" style="margin-top:10px"><b>' + esc(ct.name) + '</b>' + (ct.company ? ', ' + esc(ct.company) : '') + '<br>' +
+        '<a href="' + telHref(ct.phone) + '">' + esc(ct.phone) + '</a>' + (ct.telegram ? ' · <a href="' + tgHref(ct.telegram) + '" target="_blank" rel="noopener">' + esc(ct.telegram) + '</a>' : '') +
+        (ct.email ? ' · <a href="mailto:' + esc(ct.email) + '">' + esc(ct.email) + '</a>' : '') + '</div>' : '') +
+      '</div>';
+  }).join('') : '<div class="empty"><strong>Заявок за цим фільтром поки немає</strong>Нові вантажі з\'являються тут щойно замовник розміщує заявку на <a href="/perevezennya" target="_blank">сторінці перевезень</a>.</div>';
+}
+function timeAgoUa(d){
+  const h = Math.floor((Date.now() - new Date(d)) / 36e5);
+  return h < 1 ? 'щойно' : h < 24 ? h + ' год тому' : Math.floor(h / 24) + ' дн тому';
+}
+async function cgRespond(id, btn){
+  btn.disabled = true;
+  try{
+    cgContacts[id] = await respondCargo(id);
+    if (!cgResp[id]){ cgResp[id] = new Date().toISOString(); const x = cargo.find(c => c.id === id); if (x) x.responses_count++; track('cargo_response'); }
+    renderCargo();
+  }catch(e){ showToast(e.message, 'error'); btn.disabled = false; }
 }
 
 /* ---------- Візитівка ---------- */
@@ -744,6 +846,7 @@ window.addEventListener('DOMContentLoaded', async () => {
     (!broker.plan_expires_at || new Date(broker.plan_expires_at) > new Date());
   CustomsCalc.mount(document.getElementById('calcMount'), { broker, paid: paidPlan });
   renderCard();
+  if (broker.kind === 'carrier') initCargo();
   VinCert.mount(document.getElementById('vinMount'), { broker });
   csHowChange(); myConsultations().then(l => { myCons = l; renderConsult(); });
   renderConsult();

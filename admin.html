@@ -59,6 +59,7 @@
     <button class="nav-link"        data-p="brokers"  onclick="pane('brokers',this)">Брокери</button>
     <button class="nav-link"        data-p="outreach" onclick="pane('outreach',this)">Залучення</button>
     <button class="nav-link"        data-p="requests" onclick="pane('requests',this)">Заявки</button>
+    <button class="nav-link"        data-p="cargo"    onclick="pane('cargo',this)">Вантажі <span class="cab-badge" id="cgAdmBadge" style="display:none">0</span></button>
     <button class="nav-link"        data-p="consult"  onclick="pane('consult',this)">Консультації <span class="cab-badge" id="csBadge" style="display:none">0</span></button>
     <button class="nav-link"        data-p="reviews"  onclick="pane('reviews',this)">Відгуки <span class="cab-badge" id="modBadge" style="display:none">0</span></button>
     <button class="nav-link"        data-p="billing"  onclick="pane('billing',this)">Платежі</button>
@@ -194,6 +195,16 @@
       </div>
       <p class="hint">Тут видно персональні дані клієнтів. Не експортуйте і не пересилайте цю таблицю третім особам —
         на неї поширюються зобов'язання з розділу «Конфіденційність» вашої оферти.</p>
+    </section>
+
+    <!-- ВАНТАЖІ -->
+    <section class="cab-pane" id="pane-cargo">
+      <div class="spread" style="margin-bottom:1rem"><h1 class="h-md">Заявки на перевезення <span class="text-sm text-muted" id="cgAdmTotal"></span></h1>
+        <span class="text-sm text-muted" id="cgAdmCarriers"></span></div>
+      <div class="table-wrap table-scroll"><table>
+        <thead><tr><th>Маршрут і вантаж</th><th>Замовник</th><th>Відгуки</th><th>Коли</th><th></th></tr></thead>
+        <tbody id="cgAdmList"></tbody></table></div>
+      <p class="hint">Контакти замовника бачать лише перевізники, які відгукнулися. Закрита заявка зникає зі стрічки перевізників.</p>
     </section>
 
     <!-- КОНСУЛЬТАЦІЇ -->
@@ -409,6 +420,29 @@ async function loadAll(){
   }catch(e){ showToast(e.message, 'error'); return; }
   renderDash(); renderBrokers(brokers); renderPending(); renderRequests(requests); renderPayments(); renderReviews();
   try { consults = await adminConsultations(); renderConsults(); } catch(e){ console.error(e); }
+  try { cargoAdm = await adminCargo(); renderCargoAdm(); } catch(e){ console.error(e); }
+}
+
+/* ---------- Вантажі ---------- */
+let cargoAdm = [];
+function renderCargoAdm(){
+  const open = cargoAdm.filter(c => c.status === 'open' && c.responses_count === 0).length;
+  const b = document.getElementById('cgAdmBadge'); b.textContent = open; b.style.display = open ? '' : 'none';
+  document.getElementById('cgAdmTotal').textContent = '· ' + cargoAdm.length;
+  document.getElementById('cgAdmCarriers').textContent = 'Перевізників у каталозі: ' + brokers.filter(x => x.kind === 'carrier').length;
+  document.getElementById('cgAdmList').innerHTML = cargoAdm.length ? cargoAdm.map(c => {
+    const ct = c.cargo_contacts || {};
+    return '<tr' + (c.status === 'closed' ? ' style="opacity:.5"' : '') + '><td><div style="font-weight:500">' + esc([c.from_city, c.from_country].filter(Boolean).join(', ')) + ' → ' + esc([c.to_city, c.to_country].filter(Boolean).join(', ')) + '</div>' +
+      '<div class="text-sm">' + esc(c.cargo) + '</div><div class="text-xs text-muted">' + [c.weight_t ? c.weight_t + ' т' : '', c.volume_m3 ? c.volume_m3 + ' м³' : '', c.transport, c.customs ? 'митне оформлення' : ''].filter(Boolean).map(esc).join(' · ') + '</div></td>' +
+      '<td class="text-sm">' + esc(ct.name || '') + (ct.company ? '<div class="text-xs text-muted">' + esc(ct.company) + '</div>' : '') + '<div><a href="tel:' + esc(ct.phone || '') + '">' + esc(ct.phone || '') + '</a></div>' +
+        (ct.telegram ? '<div class="text-xs">' + esc(ct.telegram) + '</div>' : '') + (ct.email ? '<div class="text-xs">' + esc(ct.email) + '</div>' : '') + '</td>' +
+      '<td>' + c.responses_count + '</td><td class="text-xs text-muted">' + timeAgo(c.created_at) + '</td>' +
+      '<td><button class="btn-quiet" onclick="toggleCargo(\'' + c.id + '\',\'' + (c.status === 'open' ? 'closed' : 'open') + '\')">' + (c.status === 'open' ? 'Закрити' : 'Відкрити') + '</button></td></tr>';
+  }).join('') : '<tr><td colspan="5" class="text-sm text-muted">Заявок на перевезення ще немає.</td></tr>';
+}
+async function toggleCargo(id, status){
+  try{ await adminCloseCargo(id, status); cargoAdm.find(c => c.id === id).status = status; renderCargoAdm(); }
+  catch(e){ showToast(e.message, 'error'); }
 }
 
 /* ---------- Консультації ---------- */

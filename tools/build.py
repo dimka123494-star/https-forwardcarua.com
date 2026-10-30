@@ -368,6 +368,9 @@ def calculator_page():
 
 calculator_page()
 
+# ---------------------------------------------------------------- перевезення (перевізники, заявки, пункти пропуску)
+exec(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'logistics_pages.py'), encoding='utf-8').read())
+
 # ---------------------------------------------------------------- статті
 def articles():
     items = ''.join(
@@ -556,7 +559,7 @@ def registry_list():
 registry_list()
 
 # ---------------------------------------------------------------- sitemap
-urls = [('/', '1.0'), ('/taryfy', '0.6'), ('/zayavka', '0.8'), ('/kalkulyator-rozmytnennya', '0.9'), ('/dlya-brokeriv', '0.9'), ('/reyestr-brokeriv', '0.5'), ('/prezentatsiya', '0.6'), ('/instruktsiya', '0.6'), ('/statti/', '0.6'), ('/terms', '0.3')]
+urls = [('/', '1.0'), ('/taryfy', '0.6'), ('/zayavka', '0.8'), ('/kalkulyator-rozmytnennya', '0.9'), ('/dlya-brokeriv', '0.9'), ('/reyestr-brokeriv', '0.5'), ('/prezentatsiya', '0.6'), ('/instruktsiya', '0.6'), ('/statti/', '0.6'), ('/terms', '0.3'), ('/perevezennya', '0.8'), ('/dlya-perevizhnykiv', '0.7'), ('/punkty-propusku', '0.7')]
 urls += [('/brokery/' + r['slug'], '0.8') for r in REGIONS]
 urls += [('/statti/%s/' % a['slug'], '0.7') for a in ARTICLES]
 urls += [('/kompaniya/' + r['code'], '0.3') for r in REG]

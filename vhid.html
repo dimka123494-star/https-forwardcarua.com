@@ -15,7 +15,10 @@
 .tab{flex:1;padding:10px;border-radius:var(--r-sm);border:none;font-family:var(--display);font-size:15px;
   font-weight:700;cursor:pointer;background:transparent;color:var(--muted);transition:all .2s}
 .tab.active{background:var(--blue);color:var(--on-accent)}
-.role-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:1.25rem}
+.role-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:1.25rem}
+@media(max-width:480px){.role-grid{grid-template-columns:1fr}}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips .chip.on{background:var(--blue-glow);border-color:var(--blue);color:var(--text)}
 .role{background:var(--surface);border:.5px solid var(--border);border-radius:12px;padding:14px 12px;cursor:pointer;
   text-align:center;transition:all .2s}
 .role.on{background:var(--blue-glow);border-color:var(--blue)}
@@ -89,6 +92,11 @@
           <div class="role-t">Я брокер</div>
           <div class="role-d">Хочу отримувати заявки</div>
         </div>
+        <div class="role" id="roleCarrier" onclick="setRole('carrier')">
+          <i class="ti ti-truck"></i>
+          <div class="role-t">Я перевізник</div>
+          <div class="role-d">Шукаю вантажі, логістика</div>
+        </div>
       </div>
 
       <!-- Кроки показуються тільки брокеру -->
@@ -131,6 +139,12 @@
         </div>
         <div class="field"><label class="label" for="bp-exp">Досвід, років</label>
           <input class="input" type="number" id="bp-exp" min="0" max="60" placeholder="5"></div>
+        <div id="carrierFields" style="display:none">
+          <div class="field"><label class="label">Тип транспорту</label><div class="chips" id="cfTransport"></div></div>
+          <div class="field"><label class="label">Країни, куди / звідки возите</label><div class="chips" id="cfRoutes"></div></div>
+          <div class="field"><label class="label" for="bp-fleet">Кількість машин</label>
+            <input class="input" type="number" id="bp-fleet" min="0" max="5000" placeholder="3"></div>
+        </div>
         <div class="field"><label class="label" for="bp-about">Про себе</label>
           <textarea class="input" id="bp-about" placeholder="Коротко про досвід і спеціалізацію…"></textarea></div>
         <div class="field-row">
@@ -164,6 +178,7 @@
 
 <script src="/assets/js/config.js"></script>
 <script src="/assets/js/db.js"></script>
+<script src="/assets/js/logistics.js"></script>
 <script>
 let role = 'client';
 const params = new URLSearchParams(location.search);
@@ -180,9 +195,12 @@ function setRole(r){
   role = r;
   document.getElementById('roleClient').classList.toggle('on', r === 'client');
   document.getElementById('roleBroker').classList.toggle('on', r === 'broker');
+  document.getElementById('roleCarrier').classList.toggle('on', r === 'carrier');
   document.getElementById('regSteps').style.display = r === 'broker' ? 'flex' : 'none';
+  document.getElementById('carrierFields').style.display = r === 'carrier' ? 'block' : 'none';
+  document.getElementById('bp-about').placeholder = r === 'carrier' ? 'Напрямки, тип вантажів, ADR, термінові рейси…' : 'Коротко про досвід і спеціалізацію…';
   document.getElementById('nameHint').textContent = r === 'broker' ? '' : '';
-  document.getElementById('rg-btn').textContent = r === 'broker' ? 'Створити акаунт' : 'Зареєструватись';
+  document.getElementById('rg-btn').textContent = r === 'client' ? 'Зареєструватись' : 'Створити акаунт';
 }
 function setStep(n){
   [1,2,3].forEach(i => {
@@ -246,7 +264,8 @@ async function step1(){
   const btn = document.getElementById('rg-btn');
   btn.disabled = true; btn.textContent = 'Реєструємо…';
   try{
-    await signUp({ email, password: pass, name, phone, role });
+    // перевізник працює через той самий кабінет, що й брокер
+    await signUp({ email, password: pass, name, phone, role: role === 'carrier' ? 'broker' : role });
 
     if (role === 'client'){
       msg('rg-msg', 'Готово! Відкриваємо кабінет…', 'ok');
@@ -276,9 +295,16 @@ async function step2(){
       experience: Number(document.getElementById('bp-exp').value) || 0,
       about:      document.getElementById('bp-about').value.trim() || null,
       phone:      document.getElementById('bp-phone').value.trim() || null,
-      telegram:   document.getElementById('bp-tg').value.trim() || null
+      telegram:   document.getElementById('bp-tg').value.trim() || null,
+      ...(role === 'carrier' ? {
+        kind: 'carrier',
+        transport: [...document.querySelectorAll('#cfTransport .on')].map(e => e.dataset.v),
+        routes: [...document.querySelectorAll('#cfRoutes .on')].map(e => e.dataset.v),
+        fleet: Number(document.getElementById('bp-fleet').value) || null
+      } : {})
     });
     newBrokerId = broker.id;
+    if (role === 'carrier'){ location.href = '/kabinet#cargo'; return; }
     setStep(3);
   }catch(e){
     // Якщо профіль уже є — просто йдемо в кабінет
@@ -312,7 +338,11 @@ window.addEventListener('DOMContentLoaded', async () => {
     '<div class="svc" data-name="' + s.name + '" onclick="this.classList.toggle(\'on\')">' +
     '<span>' + s.icon + '</span><span>' + s.name + '</span></div>').join('');
 
+  const chips = (id, list) => document.getElementById(id).innerHTML = list.map(x =>
+    '<button type="button" class="chip" data-v="' + x + '" onclick="this.classList.toggle(\'on\')">' + x + '</button>').join('');
+  chips('cfTransport', TRANSPORT_TYPES); chips('cfRoutes', CARGO_COUNTRIES.filter(c => c !== 'Інша країна'));
   if (params.get('role') === 'broker'){ setMode('register'); setRole('broker'); }
+  else if (params.get('role') === 'carrier'){ setMode('register'); setRole('carrier'); }
   else setRole('client');
 
   // Уже увійшли — не показуємо форму вдруге
