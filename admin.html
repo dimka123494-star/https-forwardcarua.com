@@ -129,6 +129,7 @@
           <button class="btn btn-ghost btn-sm" onclick="Outreach.tplOpen()"><i class="ti ti-template"></i> Шаблони</button>
           <button class="btn btn-ghost btn-sm" onclick="Outreach.importOpen()"><i class="ti ti-table-import"></i> Імпорт списку</button>
           <button class="btn btn-ghost btn-sm o-broker-only" onclick="Outreach.importRegistry()"><i class="ti ti-building-bank"></i> Імпорт з реєстру Держмитслужби</button>
+          <button class="btn btn-ghost btn-sm o-carrier-only" style="display:none" onclick="Outreach.utbOpen()"><i class="ti ti-truck"></i> Імпорт з реєстру Укртрансбезпеки</button>
           <button class="btn btn-ghost btn-sm" onclick="Outreach.compose(null)"><i class="ti ti-message"></i> Текст без контакту</button>
           <button class="btn btn-primary btn-sm" onclick="Outreach.edit(null)"><i class="ti ti-user-plus"></i> Додати контакт</button>
         </div>
@@ -311,6 +312,25 @@
 </div>
 
 <!-- ЗАЛУЧЕННЯ: імпорт -->
+<div class="overlay" id="utbModal">
+  <div class="modal" role="dialog" aria-modal="true" style="max-width:560px">
+    <button class="modal-close" onclick="document.getElementById('utbModal').classList.remove('open')" aria-label="Закрити"><i class="ti ti-x"></i></button>
+    <div class="modal-title">Ліцензовані перевізники — Укртрансбезпека</div>
+    <p class="text-sm text-muted" style="margin-bottom:12px">Відкритий реєстр ліцензій (data.gov.ua, CC BY 4.0). У реєстрі є лише назва й код ЄДРПОУ / ІПН — телефони й email доведеться знайти: у нотатці кожного контакту буде посилання на картку компанії в Opendatabot.</p>
+    <div class="text-xs text-muted" id="utbInfo" style="margin-bottom:10px"></div>
+    <label class="check-row"><input type="checkbox" id="utbIntl" checked onchange="Outreach.utbCount()"> Міжнародні вантажні перевезення</label>
+    <label class="check-row"><input type="checkbox" id="utbAdr" checked onchange="Outreach.utbCount()"> Перевезення небезпечних вантажів (ADR)</label>
+    <label class="check-row"><input type="checkbox" id="utbFop" onchange="Outreach.utbCount()"> Включно з ФОП (інакше — лише юридичні особи)</label>
+    <div class="field-row" style="margin-top:8px">
+      <div class="field"><label class="label" for="utbName">Назва містить</label><input class="input" id="utbName" placeholder="напр.: ТРАНС" oninput="Outreach.utbCount()"></div>
+      <div class="field"><label class="label" for="utbLimit">Скільки додати</label><select class="input" id="utbLimit" onchange="Outreach.utbCount()"><option>100</option><option selected>300</option><option>1000</option><option>3000</option></select></div>
+    </div>
+    <p class="text-sm" id="utbCount" style="margin:6px 0 12px"></p>
+    <button class="btn btn-primary" id="utbBtn" onclick="Outreach.utbImport()">Додати в базу контактів</button>
+    <p class="hint">Спершу додаються компанії з найновішими ліцензіями. Ті, що вже є в базі (за ЄДРПОУ), пропускаються.</p>
+  </div>
+</div>
+
 <div class="overlay" id="impModal">
   <div class="modal modal-wide" role="dialog" aria-modal="true">
     <button class="modal-close" onclick="document.getElementById('impModal').classList.remove('open')" aria-label="Закрити"><i class="ti ti-x"></i></button>

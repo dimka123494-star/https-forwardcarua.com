@@ -58,6 +58,7 @@
     const h = document.querySelector('#pane-outreach h1');
     if (h) h.firstChild.textContent = (v === 'carrier' ? 'Залучення перевізників і логістів ' : 'Залучення брокерів ');
     document.querySelectorAll('.o-broker-only').forEach(e => e.style.display = v === 'carrier' ? 'none' : '');
+    document.querySelectorAll('.o-carrier-only').forEach(e => e.style.display = v === 'carrier' ? '' : 'none');
     linksBox(); refresh();
   }
   function linksBox(){
@@ -145,7 +146,8 @@
       (!filt.status || p.status === filt.status) && (!filt.region || p.region === filt.region) &&
       (!q || [p.name, p.contact_person, p.phone, p.email, p.telegram, p.city, p.notes].join(' ').toLowerCase().includes(q)));
     $('oCount').textContent = '(' + rows.length + ')';
-    $('oTable').innerHTML = rows.length ? rows.map(p => {
+    const MAX = 300, shown = rows.slice(0, MAX);
+    $('oTable').innerHTML = (shown.length ? shown.map(p => {
       const st = STATUS[p.status] || STATUS.new;
       const ic = [p.phone ? '<i class="ti ti-phone" title="' + esc(p.phone) + '"></i>' : '', p.email ? '<i class="ti ti-mail" title="' + esc(p.email) + '"></i>' : '',
                   p.telegram ? '<i class="ti ti-brand-telegram" title="' + esc(p.telegram) + '"></i>' : ''].join(' ');
@@ -160,7 +162,8 @@
         '<td><div class="row-actions"><button class="btn btn-primary btn-sm" onclick="Outreach.compose(\'' + p.id + '\')"><i class="ti ti-send"></i>Написати</button>' +
           '<button class="btn-quiet" onclick="Outreach.edit(\'' + p.id + '\')"><i class="ti ti-pencil"></i></button></div></td></tr>';
     }).join('') : '<tr><td colspan="6" class="text-sm text-muted" style="text-align:center;padding:2rem">' +
-      (list.length ? 'Нічого не знайдено' : 'Додайте перших брокерів — вручну або списком через «Імпорт»') + '</td></tr>';
+      (list.length ? 'Нічого не знайдено' : 'Додайте перші контакти — вручну або списком через «Імпорт»') + '</td></tr>') +
+      (rows.length > MAX ? '<tr><td colspan="6" class="text-sm text-muted" style="text-align:center">Показано ' + MAX + ' з ' + rows.length + ' — уточніть пошук або фільтр статусу.</td></tr>' : '');
   }
   function refresh(){ stats(); table(); }
 
@@ -373,6 +376,63 @@
     if (error) return showToast('Імпорт не вдався: ' + error.message, 'error');
     list = (data || []).concat(list); refresh(); showToast('Додано ' + (data || []).length + ' компаній');
   }
+  /* ---------- Реєстр ліцензій Укртрансбезпеки → перевізники ---------- */
+  function utbQuery(sb, head){
+    const intl = $('utbIntl').checked, adr = $('utbAdr').checked, name = $('utbName').value.trim();
+    let q = sb.from('carrier_registry').select(head ? 'edrpou' : 'edrpou, name, intl_cargo, dangerous, is_fop, license_date', head ? { count: 'exact', head: true } : undefined)
+      .eq('status', 'Чинна');
+    if (intl && !adr) q = q.eq('intl_cargo', true); else if (adr && !intl) q = q.eq('dangerous', true); else if (intl && adr) q = q.or('intl_cargo.eq.true,dangerous.eq.true');
+    if (!$('utbFop').checked) q = q.eq('is_fop', false);
+    if (name) q = q.ilike('name', '%' + name.replace(/[%_]/g, '') + '%');
+    return q;
+  }
+  let utbT = null;
+  async function utbOpen(){
+    $('utbModal').classList.add('open');
+    const sb = await db();
+    const { count } = await sb.from('carrier_registry').select('edrpou', { count: 'exact', head: true });
+    const { data: last } = await sb.from('carrier_registry').select('updated_at').order('updated_at', { ascending: false }).limit(1);
+    $('utbInfo').textContent = 'У базі: ' + (count || 0) + ' ліцензованих вантажних перевізників' + (last && last[0] ? ', оновлено ' + fmtDate(last[0].updated_at) : '') + '.';
+    utbCount();
+  }
+  function utbCount(){
+    clearTimeout(utbT); utbT = setTimeout(async () => {
+      if (!$('utbIntl').checked && !$('utbAdr').checked){ $('utbCount').textContent = 'Оберіть хоча б один вид ліцензії.'; return; }
+      const sb = await db(); const { count } = await utbQuery(sb, true);
+      const have = allList.filter(p => p.edrpou).length;
+      $('utbCount').innerHTML = 'Підходить: <b>' + (count || 0) + '</b> перевізників. Буде додано до ' + $('utbLimit').value + ' нових (у базі контактів уже ' + have + ' з ЄДРПОУ).';
+    }, 300);
+  }
+  async function utbImport(){
+    const btn = $('utbBtn'); btn.disabled = true; btn.textContent = 'Додаємо…';
+    try{
+      const sb = await db(), limit = +$('utbLimit').value;
+      const have = new Set(allList.map(p => p.edrpou).filter(Boolean));
+      const fresh = []; let from = 0;
+      while (fresh.length < limit){
+        const { data, error } = await utbQuery(sb).order('license_date', { ascending: false, nullsFirst: false }).range(from, from + 999);
+        if (error) throw error;
+        if (!data.length) break;
+        data.forEach(r => { if (!have.has(r.edrpou) && fresh.length < limit){ have.add(r.edrpou); fresh.push(r); } });
+        from += 1000;
+      }
+      if (!fresh.length){ showToast('Нових перевізників за цим фільтром немає'); return; }
+      const rows = fresh.map(r => ({
+        name: r.name, edrpou: r.edrpou, segment: 'carrier', source: 'Укртрансбезпека',
+        notes: 'Ліцензія: ' + [r.intl_cargo ? 'міжнародні вантажні перевезення' : '', r.dangerous ? 'небезпечні вантажі (ADR)' : ''].filter(Boolean).join(', ') +
+          (r.license_date ? ' з ' + fmtDate(r.license_date) : '') + (r.is_fop ? '. ФОП' : '. Контакти: https://opendatabot.ua/c/' + r.edrpou)
+      }));
+      const saved = [];
+      for (let i = 0; i < rows.length; i += 500){
+        const { data, error } = await sb.from('prospects').insert(rows.slice(i, i + 500)).select();
+        if (error) throw error; saved.push(...(data || []));
+      }
+      allList = saved.concat(allList); applySeg(); refresh();
+      $('utbModal').classList.remove('open'); showToast('Додано ' + saved.length + ' перевізників');
+    }catch(e){ showToast('Імпорт не вдався: ' + (e.message || e), 'error'); }
+    finally{ btn.disabled = false; btn.textContent = 'Додати в базу контактів'; }
+  }
+
   let claims = [];
   async function loadClaims(){
     const sb = await db();
@@ -443,7 +503,7 @@
   }
 
   window.Outreach = {
-    init, setSeg, compose, edit, saveEdit, del, setStatus, send, official,
+    init, setSeg, utbOpen, utbCount, utbImport, compose, edit, saveEdit, del, setStatus, send, official,
     pickTpl(i, btn){ curTpl = tpls[i]; document.querySelectorAll('#cmpTpl .chip').forEach(c => c.classList.toggle('active', c === btn)); fillText(); },
     filter(k, v){ filt[k] = v; table(); },
     importOpen(){ $('impModal').classList.add('open'); importPreview(); }, importPreview, doImport,
