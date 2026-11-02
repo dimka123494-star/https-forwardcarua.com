@@ -85,6 +85,11 @@ const VinCert = (() => {
           '<div class="text-sm text-muted" style="margin-bottom:6px">Ціни аналогів, € (з посиланням на оголошення):</div>' +
           '<div id="vc-m-rows"></div>' +
           '<button class="btn btn-ghost btn-sm" id="vc-m-add" onclick="VinCert.mktAdd()"><i class="ti ti-plus"></i> Додати аналог</button>' +
+          '<div class="text-sm text-muted" style="margin:14px 0 6px">Оцінка за довідником (якщо купили сертифікат Schwacke, Eurotax чи DAT):</div>' +
+          '<div class="vc-m-row vc-m-ref"><select class="input" id="vc-r-src"><option value="">Довідник</option><option>Schwacke</option><option>Eurotax</option><option>DAT</option><option>Glass\'s</option><option>Kelley Blue Book</option><option>J.D. Power</option><option>Інший</option></select>' +
+            '<input class="input" type="number" min="0" step="100" id="vc-r-val" placeholder="Вартість, €" oninput="VinCert.mktCalc()">' +
+            '<input class="input" id="vc-r-date" placeholder="ДД.ММ.РРРР" maxlength="10" inputmode="numeric" oninput="VinCert.dateMask(this)">' +
+            '<input class="input" id="vc-r-no" maxlength="60" placeholder="№ сертифіката / ринок (напр. Німеччина)"><span></span></div>' +
           '<div id="vc-m-stats" style="margin-top:12px"></div>' +
         '</div></details>' +
         '<div class="field-row"><div class="field"><label class="label" for="vc-client">Клієнт (для PDF)</label><input class="input" id="vc-client" placeholder="Необовʼязково"></div>' +
@@ -139,7 +144,7 @@ const VinCert = (() => {
         : '';
       if (miss.length) setTimeout(() => $(F[d.missing[0]]).focus(), 50);
       $('vc-form').style.display = ''; $('vc-send').innerHTML = '';
-      $('vc-m-rows').innerHTML = ''; $('vc-m-stats').innerHTML = ''; $('vc-m-km').value = ''; $('vc-m-dec').value = ''; $('vc-mkt').open = false;
+      $('vc-m-rows').innerHTML = ''; $('vc-m-stats').innerHTML = ''; $('vc-m-km').value = ''; $('vc-m-dec').value = ''; ['vc-r-src','vc-r-val','vc-r-date','vc-r-no'].forEach(i => $(i).value = ''); $('vc-mkt').open = false;
       if (d.checkOk === false) msg('Увага: контрольна цифра VIN не збігається. Перевірте, чи правильно введено номер.');
       estimate();
     }catch(e){ msg(e.message); }
@@ -264,12 +269,13 @@ const VinCert = (() => {
       return { price_eur: +g('price') || null, year: +g('year') || null, km: +g('km') || null, url, src };
     }).filter(a => a.price_eur);
     const dec = +$('vc-m-dec').value || null, cur = $('vc-m-cur').value;
-    if (!analogs.length && !dec) return null;
+    const ref = +$('vc-r-val').value ? { source: $('vc-r-src').value || 'Довідник', value_eur: +$('vc-r-val').value, date: $('vc-r-date').value.trim(), ref: $('vc-r-no').value.trim() } : null;
+    if (!analogs.length && !dec && !ref) return null;
     const p = analogs.map(a => a.price_eur);
     const stats = p.length ? { n: p.length, min: Math.min(...p), max: Math.max(...p), avg: Math.round(p.reduce((a, b) => a + b, 0) / p.length), median: Math.round(median(p)) } : null;
     const decEur = dec ? (cur === 'EUR' ? dec : (st.usdEur ? Math.round(dec * st.usdEur) : null)) : null;
     const ratio = stats && decEur ? decEur / stats.median : null;
-    return { mileage_km: +$('vc-m-km').value || null, declared: dec ? { amount: dec, currency: cur, eur: decEur } : null,
+    return { reference: ref, mileage_km: +$('vc-m-km').value || null, declared: dec ? { amount: dec, currency: cur, eur: decEur } : null,
              analogs, stats, ratio: ratio ? Math.round(ratio * 1000) / 1000 : null, links: st.mktUrls || null, checked_at: new Date().toISOString().slice(0, 10) };
   }
   function verdict(r){
@@ -281,11 +287,13 @@ const VinCert = (() => {
   async function mktCalc(){
     if ($('vc-m-cur').value === 'USD' && !st.usdEur) await usdEur();
     const m = market(), el = $('vc-m-stats');
-    if (!m || !m.stats){ el.innerHTML = m && m.declared ? '<div class="text-sm text-muted">Додайте ціни аналогів, щоб порівняти.</div>' : ''; return; }
+    if (!m || (!m.stats && !m.reference)){ el.innerHTML = m && m.declared ? '<div class="text-sm text-muted">Додайте ціни аналогів, щоб порівняти.</div>' : ''; return; }
+    if (!m.stats){ el.innerHTML = '<div class="cs-ans">' + esc(m.reference.source) + ': <b>' + eur(m.reference.value_eur) + '</b>' + (m.declared && m.declared.eur ? ' · заявлено ' + eur(m.declared.eur) : '') + '</div>'; return; }
     const v = verdict(m.ratio), col = v ? { red: 'var(--red)', amber: 'var(--amber)', green: 'var(--green)' }[v[0]] : '';
     el.innerHTML = '<div class="cs-ans"><div class="row" style="gap:18px;flex-wrap:wrap">' +
       '<span>Аналогів: <b>' + m.stats.n + '</b></span><span>Медіана: <b>' + eur(m.stats.median) + '</b></span><span>Середня: <b>' + eur(m.stats.avg) + '</b></span>' +
       '<span>Діапазон: <b>' + eur(m.stats.min) + ' – ' + eur(m.stats.max) + '</b></span>' +
+      (m.reference ? '<span>' + esc(m.reference.source) + ': <b>' + eur(m.reference.value_eur) + '</b></span>' : '') +
       (m.declared && m.declared.eur ? '<span>Заявлено: <b>' + eur(m.declared.eur) + '</b>' + (m.declared.currency === 'USD' ? ' <span class="text-xs text-muted">($' + Number(m.declared.amount).toLocaleString('uk-UA') + ' за курсом НБУ)</span>' : '') + '</span>' : '') +
       '</div>' + (v ? '<div style="margin-top:8px;color:' + col + '"><i class="ti ti-' + (v[0] === 'green' ? 'circle-check' : 'alert-triangle') + '"></i> ' + esc(v[1]) + '</div>' : '') +
       '<div class="text-xs text-muted" style="margin-top:6px">Висновок бачите лише ви. У PDF і на сторінці перевірки — тільки аналоги, медіана, діапазон і заявлена ціна.</div>' +
@@ -355,17 +363,19 @@ const VinCert = (() => {
   }
 
   function mktPdf(m){
-    if (!m || (!m.stats && !m.declared)) return '';
+    if (!m || (!m.stats && !m.declared && !m.reference)) return '';
     // Висновок «ціна нижча за ринок» показуємо лише брокеру в кабінеті — у документ для митниці він не йде
     const td = 'padding:5px 8px;border-bottom:1px solid #e5e7eb;font-size:11.5px';
     return '<div style="margin-top:14px;border:1px solid #e5e7eb;border-radius:10px;padding:12px 14px">' +
-      '<div style="font-weight:700;margin-bottom:6px">Ринкова вартість аналогів</div>' +
+      '<div style="font-weight:700;margin-bottom:6px">Ринкова вартість' + (m.analogs && m.analogs.length ? ' аналогів' : '') + '</div>' +
       (m.analogs && m.analogs.length ? '<table style="width:100%;border-collapse:collapse;margin-bottom:8px"><tr style="color:#6b7280;font-size:11px"><td style="' + td + '">#</td><td style="' + td + '">Джерело</td><td style="' + td + '">Рік</td><td style="' + td + '">Пробіг, км</td><td style="' + td + ';text-align:right">Ціна</td></tr>' +
         m.analogs.map((a, i) => '<tr><td style="' + td + '">' + (i + 1) + '</td><td style="' + td + ';word-break:break-all">' + esc(a.src || '—') + (a.url ? '<div style="color:#6b7280;font-size:9.5px">' + esc(a.url.length > 70 ? a.url.slice(0, 70) + '…' : a.url) + '</div>' : '') + '</td><td style="' + td + '">' + esc(a.year || '') +
           '</td><td style="' + td + '">' + (a.km ? Number(a.km).toLocaleString('uk-UA') : '') + '</td><td style="' + td + ';text-align:right;font-weight:600">' + eur(a.price_eur) + '</td></tr>').join('') + '</table>' : '') +
       '<div style="display:flex;flex-wrap:wrap;gap:6px 22px;font-size:12px;color:#374151">' +
         (m.stats ? '<span><span style="color:#6b7280">Медіана:</span> <b>' + eur(m.stats.median) + '</b></span><span><span style="color:#6b7280">Середня:</span> <b>' + eur(m.stats.avg) + '</b></span>' +
           '<span><span style="color:#6b7280">Діапазон:</span> <b>' + eur(m.stats.min) + ' – ' + eur(m.stats.max) + '</b></span>' : '') +
+        (m.reference ? '<span><span style="color:#6b7280">Оцінка ' + esc(m.reference.source) + ':</span> <b>' + eur(m.reference.value_eur) + '</b>' +
+          (m.reference.date || m.reference.ref ? ' <span style="color:#6b7280">(' + esc([m.reference.date, m.reference.ref].filter(Boolean).join(', ')) + ')</span>' : '') + '</span>' : '') +
         (m.mileage_km ? '<span><span style="color:#6b7280">Пробіг авто:</span> <b>' + Number(m.mileage_km).toLocaleString('uk-UA') + ' км</b></span>' : '') +
         (m.declared ? '<span><span style="color:#6b7280">Заявлена ціна:</span> <b>' + Number(m.declared.amount).toLocaleString('uk-UA') + ' ' + esc(m.declared.currency) + '</b>' + (m.declared.currency !== 'EUR' && m.declared.eur ? ' (≈ ' + eur(m.declared.eur) + ')' : '') + '</span>' : '') +
       '</div>' +
