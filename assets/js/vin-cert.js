@@ -42,6 +42,8 @@ const VinCert = (() => {
       '<div class="card" id="vc-form" style="display:none;margin-bottom:16px">' +
         '<div class="card-title">Дані авто <span class="text-xs text-muted" id="vc-src" style="text-transform:none;letter-spacing:0"></span></div>' +
         '<div id="vc-gap" style="margin:-4px 0 12px"></div>' +
+        '<div class="row" style="gap:8px;align-items:center;flex-wrap:wrap;margin:-4px 0 12px"><a class="btn btn-ghost btn-sm" id="vc-ci" target="_blank" rel="noopener nofollow" onclick="VinCert.ciCopy()"><i class="ti ti-list-search"></i> Повна розшифровка на CARInfo</a>' +
+          '<span class="text-xs text-muted">Комплектація, двигун, коробка й дата виготовлення за даними виробника. VIN скопіюється — вставте його на сторінці.</span></div>' +
         '<div class="field-row"><div class="field"><label class="label" for="vc-make">Марка</label><input class="input" id="vc-make"></div>' +
           '<div class="field"><label class="label" for="vc-model">Модель</label><input class="input" id="vc-model" oninput="this.style.borderColor=\'\'"></div></div>' +
         '<div class="field-row"><div class="field"><label class="label" for="vc-year">Рік випуску (модельний)</label><input class="input" type="number" id="vc-year" min="1950" max="2100" oninput="this.style.borderColor=\'\';VinCert.estimate()"></div>' +
@@ -144,11 +146,25 @@ const VinCert = (() => {
         : '';
       if (miss.length) setTimeout(() => $(F[d.missing[0]]).focus(), 50);
       $('vc-form').style.display = ''; $('vc-send').innerHTML = '';
+      $('vc-ci').href = ciLink(d.make);
       $('vc-m-rows').innerHTML = ''; $('vc-m-stats').innerHTML = ''; $('vc-m-km').value = ''; $('vc-m-dec').value = ''; ['vc-r-src','vc-r-val','vc-r-date','vc-r-no'].forEach(i => $(i).value = ''); $('vc-mkt').open = false;
       if (d.checkOk === false) msg('Увага: контрольна цифра VIN не збігається. Перевірте, чи правильно введено номер.');
       estimate();
     }catch(e){ msg(e.message); }
     btn.disabled = false; btn.innerHTML = '<i class="ti ti-search"></i> Розшифрувати';
+  }
+
+  /* CARInfo (carinfo.kiev.ua): розшифровка за даними виробника. VIN у посиланні сайт не приймає — копіюємо в буфер */
+  const CI_BRANDS = { 'bmw':'bmw', 'mini':'mini', 'mercedes-benz':'mercedes', 'mercedes':'mercedes', 'toyota':'toyota', 'lexus':'lexus', 'porsche':'porsche',
+    'tesla':'tesla', 'rolls-royce':'rolls-royce', 'volkswagen':'volkswagen', 'vw':'volkswagen', 'skoda':'skoda', 'škoda':'skoda', 'lancia':'lancia', 'audi':'audi/vin_check' };
+  function ciLink(make){
+    const k = String(make || '').toLowerCase().trim();
+    return CI_BRANDS[k] ? 'https://carinfo.kiev.ua/cars/vin/' + CI_BRANDS[k] : 'https://carinfo.kiev.ua/vin';
+  }
+  function ciCopy(){
+    const v = VinTools.normalize($('vc-vin').value);
+    $('vc-ci').href = ciLink($('vc-make').value);
+    try { navigator.clipboard.writeText(v).then(() => showToast('VIN скопійовано — вставте його на CARInfo')); } catch(e){}
   }
 
   function estimate(){
@@ -457,5 +473,5 @@ const VinCert = (() => {
       '</div>' + (uploading ? '<div class="hint"><i class="ti ti-loader-2"></i> Створюємо посилання на PDF для месенджерів…</div>' : '');
   }
 
-  return { mount, decode, estimate, manual, basis, create, regInput, dateMask, mktLinks, mktAdd, mktCalc, verdict };
+  return { mount, decode, estimate, manual, basis, create, regInput, dateMask, mktLinks, mktAdd, mktCalc, verdict, ciCopy };
 })();
