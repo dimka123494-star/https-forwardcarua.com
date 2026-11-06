@@ -126,6 +126,29 @@ async function handleEvent(ev: string, id: string) {
     for (const s of await subsFor([v.brokers?.user_id], "cargo")) if (await send(s.chat_id, text, ["Автопарк", `${SITE}/kabinet#fleet`])) sent++;
     return sent;
   }
+
+  if (ev === "rmpd_new" || ev === "rmpd_done" || ev === "rmpd_fix") {
+    const { data: r } = await sb.from("rmpd_requests").select("*, brokers(name, user_id, kind, plan)").eq("id", id).maybeSingle();
+    if (!r) return 0;
+    const head = `${esc(r.plate)}${r.trailer_plate ? " / " + esc(r.trailer_plate) : ""} · ${esc(r.entry_point)} · ${fmtD(r.start_date)}`;
+    if (ev === "rmpd_new") {
+      // оператору: адміни, що підключили Telegram
+      if (r.status !== "new" || !(await once(`rmpd_new:${id}:${r.updated_at}`))) return 0;
+      const { data: adm } = await sb.from("admins").select("user_id");
+      const text = `🛂 <b>${r.kind === "update" ? "Оновлення заявки RMPD" : "Нова заявка RMPD"}</b>\n${head}\n` +
+        `${esc(r.carrier_name)} · водій ${esc(r.driver_first)} ${esc(r.driver_last)}\n` +
+        `${esc(r.brokers?.name ?? "")} (${r.brokers?.kind === "carrier" ? "перевізник" : "брокер"}, ${esc(r.brokers?.plan ?? "free")})`;
+      for (const s of await subsFor((adm ?? []).map((a: any) => a.user_id), "rmpd")) if (await send(s.chat_id, text, ["Опрацювати", `${SITE}/admin`])) sent++;
+      return sent;
+    }
+    if ("rmpd_" + (r.status === "done" ? "done" : r.status === "needs_fix" ? "fix" : "") !== ev || !(await once(`${ev}:${id}:${r.updated_at}`))) return 0;
+    const text = ev === "rmpd_done"
+      ? `✅ <b>Заявку RMPD зареєстровано</b>\n${head}\n\nНомер: <code>${esc(r.ref_number)}</code>\nДіє до ${fmtD(r.valid_until)}. Перед вʼїздом увімкніть геолокацію.` +
+        (r.admin_note ? `\n\n${esc(r.admin_note)}` : "")
+      : `⚠️ <b>Заявка RMPD потребує уточнення</b>\n${head}\n\n${esc(r.admin_note ?? "")}\n\nВиправте дані в кабінеті — ми одразу подамо заявку.`;
+    for (const s of await subsFor([r.brokers?.user_id], "rmpd")) if (await send(s.chat_id, text, ["Мої заявки RMPD", `${SITE}/kabinet#rmpd`])) sent++;
+    return sent;
+  }
   return 0;
 }
 

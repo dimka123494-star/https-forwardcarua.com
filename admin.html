@@ -61,6 +61,7 @@
     <button class="nav-link"        data-p="requests" onclick="pane('requests',this)">Заявки</button>
     <button class="nav-link"        data-p="cargo"    onclick="pane('cargo',this)">Вантажі <span class="cab-badge" id="cgAdmBadge" style="display:none">0</span></button>
     <button class="nav-link"        data-p="consult"  onclick="pane('consult',this)">Консультації <span class="cab-badge" id="csBadge" style="display:none">0</span></button>
+    <button class="nav-link"        data-p="rmpd"     onclick="pane('rmpd',this)">RMPD <span class="cab-badge" id="rmAdmBadge" style="display:none">0</span></button>
     <button class="nav-link"        data-p="reviews"  onclick="pane('reviews',this)">Відгуки <span class="cab-badge" id="modBadge" style="display:none">0</span></button>
     <button class="nav-link"        data-p="billing"  onclick="pane('billing',this)">Платежі</button>
   </div>
@@ -229,6 +230,18 @@
       </div>
       <p class="hint" style="margin-bottom:1rem">Безкоштовні консультації для платних тарифів. Бухгалтерські питання — для clerk.tax, юридичні — для «Адвокат Поруч». Відповідь, яку ви тут збережете, брокер побачить у кабінеті.</p>
       <div id="csAdmList"></div>
+    </section>
+
+    <!-- RMPD -->
+    <section class="cab-pane" id="pane-rmpd">
+      <div class="spread" style="margin-bottom:1rem">
+        <h1 class="h-md">Заявки RMPD <span class="text-sm text-muted" id="rmTotal"></span></h1>
+        <select class="input" style="width:190px" id="rmFStatus" onchange="renderRmpdAdm()">
+          <option value="open">До опрацювання</option><option value="">Всі</option><option value="done">Зареєстровані</option><option value="cancelled">Скасовані</option>
+        </select>
+      </div>
+      <p class="hint" style="margin-bottom:1rem">Порядок: «В роботі» → внести дані на <a href="https://puesc.gov.pl/" target="_blank" rel="noopener">puesc.gov.pl</a> (форма RMPD100, для оновлень — «RMPD – Aktualizacja») → вписати номер RMPD → «Зареєстровано». Номер діє 10 днів, «Діє до» підставиться автоматично. Якщо дані неповні — «Потрібне уточнення» з коментарем: клієнт отримає його в кабінеті та Telegram. Кожне поле можна скопіювати кліком.</p>
+      <div id="rmAdmList"></div>
     </section>
 
     <!-- ВІДГУКИ -->
@@ -451,6 +464,7 @@ async function loadAll(){
   }catch(e){ showToast(e.message, 'error'); return; }
   renderDash(); renderBrokers(brokers); renderPending(); renderRequests(requests); renderPayments(); renderReviews();
   try { consults = await adminConsultations(); renderConsults(); } catch(e){ console.error(e); }
+  try { rmpdAdm = await adminRmpd(); renderRmpdAdm(); } catch(e){ console.error(e); }
   try { cargoAdm = await adminCargo(); renderCargoAdm(); } catch(e){ console.error(e); }
   try { vehAdm = await adminVehicles(); renderVehAdm(); } catch(e){ console.error(e); }
 }
@@ -500,6 +514,69 @@ async function setVeh(id, status){
   if (status === 'rejected') { note = (window.prompt('Причина (перевізник побачить її в кабінеті):', 'Номер не підтверджено') || '').trim(); }
   try{ await adminSetVehicle(id, status, note); const v = vehAdm.find(x => x.id === id); v.status = status; v.admin_note = note || null; renderVehAdm(); showToast('Збережено'); }
   catch(e){ showToast(e.message, 'error'); }
+}
+
+/* ---------- RMPD ---------- */
+let rmpdAdm = [];
+const RM_GPS = { sent_geo:'SENT GEO (застосунок)', zsl:'Локатор ZSL', external:'Зовнішня система' };
+const RM_PERMIT = { eu_ua:'Угода ЄС–Україна', bilateral:'Двосторонній', transit:'Транзитний', third:'Треті країни', ecmt:'ЄКМТ', other:'Інше' };
+function rmRow(label, v){
+  if (v === null || v === undefined || v === '') return '';
+  const t = String(v);
+  return '<div class="svc-line" style="padding:7px 12px;margin-bottom:4px;cursor:pointer" title="Копіювати" onclick="rmCopy(this)" data-v="' + esc(t) + '">' +
+    '<span class="text-xs text-muted">' + label + '</span><span class="text-sm" style="text-align:right;word-break:break-word">' + esc(t) + ' <i class="ti ti-copy" style="opacity:.5"></i></span></div>';
+}
+async function rmCopy(el){ try{ await navigator.clipboard.writeText(el.dataset.v); showToast('Скопійовано: ' + el.dataset.v); }catch(e){} }
+function renderRmpdAdm(){
+  const fs = document.getElementById('rmFStatus').value;
+  const list = rmpdAdm.filter(r => !fs || (fs === 'open' ? ['new','in_progress','needs_fix'].includes(r.status) : r.status === fs));
+  const open = rmpdAdm.filter(r => r.status === 'new').length;
+  const bd = document.getElementById('rmAdmBadge'); bd.textContent = open; bd.style.display = open ? '' : 'none';
+  document.getElementById('rmTotal').textContent = '· ' + rmpdAdm.length;
+  const d = x => x ? x.split('-').reverse().join('.') : '';
+  document.getElementById('rmAdmList').innerHTML = list.length ? list.map(r => {
+    const b = r.brokers || {}, st = RMPD_STATUS[r.status] || RMPD_STATUS.new;
+    const parent = r.parent_id ? rmpdAdm.find(x => x.id === r.parent_id) : null;
+    return '<div class="card" style="margin-bottom:12px' + (r.status === 'new' ? ';border-color:rgba(16,185,129,.45)' : '') + '">' +
+      '<div class="spread" style="align-items:flex-start;gap:10px">' +
+        '<div><div style="font-weight:600">' + (r.kind === 'update' ? '🔄 ОНОВЛЕННЯ' + (parent && parent.ref_number ? ' до ' + esc(parent.ref_number) : '') + ' · ' : '') +
+          esc(r.plate) + ' · ' + esc(r.entry_point) + ' · ' + d(r.start_date) + '</div>' +
+        '<div class="text-xs text-muted">' + esc(b.name || '—') + ' (' + (b.kind === 'carrier' ? 'перевізник' : 'брокер') + ', ' + planLabel(b.plan) + ')' +
+          (b.phone ? ' · ' + esc(b.phone) : '') + (b.telegram ? ' · ' + esc(b.telegram) : '') + ' · ' + new Date(r.created_at).toLocaleString('uk-UA') + '</div></div>' +
+        '<span class="badge" style="border:.5px solid ' + st.color + ';color:' + st.color + '">' + st.label + '</span></div>' +
+      '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:4px 14px;margin-top:12px">' +
+        '<div>' + rmRow('Перевізник', r.carrier_name) + rmRow('Країна', r.carrier_country) + rmRow('ЄДРПОУ/ІПН', r.carrier_code) + rmRow('Адреса', r.carrier_address) +
+          rmRow('Тягач', r.plate) + rmRow('Країна авто', r.plate_country) + rmRow('Причіп', r.trailer_plate) + rmRow('Країна причепа', r.trailer_country) +
+          rmRow('Водій — імʼя', r.driver_first) + rmRow('Водій — прізвище', r.driver_last) + rmRow('Тел. водія', r.driver_phone) +
+          rmRow('GPS', RM_GPS[r.gps_mode] || r.gps_mode) + rmRow('ID локатора', r.gps_id) + '</div>' +
+        '<div>' + rmRow('Вʼїзд', r.entry_point) + rmRow('Виїзд', r.exit_point) + rmRow('Дата вʼїзду', d(r.start_date)) + rmRow('Дата виїзду', d(r.end_date)) +
+          rmRow('Підстава', RM_PERMIT[r.permit_type] || r.permit_type) +
+          (r.with_goods ? rmRow('Вантаж', r.cargo_desc) + rmRow('Вага, т', r.cargo_weight_t) +
+            rmRow('Відправник', r.sender_name) + rmRow('Країна відпр.', r.sender_country) + rmRow('Адреса відпр.', r.sender_address) +
+            rmRow('Отримувач', r.recipient_name) + rmRow('Країна отрим.', r.recipient_country) + rmRow('Адреса отрим.', r.recipient_address) +
+            rmRow('Завантаження', [r.load_place, r.load_country].filter(Boolean).join(', ')) + rmRow('Розвантаження', [r.unload_place, r.unload_country].filter(Boolean).join(', '))
+            : rmRow('Вантаж', 'Порожній рейс')) + '</div></div>' +
+      (r.client_note ? '<div class="rv-reply text-sm" style="margin-top:8px;white-space:pre-line">💬 ' + esc(r.client_note) + '</div>' : '') +
+      '<div class="field-row" style="margin-top:12px">' +
+        '<div class="field"><label class="label">Статус</label><select class="input" id="rm-st-' + r.id + '">' +
+          Object.entries(RMPD_STATUS).map(([v, s]) => '<option value="' + v + '"' + (r.status === v ? ' selected' : '') + '>' + s.label + '</option>').join('') + '</select></div>' +
+        '<div class="field"><label class="label">Номер RMPD</label><input class="input" id="rm-ref-' + r.id + '" value="' + esc(r.ref_number || '') + '" placeholder="RMPD/…"></div></div>' +
+      '<div class="field"><label class="label">Коментар клієнту (що уточнити / примітка)</label><textarea class="input" id="rm-note-' + r.id + '" style="min-height:60px">' + esc(r.admin_note || '') + '</textarea></div>' +
+      '<button class="btn btn-primary btn-sm" onclick="saveRmpdAdm(\'' + r.id + '\')">Зберегти</button>' +
+      (r.valid_until ? ' <span class="text-xs text-muted">Діє до ' + d(r.valid_until) + '</span>' : '') +
+      '</div>';
+  }).join('') : '<div class="empty"><strong>Немає заявок</strong>Тут зʼявляться заявки RMPD від перевізників і брокерів.</div>';
+}
+async function saveRmpdAdm(id){
+  let status = document.getElementById('rm-st-' + id).value;
+  const ref = document.getElementById('rm-ref-' + id).value.trim(), note = document.getElementById('rm-note-' + id).value.trim();
+  if (ref && ['new','in_progress'].includes(status)) status = 'done';
+  if (status === 'done' && !ref){ showToast('Вкажіть номер RMPD', 'error'); return; }
+  if (status === 'needs_fix' && !note){ showToast('Напишіть, що саме уточнити', 'error'); return; }
+  try{
+    await adminUpdateRmpd(id, { status, ref_number: ref || null, admin_note: note || null });
+    rmpdAdm = await adminRmpd(); renderRmpdAdm(); showToast('Збережено');
+  }catch(e){ showToast(e.message, 'error'); }
 }
 
 /* ---------- Консультації ---------- */

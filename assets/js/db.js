@@ -841,3 +841,75 @@ async function toggleFavorite(carrierId, on){
   const { error } = on ? await sb.from('client_favorites').upsert({ carrier_id: carrierId }) : await sb.from('client_favorites').delete().eq('carrier_id', carrierId);
   if (error){ console.error('toggleFavorite:', error); throw new Error('Не вдалося зберегти'); }
 }
+
+/* ---------- RMPD (Польща): заявки перевізників ---------- */
+const RMPD_STATUS = {
+  new:         { label: 'Прийнято',          color: 'var(--blue)'  },
+  in_progress: { label: 'Подаємо в PUESC',   color: 'var(--amber)' },
+  needs_fix:   { label: 'Потрібне уточнення', color: 'var(--red)'   },
+  done:        { label: 'Зареєстровано',     color: 'var(--green)' },
+  cancelled:   { label: 'Скасовано',         color: 'var(--muted)' }
+};
+async function rmpdAccess(brokerId){
+  const sb = await sbReady();
+  const { data, error } = await sb.rpc('rmpd_access', { bid: brokerId });
+  if (error){ console.error('rmpdAccess:', error); return { allowed: false, reason: 'error' }; }
+  return data || { allowed: false };
+}
+function rmpdError(error, fallback){
+  const m = String(error && error.message || '');
+  if (m.includes('rmpd_denied:limit')) return 'Ліміт безкоштовного тарифу — 3 заявки на місяць. Оформіть будь-який платний тариф, щоб подавати без ліміту.';
+  if (m.includes('rmpd_denied:need_premium')) return 'Подача RMPD для брокерів доступна на тарифі «Преміум».';
+  if (m.includes('locked')) return 'Заявку вже подаємо або зареєстровано — редагувати її не можна. Створіть оновлення.';
+  if (m.includes('rmpd_goods_chk')) return 'Для рейсу з вантажем вкажіть відправника та отримувача.';
+  return fallback;
+}
+async function myRmpd(brokerId){
+  const sb = await sbReady();
+  const { data, error } = await sb.from('rmpd_requests').select('*').eq('owner_id', brokerId)
+    .order('created_at', { ascending: false }).limit(200);
+  if (error) console.error('myRmpd:', error);
+  return data || [];
+}
+async function saveRmpd(row, id){
+  const sb = await sbReady();
+  const q = id ? sb.from('rmpd_requests').update(row).eq('id', id).select().single()
+               : sb.from('rmpd_requests').insert(row).select().single();
+  const { data, error } = await q;
+  if (error){ console.error('saveRmpd:', error); throw new Error(rmpdError(error, 'Не вдалося надіслати заявку. Спробуйте ще раз.')); }
+  return data;
+}
+async function cancelRmpd(id){
+  const sb = await sbReady();
+  const { error } = await sb.from('rmpd_requests').update({ status: 'cancelled' }).eq('id', id);
+  if (error) throw new Error(rmpdError(error, 'Не вдалося скасувати заявку'));
+}
+async function rmpdContacts(brokerId){
+  const sb = await sbReady();
+  const { data, error } = await sb.from('rmpd_contacts').select('*').eq('owner_id', brokerId).order('label');
+  if (error) console.error('rmpdContacts:', error);
+  return data || [];
+}
+async function saveRmpdContact(brokerId, kind, label, data){
+  const sb = await sbReady();
+  const { data: row, error } = await sb.from('rmpd_contacts').insert({ owner_id: brokerId, kind, label, data }).select().single();
+  if (error){ console.error('saveRmpdContact:', error); return null; }
+  return row;
+}
+async function deleteRmpdContact(id){
+  const sb = await sbReady();
+  const { error } = await sb.from('rmpd_contacts').delete().eq('id', id);
+  if (error) throw new Error('Не вдалося видалити');
+}
+async function adminRmpd(){
+  const sb = await sbReady();
+  const { data, error } = await sb.from('rmpd_requests')
+    .select('*, brokers(name, phone, telegram, email, plan, kind)').order('created_at', { ascending: false }).limit(500);
+  if (error) throw new Error('Не вдалося завантажити заявки RMPD');
+  return data || [];
+}
+async function adminUpdateRmpd(id, patch){
+  const sb = await sbReady();
+  const { error } = await sb.from('rmpd_requests').update(patch).eq('id', id);
+  if (error){ console.error('adminUpdateRmpd:', error); throw new Error('Не вдалося зберегти'); }
+}
