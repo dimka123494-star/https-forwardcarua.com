@@ -57,6 +57,7 @@
     <a class="nav-link" id="myPublicLink" href="#">Мій публічний профіль</a>
   </div>
   <div class="nav-actions">
+    <a class="btn btn-ghost btn-sm" href="/admin" id="adminLink" style="display:none"><i class="ti ti-shield-lock"></i> Адмінка</a>
     <button class="btn btn-ghost btn-sm" onclick="doLogout()"><i class="ti ti-logout"></i> Вийти</button>
     <button class="nav-burger" onclick="document.getElementById('menu').classList.toggle('open')" aria-label="Меню"><i class="ti ti-menu-2"></i></button>
   </div>
@@ -981,6 +982,7 @@ window.addEventListener('DOMContentLoaded', async () => {
   if (!user) return;
 
   broker = await getMyBroker();
+  isAdmin(user).then(a => { if (a) document.getElementById('adminLink').style.display = ''; }).catch(() => {});
   if (!broker){
     document.querySelector('.cab-layout').innerHTML =
       '<div class="empty" style="grid-column:1/-1"><strong>Профіль брокера не створено</strong>' +

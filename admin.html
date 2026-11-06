@@ -67,6 +67,7 @@
   </div>
   <div class="nav-actions">
     <span class="text-xs text-muted" id="who"></span>
+    <a class="btn btn-ghost btn-sm" href="/kabinet"><i class="ti ti-user"></i> Мій кабінет</a>
     <button class="btn btn-ghost btn-sm" onclick="doLogout()">Вийти</button>
   </div>
 </nav>
@@ -236,6 +237,7 @@
     <section class="cab-pane" id="pane-rmpd">
       <div class="spread" style="margin-bottom:1rem">
         <h1 class="h-md">Заявки RMPD <span class="text-sm text-muted" id="rmTotal"></span></h1>
+        <a class="btn btn-ghost btn-sm" href="/kabinet#rmpd">🧪 Подати тестову заявку</a>
         <select class="input" style="width:190px" id="rmFStatus" onchange="renderRmpdAdm()">
           <option value="open">До опрацювання</option><option value="">Всі</option><option value="done">Зареєстровані</option><option value="cancelled">Скасовані</option>
         </select>
