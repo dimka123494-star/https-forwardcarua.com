@@ -573,11 +573,11 @@ async function rmCopyAll(id){ const r = rmpdAdm.find(x => x.id === id); try{ awa
 function renderRmpdAdm(){
   const fs = document.getElementById('rmFStatus').value;
   const open_ = st => ['new','in_progress','needs_fix'].includes(st);
-  const list = rmpdAdm.filter(r => !fs || (fs === 'open' ? open_(r.status) : r.status === fs))
+  const list = rmpdAdm.filter(r => !fs || (fs === 'open' ? open_(r.status) && r.mode !== 'self' : r.status === fs))
     .sort((a, b) => (open_(b.status) && b.urgent) - (open_(a.status) && a.urgent) ||
       (a.border_eta && open_(a.status) ? new Date(a.border_eta) : Infinity) - (b.border_eta && open_(b.status) ? new Date(b.border_eta) : Infinity) ||
       new Date(b.created_at) - new Date(a.created_at));
-  const open = rmpdAdm.filter(r => r.status === 'new').length;
+  const open = rmpdAdm.filter(r => r.status === 'new' && r.mode !== 'self').length;
   const bd = document.getElementById('rmAdmBadge'); bd.textContent = open; bd.style.display = open ? '' : 'none';
   document.getElementById('rmTotal').textContent = '· ' + rmpdAdm.length;
   const d = x => x ? x.split('-').reverse().join('.') : '';
@@ -590,6 +590,7 @@ function renderRmpdAdm(){
             (r.urgent && open_(r.status) ? '<span class="badge" style="background:rgba(241,101,75,.18);color:var(--red)">🔥 ТЕРМІНОВО</span>' : '') +
             (r.border_eta ? '<span class="badge badge-free">На кордоні: ' + new Date(r.border_eta).toLocaleString('uk-UA', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit', timeZone:'Europe/Kyiv' }) + ' (Київ)</span>' : '') +
             (r.is_test ? '<span class="badge" style="background:rgba(245,166,35,.15);color:var(--amber)">🧪 ТЕСТ — лише test.puesc.gov.pl</span>' : '') + '</div>' : '') +
+          (r.mode === 'self' ? '<div style="margin-bottom:6px"><span class="badge badge-free">🙋 Подає клієнт сам — довідково, опрацьовувати не потрібно</span></div>' : '') +
           '<div style="font-weight:600">' + (r.kind === 'update' ? '🔄 ОНОВЛЕННЯ (форма «RMPD – Aktualizacja»)' + (parent && parent.ref_number ? ' до ' + esc(parent.ref_number) : '') + ' · ' : 'RMPD100 · ') +
           esc(r.plate) + ' · ' + esc(r.entry_point || r.load_place || '') + ' · ' + d(r.start_date) + '</div>' +
         '<div class="text-xs text-muted">' + esc(b.name || '—') + ' (' + (b.kind === 'carrier' ? 'перевізник' : 'брокер') + ', ' + planLabel(b.plan) + ')' +

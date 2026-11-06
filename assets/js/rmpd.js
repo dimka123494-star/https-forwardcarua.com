@@ -41,7 +41,7 @@ const Rmpd = (() => {
     'entry_point','exit_point','client_note'];
   const CARRIER_F = ['carrier_code','carrier_name','carrier_country','carrier_city','carrier_postcode','carrier_street','carrier_building','carrier_email'];
 
-  let st = { el:null, broker:null, acc:null, list:[], contacts:[], vehicles:[], editId:null, parent:null, filter:'active', carrierEdit:false, license:null, vehDocs:[], keepDocs:[] };
+  let st = { el:null, broker:null, acc:null, list:[], contacts:[], vehicles:[], editId:null, parent:null, filter:'active', carrierEdit:false, license:null, vehDocs:[], keepDocs:[], mode:'team', sheet:null };
   const $ = id => document.getElementById(id);
   const v = id => { const e = $('rm-' + id); return e ? String(e.value || '').trim() : ''; };
   const set = (id, val) => { const e = $('rm-' + id); if (e && val !== undefined && val !== null) e.value = val; };
@@ -126,7 +126,7 @@ const Rmpd = (() => {
 
   async function mount(el, { broker }){
     injectCss();
-    st.el = el; st.broker = broker;
+    st.el = el; st.broker = broker; st.mode = store('mode') === 'self' ? 'self' : 'team';
     el.innerHTML = '<div class="empty">Завантаження…</div>';
     const tasks = [rmpdAccess(broker.id), myRmpd(broker.id), rmpdContacts(broker.id)];
     if (broker.kind === 'carrier' && typeof myVehicles === 'function') tasks.push(myVehicles().catch(() => []));
@@ -148,20 +148,20 @@ const Rmpd = (() => {
   }
   function renderTop(){
     const a = st.acc || {}, top = $('rmTop'); if (!top) return;
-    const price = Number(a.price || 0), avail = Number(a.available || 0), hold = Number(a.hold || 0);
-    const enough = price ? Math.floor(avail / price) : 0;
+    const price = Number(a.price || 0), priceSelf = Number(a.price_self || 0), avail = Number(a.available || 0), hold = Number(a.hold || 0);
+    const pm = st.mode === 'self' ? priceSelf : price, enough = pm ? Math.floor(avail / pm) : 0;
     const extra = (a.test ? '<div class="msg show" style="margin:0 0 12px;background:rgba(245,166,35,.12);color:var(--amber);border:.5px solid rgba(245,166,35,.35)">🧪 <strong>Тестовий режим адміністратора.</strong> Заявки позначаються як тестові, не списують кошти й не йдуть у CRM. В адмінці вносьте їх лише на <a href="https://test.puesc.gov.pl/" target="_blank" rel="noopener">test.puesc.gov.pl</a>.</div>' : '') +
-      (offHours() ? '<div class="msg show" style="margin:0 0 12px;background:rgba(16,185,129,.08);color:var(--muted);border:.5px solid var(--border)">🌙 Зараз неробочий час оператора (працюємо ' + OP_FROM + ':00–' + OP_TO + ':00 за Києвом). Заявку приймемо, але опрацюємо з ' + OP_FROM + ':00. Якщо машина буде на кордоні раніше — подайте заявку самостійно на <a href="' + PUESC + '" target="_blank" rel="noopener">puesc.gov.pl</a>.</div>' : '');
+      (offHours() && st.mode !== 'self' ? '<div class="msg show" style="margin:0 0 12px;background:rgba(16,185,129,.08);color:var(--muted);border:.5px solid var(--border)">🌙 Зараз неробочий час оператора (працюємо ' + OP_FROM + ':00–' + OP_TO + ':00 за Києвом). Заявку приймемо, але опрацюємо з ' + OP_FROM + ':00. Якщо машина буде на кордоні раніше — подайте заявку самостійно на <a href="' + PUESC + '" target="_blank" rel="noopener">puesc.gov.pl</a>.</div>' : '');
     const wallet = '<div class="card card-tight" style="margin-bottom:12px"><div class="spread" style="gap:12px;flex-wrap:wrap">' +
         '<div><div class="text-xs text-muted">Баланс</div><div style="font-family:var(--display);font-size:26px;line-height:1.1">' + uah(avail) + '</div>' +
-          '<div class="text-xs text-muted">' + (hold ? 'ще ' + uah(hold) + ' заморожено за заявки в роботі · ' : '') + 'заявка RMPD — <strong style="color:var(--text)">' + uah(price) + '</strong>' +
-          (price && !a.test ? ' · вистачить на ' + enough + ' ' + plural(enough, 'заявку', 'заявки', 'заявок') : '') + '</div></div>' +
+          '<div class="text-xs text-muted">' + (hold ? 'ще ' + uah(hold) + ' заморожено за заявки в роботі · ' : '') + 'RMPD: оператор — <strong style="color:var(--text)">' + uah(price) + '</strong>, самостійно — <strong style="color:var(--text)">' + uah(priceSelf) + '</strong>' +
+          (pm && !a.test ? ' · вистачить на ' + enough + ' ' + plural(enough, 'заявку', 'заявки', 'заявок') : '') + '</div></div>' +
         '<div style="display:flex;gap:6px;flex-wrap:wrap">' + [1000, 2000, 5000].map(n => '<button class="btn btn-ghost btn-sm" onclick="Rmpd.topup(' + n + ')">+ ' + n.toLocaleString('uk-UA') + '</button>').join('') +
           '<button class="btn btn-ghost btn-sm" onclick="Rmpd.topup()">Інша сума</button></div></div>' +
-      '<p class="hint" style="margin:8px 0 0">Оплата лише за результат: сума заморожується при подачі й списується, коли заявку зареєстровано. Скасували — гроші повертаються на баланс. Оновлення заявки — безкоштовно. <a href="#" onclick="Rmpd.history();return false">Історія операцій</a></p>' +
+      '<p class="hint" style="margin:8px 0 0">Через оператора — оплата лише за результат: сума заморожується й списується, коли заявку зареєстровано, а при скасуванні повертається. «Подаю сам» — списується одразу за перевірку й дані. Оновлення — безкоштовно. <a href="#" onclick="Rmpd.history();return false">Історія операцій</a></p>' +
       '<div id="rmHistory"></div></div>';
     top.innerHTML = extra + wallet + (a.reason === 'balance'
-      ? '<div class="msg msg-err show" style="margin:0 0 12px">Щоб подати заявку, поповніть баланс щонайменше на ' + uah(Math.max(price - avail, 0)) + '. Поповнення — карткою через WayForPay, зараховується одразу після оплати.</div>'
+      ? '<div class="msg msg-err show" style="margin:0 0 12px">Щоб подати заявку, поповніть баланс щонайменше на ' + uah(Math.max(Math.min(price || Infinity, priceSelf || Infinity) - avail, 0)) + '. Поповнення — карткою через WayForPay, зараховується одразу після оплати.</div>'
       : a.reason === 'unavailable' ? '<div class="msg msg-err show" style="margin:0 0 12px">Подача RMPD тимчасово недоступна — напишіть нам.</div>' : '');
   }
   async function topup(n){
@@ -188,7 +188,25 @@ const Rmpd = (() => {
   const sel = (id, label, options, attrs = '') => '<div class="field"><label class="label" for="rm-' + id + '">' + label + '</label><select class="input" id="rm-' + id + '" ' + attrs + '>' + options + '</select></div>';
   const row = (...c) => '<div class="field-row">' + c.join('') + '</div>';
   const sec = t => '<div class="card-title" style="margin-top:1.25rem">' + t + '</div>';
-  const canWrite = () => st.acc && (st.acc.allowed || st.parent || st.editId);
+  const canWrite = () => st.acc && (st.acc.allowed || st.acc.allowed_self || st.parent || st.editId);
+  const modeOf = () => st.editId ? (find(st.editId) || {}).mode || 'team' : st.parent ? st.parent.mode || 'team' : st.mode;
+  const isSelf = () => modeOf() === 'self';
+  function modeBlock(){
+    if (st.editId || st.parent) return isSelf() ? '<p class="hint">Режим: подаєте самі в PUESC.</p>' : '';
+    const a = st.acc || {};
+    const card = (m, icon, title, price, text, ok) => '<button type="button" class="card card-tight" onclick="Rmpd.setMode(\'' + m + '\')" style="text-align:left;cursor:pointer;flex:1;min-width:150px;margin:0;' +
+      (st.mode === m ? 'border-color:var(--green);box-shadow:0 0 0 1px var(--green)' : 'opacity:.85') + '">' +
+      '<div style="font-weight:600">' + icon + ' ' + title + '</div><div style="font-family:var(--display);font-size:18px;margin:2px 0">' + uah(price) + '</div>' +
+      '<div class="text-xs text-muted">' + text + (ok ? '' : ' <span style="color:var(--red)">· бракує коштів</span>') + '</div></button>';
+    return '<div style="display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 4px">' +
+      card('team', '👨‍💼', 'Подає оператор', a.price, 'Перевіримо, внесемо в PUESC, перевіримо в RMPD406 і надішлемо номер. Оплата — лише за зареєстровану.', a.allowed) +
+      card('self', '🙋', 'Подаю сам', a.price_self, 'Перевіримо дані й дамо їх у порядку полів PUESC — вносите самі зі свого акаунта.', a.allowed_self) + '</div>';
+  }
+  function setMode(m){
+    if (st.mode === m) return;
+    const keep = readRaw ? (() => { try { return readRaw(); } catch(e){ return null; } })() : null;
+    st.mode = m; store('mode', m); renderTop(); renderForm(); if (keep) { setVals(keep); routeChanged(); datesSummary(); }
+  }
 
   function carrierBlock(){
     const self = selfCarrier();
@@ -228,7 +246,8 @@ const Rmpd = (() => {
     const head = st.parent ? '🔄 Оновлення заявки ' + esc(st.parent.ref_number || '') : st.editId ? '✏️ Редагування заявки' : 'Нова заявка RMPD';
     w.innerHTML = '<div class="card" id="rmForm"><datalist id="rmCross">' + UA_CROSS.map(([x, l]) => '<option value="' + x + '">' + l + '</option>').join('') + OTHER_CROSS.map(x => '<option value="' + x + '">').join('') + '</datalist>' +
       '<div class="spread"><div class="card-title" style="margin:0">' + head + '</div>' + ((st.parent || st.editId) ? '<button class="btn-quiet" onclick="Rmpd.reset()">Скасувати</button>' : '') + '</div>' +
-      (st.parent ? '<p class="hint">Змініть те, що змінилось (авто, дата, пункт пропуску) — оновимо заявку в PUESC. Оновлення не рахується в ліміт.</p>' : '') +
+      modeBlock() +
+      (st.parent ? '<p class="hint">' + (isSelf() ? 'Змініть те, що змінилось — дамо оновлені дані для форми «RMPD – Aktualizacja».' : 'Змініть те, що змінилось (авто, дата, пункт пропуску) — оновимо заявку в PUESC.') + ' Оновлення безкоштовне.</p>' : '') +
 
       sec('1. Перевізник') + '<div id="rmCarrier">' + carrierBlock() + '</div><div id="rmLicense"></div>' +
 
@@ -262,6 +281,7 @@ const Rmpd = (() => {
         partyBlock('sender', 'Відправник') + partyBlock('recipient', 'Отримувач') +
       '</div>' +
 
+      '<div id="rmTeamOnly"' + (isSelf() ? ' style="display:none"' : '') + '>' +
       sec('5. Коли на кордоні й документи') +
       fld('border_eta', 'Коли авто буде на кордоні / почне рейс у Польщі', 'type="datetime-local" onchange="Rmpd.etaChanged()"', 'Необовʼязково, але допомагає нам встигнути: термінові заявки опрацьовуємо першими.') +
       '<div id="rmTiming"></div>' +
@@ -270,6 +290,7 @@ const Rmpd = (() => {
       '<div class="field"><label class="label" for="rm-doc-cmr">CMR / накладна</label>' +
         '<input class="input" type="file" id="rm-doc-cmr" accept="image/*,application/pdf" multiple onchange="Rmpd.docsChanged()"></div>' +
       '<p class="hint" id="rmDocsHint" style="margin:-6px 0 1rem">Фото документів — за бажанням, але оператор звірить з ними номери, назви й адреси до подачі. Так помилки ловляться до кордону, а не на ньому. Техпаспорт запамʼятаємо для цього авто.</p>' +
+      '</div>' +
 
       '<details id="rmMore" style="margin:1rem 0"><summary class="text-sm" style="cursor:pointer;color:var(--blue)">Додатково: водій, коментар, ручні налаштування</summary><div style="margin-top:12px">' +
         row(fld('driver_first', 'Імʼя водія', 'maxlength="60"'), fld('driver_last', 'Прізвище водія', 'maxlength="60"')) +
@@ -279,9 +300,11 @@ const Rmpd = (() => {
         '<div class="field"><label class="label" for="rm-client_note">Коментар оператору</label><textarea class="input" id="rm-client_note" maxlength="600" style="min-height:64px" placeholder="Напр.: два розвантаження в Польщі"></textarea></div>' +
       '</div></details>' +
 
-      '<label class="check-row"><input type="checkbox" id="rm-agree"' + (store('agree') ? ' checked' : '') + '> Дані відповідають документам (CMR, техпаспорт). Доручаю МитнийБрокер подати заявку RMPD в PUESC від імені перевізника; відповідальність за достовірність даних несе перевізник.</label>' +
+      (isSelf()
+        ? '<label class="check-row"><input type="checkbox" id="rm-agree"' + (store('agree_self') ? ' checked' : '') + '> Дані відповідають документам (CMR, техпаспорт). Заявку в PUESC подаю самостійно зі свого акаунта; за дані й подачу відповідаю сам. ' + uah((st.acc || {}).price_self) + ' списується одразу — за перевірку й підготовку даних.</label>'
+        : '<label class="check-row"><input type="checkbox" id="rm-agree"' + (store('agree') ? ' checked' : '') + '> Дані відповідають документам (CMR, техпаспорт). Доручаю МитнийБрокер подати заявку RMPD в PUESC від імені перевізника; відповідальність за достовірність даних несе перевізник.</label>') +
       '<div class="msg" id="rmMsg"></div>' +
-      '<button class="btn btn-primary btn-block" id="rmBtn" onclick="Rmpd.submit()">' + (st.parent ? 'Надіслати оновлення' : st.editId ? 'Зберегти й надіслати' : 'Надіслати заявку') + '</button></div>';
+      '<button class="btn btn-primary btn-block" id="rmBtn" onclick="Rmpd.submit()">' + (st.parent ? (isSelf() ? 'Отримати оновлені дані' : 'Надіслати оновлення') : st.editId ? 'Зберегти' + (isSelf() ? '' : ' й надіслати') : isSelf() ? 'Перевірити й отримати дані для PUESC' : 'Надіслати заявку') + '</button></div>';
 
     bind(); prefill(); routeChanged();
   }
@@ -504,13 +527,15 @@ const Rmpd = (() => {
   async function submit(){
     const r = read(), errs = validate(r);
     if (errs.length){ showMsg(errs.map(esc).join('<br>')); $('rmMsg').scrollIntoView({ behavior: 'smooth', block: 'center' }); return; }
-    if (!$('rm-agree').checked){ showMsg('Підтвердіть доручення й відповідність даних документам.'); return; }
+    if (!$('rm-agree').checked){ showMsg(isSelf() ? 'Підтвердіть, що дані відповідають документам.' : 'Підтвердіть доручення й відповідність даних документам.'); return; }
+    const self = isSelf();
+    if (!st.editId && !st.parent && !(self ? st.acc.allowed_self : st.acc.allowed)){ showMsg('Недостатньо коштів на балансі для цього варіанту — поповніть баланс або оберіть інший.'); return; }
     if (gpsWarn(r) && !confirm('Номер локатора «' + r.gps_id + '» не схожий на формат SENT (Z… або M…, напр. Z12-345678-9). Все одно надіслати?')) return;
     if ((new Date(r.start_date) - new Date(today())) / 864e5 > 9 && !confirm('Номер RMPD діє 10 днів від реєстрації, а дата — більш ніж через 9 днів. Подати зараз?')) return;
-    const t = timing();
+    const t = self ? { urgent: false, eta: null } : timing();
     if (t.eta && t.hours < 0){ showMsg('Час на кордоні вже минув — виправте дату й годину.'); return; }
     if (t.blocked && !confirm('Оператор може не встигнути подати заявку до вашого часу на кордоні. Все одно надіслати? (Безпечніше подати самостійно на puesc.gov.pl)')) return;
-    store('agree', '1');
+    store(self ? 'agree_self' : 'agree', '1');
     const btn = $('rmBtn'); btn.disabled = true; btn.textContent = 'Надсилаємо…';
     try{
       const files = { tech: [...(($('rm-doc-tech') || {}).files || [])], cmr: [...(($('rm-doc-cmr') || {}).files || [])] };
@@ -525,12 +550,13 @@ const Rmpd = (() => {
       btn.textContent = 'Надсилаємо…';
       const row = { ...r }; delete row._techForVehicle;
       const saved = st.editId ? await saveRmpd(row, st.editId)
-        : await saveRmpd({ ...row, owner_id: st.broker.id, kind: st.parent ? 'update' : 'new', parent_id: st.parent ? st.parent.id : null, prev_rmpd: r.prev_rmpd || (st.parent ? st.parent.ref_number : null) });
+        : await saveRmpd({ ...row, owner_id: st.broker.id, kind: st.parent ? 'update' : 'new', parent_id: st.parent ? st.parent.id : null, prev_rmpd: r.prev_rmpd || (st.parent ? st.parent.ref_number : null), mode: modeOf() });
       saveContacts(r).catch(e => console.error(e));
       const i = st.list.findIndex(x => x.id === saved.id); if (i >= 0) st.list[i] = saved; else st.list.unshift(saved);
       st.editId = null; st.parent = null; st.carrierEdit = false; st.keepDocs = [];
       track('rmpd_submit', { kind: saved.kind, role: st.broker.kind || 'broker' });
       await refreshAccess(); renderForm(); renderList(); badge();
+      if (saved.mode === 'self'){ openSheet(saved.id); showToast('Дані перевірено — переносьте в PUESC'); return; }
       showToast('Заявку прийнято — номер RMPD прийде в кабінет і Telegram');
       $('rmList').scrollIntoView({ behavior: 'smooth', block: 'start' });
     }catch(e){ showMsg(esc(e.message)); btn.disabled = false; btn.textContent = 'Надіслати заявку'; }
@@ -548,13 +574,92 @@ const Rmpd = (() => {
     }
   }
 
+  /* ---------- «Подаю сам»: дані в порядку полів PUESC ---------- */
+  const P_TRIP = { bilateral:'dwustronny', transit:'tranzyt', third:'z/do państwa trzeciego', cabotage:'kabotaż' };
+  const P_PERMIT = { eu_ua:'bez zezwolenia — umowa UE–Ukraina', bilateral:'zezwolenie dwustronne', transit:'zezwolenie tranzytowe', third:'zezwolenie na przewóz z/do państwa trzeciego', ecmt:'zezwolenie EKMT (CEMT)', other:'inne zezwolenie' };
+  const P_DIR = { there:'tam', back:'powrót' };
+  const P_IDT = { NIP:'NIP', VAT:'VAT UE', INNY:'INNY', DOK:'dokument tożsamości' };
+  function pRow(label, val){
+    if (val === null || val === undefined || val === '') return '';
+    const t = String(val);
+    return '<div class="svc-line" style="padding:8px 12px;margin-bottom:4px;cursor:pointer;gap:10px" onclick="Rmpd.copyEl(this)" data-v="' + esc(t) + '">' +
+      '<span class="text-xs text-muted">' + label + '</span><span class="text-sm" style="text-align:right;word-break:break-word">' + esc(t) + ' <i class="ti ti-copy" style="opacity:.5"></i></span></div>';
+  }
+  function puescSections(r){
+    const d = x => x ? x.split('-').reverse().join('.') : '';
+    const sec2 = (t, rows) => { const h = rows.join(''); return h ? '<div class="card-title" style="margin:14px 0 6px">' + t + '</div>' + h : ''; };
+    const party = p => [pRow('Typ identyfikatora', P_IDT[r[p + '_id_type']] || r[p + '_id_type']), pRow('Numer identyfikatora', r[p + '_id']), pRow('Nazwa', r[p + '_name']),
+      pRow('Kraj', r[p + '_country']), pRow('Miejscowość', r[p + '_city']), pRow('Kod pocztowy', r[p + '_postcode']), pRow('Ulica, nr', r[p + '_address'])];
+    return [
+      sec2('1. Przewoźnik', [pRow('Typ identyfikatora', r.carrier_id_type || 'INNY'), pRow('Numer', r.carrier_code), pRow('Nazwa', r.carrier_name), pRow('Kraj', r.carrier_country),
+        pRow('Miejscowość', r.carrier_city), pRow('Kod pocztowy', r.carrier_postcode), pRow('Ulica', r.carrier_street), pRow('Nr budynku / lokalu', r.carrier_building)]),
+      sec2('2. Pojazd', [pRow('Kraj rejestracji ciągnika', r.plate_country), pRow('Nr rej. ciągnika', r.plate), pRow('Kraj rejestracji naczepy', r.trailer_country), pRow('Nr rej. naczepy', r.trailer_plate),
+        pRow('Nr lokalizatora', r.gps_id), pRow('E-mail przewoźnika', r.carrier_email)]),
+      sec2('3.1 Daty', [pRow('Data rozpoczęcia', d(r.start_date)), pRow('Data zakończenia', d(r.end_date))]),
+      sec2('3.2 Przewóz', [pRow('Kraj załadunku', r.load_country), pRow('Kraj rozładunku', r.unload_country), pRow('Przewóz z towarem', r.with_goods ? 'TAK' : 'NIE'),
+        pRow('Dokument przewozowy', r.with_goods ? (r.cmr_type || 'CMR') : ''), pRow('Nr dokumentu', r.cmr_number), pRow('Rodzaj przewozu', P_TRIP[r.trip_type] || r.trip_type),
+        pRow('Rodzaj zezwolenia', P_PERMIT[r.permit_type] || r.permit_type), pRow('Kraj wydania zezwolenia', r.permit_country), pRow('Nr zezwolenia', r.permit_number), pRow('Ważne do', d(r.permit_valid_to))]),
+      sec2('3.6 Dane przejazdu', [pRow('Poprzedni nr RMPD', r.prev_rmpd), pRow('Kierunek', P_DIR[r.direction] || r.direction), pRow('Miejsce rozpoczęcia w PL', r.start_place || r.entry_point),
+        pRow('Miejsce zakończenia w PL', r.end_place || r.exit_point)]),
+      r.with_goods ? sec2('4. Nadawca', party('sender')) : '',
+      r.with_goods ? sec2('5. Odbiorca', party('recipient')) : '',
+      sec2('7. E-mail do potwierdzenia', [pRow('E-mail', r.contact_email || r.carrier_email)])
+    ].join('');
+  }
+  function openSheet(id){
+    const r = find(id); if (!r) return;
+    st.sheet = id;
+    const w = $('rmFormWrap');
+    const done = r.status === 'done';
+    w.innerHTML = '<div class="card" id="rmSheet">' +
+      '<div class="spread"><div class="card-title" style="margin:0">📋 ' + (r.kind === 'update' ? 'Оновлення — форма «RMPD – Aktualizacja»' : 'Дані для форми RMPD100') + ' · ' + esc(r.plate) + '</div>' +
+        '<button class="btn-quiet" onclick="Rmpd.closeSheet()">Закрити</button></div>' +
+      (done ? '' : '<ol class="text-sm" style="margin:12px 0 4px 18px;line-height:1.6">' +
+        '<li>Увійдіть на <a href="' + PUESC + '" target="_blank" rel="noopener">puesc.gov.pl</a> зі свого акаунта (реєстрація безкоштовна).</li>' +
+        '<li>Відкрийте форму <strong>' + (r.kind === 'update' ? 'RMPD – Aktualizacja' : 'RMPD100') + '</strong>.</li>' +
+        '<li>Заповнюйте зверху вниз: натисніть на рядок нижче — значення скопіюється, вставте його в однойменне поле.</li>' +
+        '<li>У розділі 8 поставте позначку про повноваження й впишіть своє імʼя.</li>' +
+        '<li>Після відправки PUESC покаже номер RMPD — перевірте його у формі <strong>RMPD406</strong> і впишіть нижче.</li></ol>') +
+      '<div style="margin:10px 0"><button class="btn btn-ghost btn-sm" onclick="Rmpd.copyAll(\'' + r.id + '\')"><i class="ti ti-clipboard-text"></i> Скопіювати все текстом</button></div>' +
+      puescSections(r) +
+      (done ? '<div class="msg msg-ok show" style="margin-top:14px">✓ Зареєстровано: <strong>' + esc(r.ref_number) + '</strong>' + (r.valid_until ? ' · діє до ' + fmtD(r.valid_until) : '') + '</div>'
+        : '<div class="card-title" style="margin:16px 0 6px">Номер після реєстрації</div>' +
+          '<div class="field"><input class="input" id="rmSelfRef" placeholder="Номер RMPD з PUESC" autocomplete="off" spellcheck="false" style="text-transform:uppercase"></div>' +
+          '<label class="check-row"><input type="checkbox" id="rmSelf406"> Перевірив у RMPD406 — заявка з цим номером активна</label>' +
+          '<div class="msg" id="rmSelfMsg"></div>' +
+          '<button class="btn btn-primary btn-block" onclick="Rmpd.saveSelfRef(\'' + r.id + '\')">Зберегти номер</button>' +
+          '<p class="hint" style="margin-top:8px">Після збереження номер буде в історії, а за день до кінця строку дії прийде нагадування в Telegram.</p>') +
+      '</div>';
+    w.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+  function closeSheet(){ st.sheet = null; renderForm(); }
+  async function copyEl(el){ try{ await navigator.clipboard.writeText(el.dataset.v); showToast('Скопійовано: ' + el.dataset.v.slice(0, 60)); el.style.borderColor = 'var(--green)'; }catch(e){ showToast(el.dataset.v); } }
+  async function copyAll(id){
+    const r = find(id); if (!r) return;
+    const tmp = document.createElement('div'); tmp.innerHTML = puescSections(r);
+    const text = [...tmp.querySelectorAll('.card-title, .svc-line')].map(e => e.classList.contains('card-title') ? '\n' + e.textContent : e.querySelector('.text-xs').textContent + ': ' + e.dataset.v).join('\n').trim();
+    try{ await navigator.clipboard.writeText(text); showToast('Усі дані скопійовано'); }catch(e){}
+  }
+  async function saveSelfRef(id){
+    const ref = ($('rmSelfRef').value || '').trim().toUpperCase(), ok = $('rmSelf406').checked, m = $('rmSelfMsg');
+    const err = t => { m.className = 'msg show msg-err'; m.textContent = t; };
+    if (ref.length < 6) return err('Впишіть номер RMPD, який показав PUESC.');
+    if (!ok) return err('Перевірте заявку у формі RMPD406 і поставте позначку.');
+    try{
+      const saved = await saveRmpd({ status: 'done', ref_number: ref, rmpd406_ok: true }, id);
+      const i = st.list.findIndex(x => x.id === id); if (i >= 0) st.list[i] = saved;
+      renderList(); openSheet(id); showToast('Номер збережено — гарної дороги!');
+    }catch(e){ err(e.message); }
+  }
+
   /* ---------- Список ---------- */
   function setFilter(f){ st.filter = f; render(); }
   function card(r){
-    const s = RMPD_STATUS[r.status] || RMPD_STATUS.new;
+    const s = r.mode === 'self' && ['new','needs_fix'].includes(r.status) ? { label: 'Чекає вашого номера', color: 'var(--amber)' } : (RMPD_STATUS[r.status] || RMPD_STATUS.new);
     const left = r.valid_until ? Math.ceil((new Date(r.valid_until) - new Date(today())) / 864e5) : null, expired = left !== null && left < 0;
     const route = [r.load_place && r.load_place + (r.load_country ? ' (' + r.load_country + ')' : ''), r.unload_place && r.unload_place + (r.unload_country ? ' (' + r.unload_country + ')' : '')].filter(Boolean).join(' → ');
     let a = '';
+    if (r.mode === 'self' && r.status !== 'cancelled') a += '<button class="btn-quiet" onclick="Rmpd.openSheet(\'' + r.id + '\')">📋 ' + (r.status === 'done' ? 'Дані' : 'Дані для PUESC і номер') + '</button>';
     if (r.status === 'new' || r.status === 'needs_fix') a += '<button class="btn-quiet" onclick="Rmpd.edit(\'' + r.id + '\')">' + (r.status === 'needs_fix' ? '✏️ Виправити' : 'Редагувати') + '</button>';
     if (r.status === 'done' && !expired) a += '<button class="btn-quiet" onclick="Rmpd.update(\'' + r.id + '\')">Оновити заявку</button>';
     if (r.status === 'done' && r.direction !== 'back') a += '<button class="btn-quiet" onclick="Rmpd.back(\'' + r.id + '\')">↩ Зворотний рейс</button>';
@@ -564,7 +669,8 @@ const Rmpd = (() => {
       '<div style="font-weight:600">' + esc(r.plate) + (r.trailer_plate ? ' / ' + esc(r.trailer_plate) : '') + ' · ' + esc(r.entry_point || r.exit_point || r.load_place || '') + ' · ' + fmtD(r.start_date) +
         (r.kind === 'update' ? ' <span class="badge badge-free">оновлення</span>' : '') + (r.direction === 'back' ? ' <span class="badge badge-free">зворотний</span>' : '') +
         (r.urgent && !['done','cancelled'].includes(r.status) ? ' <span class="badge" style="background:rgba(241,101,75,.15);color:var(--red)">🔥 терміново</span>' : '') +
-        (r.is_test ? ' <span class="badge" style="background:rgba(245,166,35,.15);color:var(--amber)">🧪 тест</span>' : '') + '</div>' +
+        (r.is_test ? ' <span class="badge" style="background:rgba(245,166,35,.15);color:var(--amber)">🧪 тест</span>' : '') +
+        (r.mode === 'self' ? ' <span class="badge badge-free">подаю сам</span>' : '') + '</div>' +
       '<div class="text-xs text-muted" style="margin-top:2px">' + (r.with_goods ? esc(r.cargo_desc || '') + (route ? ' · ' + esc(route) : '') : 'порожній рейс' + (route ? ' · ' + esc(route) : '')) +
         (!isCarrier() ? ' · ' + esc(r.carrier_name) : '') + (r.border_eta ? ' · на кордоні ' + fmtDT(r.border_eta) : '') + ((r.docs || []).length ? ' · 📎 ' + r.docs.length : '') + ' · подано ' + timeAgo(r.created_at) + '</div></div>' +
       '<span class="badge" style="background:transparent;border:.5px solid ' + s.color + ';color:' + s.color + '">' + s.label + '</span></div>' +
@@ -622,6 +728,6 @@ const Rmpd = (() => {
     try{ if (navigator.share) await navigator.share({ text }); else { await navigator.clipboard.writeText(text); showToast('Текст для водія скопійовано'); } }catch(e){}
   }
 
-  return { mount, submit, topup, history, routeChanged, dateChanged, etaChanged, docsChanged, goodsToggle, idHint, lookupParty, lookupCarrier, pickCarrier, editCarrier, pickParty, pickVehicle,
+  return { mount, submit, topup, history, setMode, openSheet, closeSheet, copyEl, copyAll, saveSelfRef, routeChanged, dateChanged, etaChanged, docsChanged, goodsToggle, idHint, lookupParty, lookupCarrier, pickCarrier, editCarrier, pickParty, pickVehicle,
     setFilter, edit, update, repeat, back, reset, cancel, copy, share, translit, normPlate, derive };
 })();
