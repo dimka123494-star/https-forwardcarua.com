@@ -9,6 +9,21 @@ const Rmpd = (() => {
   const PUESC = 'https://puesc.gov.pl/';
   const UA_CROSS = [['Dorohusk','Дорогуськ — Ягодин'],['Dołhobyczów','Долгобичув — Угринів'],['Hrebenne','Хребенне — Рава-Руська'],
     ['Korczowa','Корчова — Краковець'],['Medyka','Медика — Шегині'],['Budomierz','Будомєж — Грушів'],['Krościenko','Кросценко — Смільниця'],['Zosin','Зосин — Устилуг']];
+  const CROSS_ALIAS = { dorohusk:'Dorohusk', dorohusko:'Dorohusk', dorokhusk:'Dorohusk', dorogusk:'Dorohusk', yahodyn:'Dorohusk', jagodzin:'Dorohusk', iahodyn:'Dorohusk',
+    dolhobyczow:'Dołhobyczów', dolhobychuv:'Dołhobyczów', dolhobychiv:'Dołhobyczów', uhryniv:'Dołhobyczów',
+    hrebenne:'Hrebenne', khrebenne:'Hrebenne', ravaruska:'Hrebenne', ravaruskaia:'Hrebenne',
+    korczowa:'Korczowa', korchova:'Korczowa', korchowa:'Korczowa', krakovets:'Korczowa', krakivets:'Korczowa',
+    medyka:'Medyka', shehyni:'Medyka', szeginie:'Medyka',
+    budomierz:'Budomierz', budomiezh:'Budomierz', budomezh:'Budomierz', hrushiv:'Budomierz',
+    kroscienko:'Krościenko', krostsenko:'Krościenko', smilnytsia:'Krościenko', zosin:'Zosin', ustyluh:'Zosin',
+    swiecko:'Świecko', svietsko:'Świecko', kolbaskowo:'Kołbaskowo', jedrzychowice:'Jędrzychowice', budzisko:'Budzisko', terespol:'Terespol', barwinek:'Barwinek', chyzne:'Chyżne' };
+  const crossKey = s => translit(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/ł/g, 'l').replace(/[^a-z]/g, '');
+  function normCross(s){
+    if (!s) return s;
+    const k = crossKey(s.split(/[—\-–(]/)[0]); if (CROSS_ALIAS[k]) return CROSS_ALIAS[k];
+    const k2 = crossKey(s); if (CROSS_ALIAS[k2]) return CROSS_ALIAS[k2];
+    return translit(s).trim();
+  }
   const OTHER_CROSS = ['Świecko','Kołbaskowo','Jędrzychowice','Olszyna','Gubinek','Lubieszyn','Gorzyczki','Cieszyn','Chyżne','Barwinek',
     'Łysa Polana','Kudowa-Słone','Budzisko','Terespol','Kukuryki','Port Gdańsk','Port Gdynia','Port Szczecin'];
   const COUNTRIES = { UA:'Україна', PL:'Польща', DE:'Німеччина', LT:'Литва', LV:'Латвія', EE:'Естонія', SK:'Словаччина', CZ:'Чехія',
@@ -99,7 +114,18 @@ const Rmpd = (() => {
   }
 
   /* ---------- Монтування ---------- */
+  const CSS = '.cab-layout>main{min-width:0}#rmpdMount{min-width:0;max-width:100%;overflow-x:hidden}' +
+    '#rmForm .field-row{grid-template-columns:repeat(2,minmax(0,1fr))}#rmForm .field-row>*{min-width:0}' +
+    '@media(max-width:768px){#rmForm .field-row{grid-template-columns:minmax(0,1fr)}}' +
+    '#rmForm .input{min-width:0;max-width:100%;box-sizing:border-box}' +
+    '#rmForm input[type=date],#rmForm input[type=datetime-local]{-webkit-appearance:none;appearance:none;display:block;width:100%;min-height:46px;text-align:left;color:var(--text);color-scheme:dark}' +
+    '#rmForm input::-webkit-date-and-time-value{text-align:left;min-height:1.4em;color:var(--text)}' +
+    '#rmForm .rm-find{display:flex;gap:6px;align-items:stretch}#rmForm .rm-find .input{flex:1}#rmForm .rm-find .btn{white-space:nowrap;padding:0 14px}' +
+    '#rmAuto{flex-wrap:wrap}#rmAuto .chip{white-space:normal;font-size:12px}';
+  function injectCss(){ if (document.getElementById('rmpdCss')) return; const e = document.createElement('style'); e.id = 'rmpdCss'; e.textContent = CSS; document.head.appendChild(e); }
+
   async function mount(el, { broker }){
+    injectCss();
     st.el = el; st.broker = broker;
     el.innerHTML = '<div class="empty">Завантаження…</div>';
     const tasks = [rmpdAccess(broker.id), myRmpd(broker.id), rmpdContacts(broker.id)];
@@ -132,7 +158,9 @@ const Rmpd = (() => {
   }
 
   /* ---------- Форма ---------- */
-  const fld = (id, label, attrs = '', hint = '') => '<div class="field"><label class="label" for="rm-' + id + '">' + label + '</label><input class="input" id="rm-' + id + '" ' + attrs + '>' + (hint ? '<div class="hint" id="rm-' + id + '-hint">' + hint + '</div>' : '') + '</div>';
+  const fld = (id, label, attrs = '', hint = '') => '<div class="field"><label class="label" for="rm-' + id + '">' + label + '</label><input class="input" id="rm-' + id + '" autocomplete="off" spellcheck="false" ' + attrs + '>' + (hint ? '<div class="hint" id="rm-' + id + '-hint">' + hint + '</div>' : '') + '</div>';
+  const findFld = (id, label, attrs, onclick, hint = '') => '<div class="field"><label class="label" for="rm-' + id + '">' + label + '</label><div class="rm-find"><input class="input" id="rm-' + id + '" autocomplete="off" spellcheck="false" ' + attrs + '>' +
+    '<button type="button" class="btn btn-ghost btn-sm" onclick="' + onclick + '"><i class="ti ti-search"></i> Знайти</button></div><div class="hint" id="rm-' + id + '-hint">' + hint + '</div></div>';
   const sel = (id, label, options, attrs = '') => '<div class="field"><label class="label" for="rm-' + id + '">' + label + '</label><select class="input" id="rm-' + id + '" ' + attrs + '>' + options + '</select></div>';
   const row = (...c) => '<div class="field-row">' + c.join('') + '</div>';
   const sec = t => '<div class="card-title" style="margin-top:1.25rem">' + t + '</div>';
@@ -149,7 +177,7 @@ const Rmpd = (() => {
     }
     return (!isCarrier() && contactsOf('carrier').length ? sel('pick-carrier', 'Перевізник з довідника', '<option value="">— новий перевізник —</option>' +
         contactsOf('carrier').map(c => '<option value="' + c.id + '">' + esc(c.label) + '</option>').join(''), 'onchange="Rmpd.pickCarrier(this.value)"') : '') +
-      row(fld('carrier_code', 'ЄДРПОУ / ІПН *', 'maxlength="10" inputmode="numeric" placeholder="45002097" onchange="Rmpd.lookupCarrier()"', 'Назву підставимо з реєстру перевізників автоматично.'),
+      row(findFld('carrier_code', 'ЄДРПОУ / ІПН *', 'maxlength="10" inputmode="numeric" placeholder="45002097" onchange="Rmpd.lookupCarrier()"', 'Rmpd.lookupCarrier()', 'Назву й статус ліцензії підставимо з реєстру перевізників.'),
           sel('carrier_country', 'Країна реєстрації', opt(COUNTRIES, 'UA'))) +
       fld('carrier_name', 'Назва латиницею *', 'maxlength="140" placeholder="TOV Forward Trans"') +
       row(fld('carrier_city', 'Місто *', 'maxlength="60" placeholder="Lutsk"'), fld('carrier_postcode', 'Індекс *', 'maxlength="10" placeholder="43000"')) +
@@ -163,7 +191,7 @@ const Rmpd = (() => {
     return '<div style="margin-top:.75rem"><div class="text-sm" style="font-weight:600;margin-bottom:8px">' + title + '</div>' +
       (parties.length ? sel('pick-' + side, 'З довідника', '<option value="">—</option>' + parties.map(c => '<option value="' + c.id + '">' + esc(c.label) + (c.data.country ? ' · ' + c.data.country : '') + '</option>').join(''), 'onchange="Rmpd.pickParty(\'' + side + '\', this.value)"') : '') +
       row(sel(side + '_country', 'Країна *', opt(COUNTRIES, side === 'sender' ? 'PL' : 'UA'), 'onchange="this.dataset.touched=1;Rmpd.idHint(\'' + side + '\')"'),
-          fld(side + '_id', 'NIP / VAT / ЄДРПОУ', 'maxlength="20" onchange="Rmpd.lookupParty(\'' + side + '\')"', '')) +
+          findFld(side + '_id', 'NIP / VAT / ЄДРПОУ', 'maxlength="20" onchange="Rmpd.lookupParty(\'' + side + '\')"', 'Rmpd.lookupParty(\'' + side + '\')')) +
       fld(side + '_name', 'Назва *', 'maxlength="140"') +
       row(fld(side + '_city', 'Місто *', 'maxlength="60"'), fld(side + '_postcode', 'Індекс', 'maxlength="10"')) +
       fld(side + '_address', 'Вулиця, будинок', 'maxlength="160"') + '</div>';
@@ -196,6 +224,7 @@ const Rmpd = (() => {
         '<div id="rmExitWrap">' + fld('exit_point', 'Пункт виїзду з Польщі *', 'list="rmCross" maxlength="60" placeholder="Świecko"') + '</div></div>' +
       row(fld('start_date', 'Дата вʼїзду / початку *', 'type="date" min="' + today() + '" onchange="Rmpd.dateChanged()"'),
           fld('end_date', 'Дата завершення в Польщі', 'type="date" min="' + today() + '"', 'Підставили +3 дні — змініть за потреби. Не пізніше 10 днів.')) +
+      '<div id="rmDates" class="text-sm" style="margin:-6px 0 10px"></div>' +
       '<div id="rmAuto" class="pchips" style="margin:-4px 0 1rem"></div>' +
       '<div id="rmPermit" style="display:none">' +
         row(sel('permit_type', 'Дозвіл *', opt(PERMIT, 'ecmt')), sel('permit_country', 'Країна видачі', opt(COUNTRIES, 'PL'))) +
@@ -236,9 +265,11 @@ const Rmpd = (() => {
   function bind(){
     LATIN.forEach(f => { const e = $('rm-' + f); if (e) e.addEventListener('blur', () => { e.value = translit(e.value).replace(/\s{2,}/g, ' ').trim(); }); });
     ['plate','trailer_plate'].forEach(f => $('rm-' + f).addEventListener('blur', e => { e.target.value = normPlate(e.target.value); }));
+    ['entry_point','exit_point'].forEach(f => $('rm-' + f).addEventListener('blur', e => { const x = normCross(e.target.value); if (x !== e.target.value){ e.target.value = x; routeChanged(); } }));
     $('rm-gps_id').addEventListener('blur', e => { e.target.value = normGps(e.target.value); });
     $('rm-plate').addEventListener('change', () => { const x = vehicleOptions().find(o => o.plate === normPlate(v('plate'))); if (x) applyVehicle(x); });
     ['load_country','unload_country','load_place','unload_place','entry_point','exit_point','start_date'].forEach(f => $('rm-' + f).addEventListener('change', routeChanged));
+    ['start_date','end_date'].forEach(f => { $('rm-' + f).addEventListener('change', datesSummary); $('rm-' + f).addEventListener('input', datesSummary); });
     ['sender','recipient'].forEach(idHint);
   }
 
@@ -265,7 +296,9 @@ const Rmpd = (() => {
   }
 
   function goodsToggle(){ $('rmGoods').style.display = $('rm-with_goods').checked ? '' : 'none'; }
-  function dateChanged(){ const s = v('start_date'); if (s && (!v('end_date') || v('end_date') < s)) set('end_date', addDays(s, 3)); routeChanged(); timing(); }
+  const wd = d => d ? new Date(d + 'T12:00:00').toLocaleDateString('uk-UA', { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' }) : '—';
+  function datesSummary(){ const e = $('rmDates'); if (e) e.innerHTML = '📅 Вʼїзд: <strong>' + wd(v('start_date')) + '</strong> · завершення: <strong>' + wd(v('end_date')) + '</strong>'; }
+  function dateChanged(){ const s = v('start_date'); if (s && (!v('end_date') || v('end_date') < s)) set('end_date', addDays(s, 3)); datesSummary(); routeChanged(); timing(); }
 
   function routeChanged(){
     const r = readRaw(), d = derive(r);
@@ -287,36 +320,42 @@ const Rmpd = (() => {
   }
 
   function idHint(side){
-    const c = v(side + '_country'), h = $('rm-' + side + '_id-hint') || (() => { const e = document.createElement('div'); e.className = 'hint'; e.id = 'rm-' + side + '_id-hint'; $('rm-' + side + '_id').after(e); return e; })();
+    const c = v(side + '_country'), h = $('rm-' + side + '_id-hint'); if (!h) return;
     $('rm-' + side + '_id').placeholder = c === 'PL' ? 'NIP, 10 цифр' : EU.includes(c) ? 'VAT, напр. ' + (c === 'GR' ? 'EL' : c) + '123456789' : c === 'UA' ? 'ЄДРПОУ' : 'Код компанії';
-    if (!h.dataset.busy) h.textContent = c === 'PL' || EU.includes(c) ? 'Введіть код — назву й адресу заповнимо з держреєстру.' : '';
+    if (h.dataset.busy || h.dataset.result === c) return;
+    delete h.dataset.result;
+    h.textContent = c === 'PL' || EU.includes(c) ? 'Введіть код і натисніть «Знайти» — назву й адресу заповнимо з держреєстру.'
+      : c === 'UA' ? 'Для українських компаній автоматично знаходимо лише ліцензованих перевізників; інші — заповніть вручну.' : '';
   }
 
   async function lookupParty(side){
     const c = v(side + '_country'), code = v(side + '_id').toUpperCase().replace(/[\s\-.]/g, ''); if (!code) return;
     const h = $('rm-' + side + '_id-hint'); h.dataset.busy = '1'; h.textContent = 'Шукаємо…';
     const type = c === 'PL' ? 'pl' : EU.includes(c) ? 'vat' : c === 'UA' ? 'ua' : null;
-    if (!type){ h.textContent = ''; delete h.dataset.busy; return; }
+    if (!type){ h.textContent = 'Для цієї країни автозаповнення немає — заповніть вручну.'; delete h.dataset.busy; return; }
     const r = await rmpdLookup(type, code, c === 'GR' ? 'EL' : c);
-    delete h.dataset.busy;
+    delete h.dataset.busy; h.dataset.result = c;
     if (r.found){
       setVals({ [side + '_name']: translit(r.name), [side + '_city']: r.city || v(side + '_city'), [side + '_postcode']: r.postcode || v(side + '_postcode'), [side + '_address']: r.street || v(side + '_address') });
       h.innerHTML = '<span style="color:var(--green)">✓ Знайдено в реєстрі' + (r.vat && r.vat !== 'Czynny' ? ' · статус VAT: ' + esc(r.vat) : '') + '</span>';
-    } else h.textContent = r.note === 'unavailable' ? 'Реєстр тимчасово недоступний — заповніть вручну.' : r.note === 'invalid' ? 'Код не знайдено або недійсний — перевірте.' : 'Не знайшли в реєстрі — заповніть вручну.';
+    } else h.innerHTML = '<span style="color:var(--amber)">' + (r.note === 'unavailable' ? 'Реєстр зараз не відповідає — спробуйте ще раз або заповніть вручну.'
+      : r.note === 'invalid' ? 'Код недійсний або не знайдений — перевірте цифри' + (type === 'vat' ? ' (EU VAT — з префіксом країни, напр. DE123456789)' : '') + '.'
+      : type === 'ua' ? 'Серед ліцензованих перевізників не знайшли — для звичайних компаній заповніть назву й адресу вручну.' : 'Не знайшли в реєстрі — заповніть вручну.') + '</span>';
   }
 
   async function lookupCarrier(){
-    const code = v('carrier_code').replace(/\D/g, ''); if (!/^\d{8,10}$/.test(code)) return;
-    const h = $('rm-carrier_code-hint'); if (h) h.textContent = 'Шукаємо в реєстрі перевізників…';
+    const code = v('carrier_code').replace(/\D/g, ''), h = $('rm-carrier_code-hint');
+    if (!/^(\d{8}|\d{10})$/.test(code)){ if (h) h.innerHTML = '<span style="color:var(--amber)">ЄДРПОУ — 8 цифр, ІПН — 10 цифр.</span>'; return; }
+    if (h) h.textContent = 'Шукаємо в реєстрі перевізників…';
     const r = await rmpdLookup('ua', code);
     const box = $('rmLicense');
     if (r.found){
-      if (!v('carrier_name') || !isCarrier()) set('carrier_name', translit(r.name));
+      set('carrier_name', translit(r.name).replace(/^([A-Za-z]{2,5})\s*"/, '$1 "'));
       st.license = r.license;
-      if (h) h.innerHTML = '<span style="color:var(--green)">✓ ' + esc(r.name) + '</span>';
+      if (h) h.innerHTML = '<span style="color:var(--green)">✓ ' + esc(r.name) + ' · ліцензія ' + esc(r.license ? r.license.status : '—') + (r.license && r.license.intl_cargo ? ', міжнародні вантажні ✓' : '') + '</span> Адресу впишіть один раз — у реєстрі її немає.';
       const bad = r.license && (r.license.status !== 'Чинна' || !r.license.intl_cargo);
       box.innerHTML = bad ? '<div class="msg msg-err show" style="margin:-4px 0 1rem">Увага: ліцензія ' + (r.license.status !== 'Чинна' ? '— статус «' + esc(r.license.status) + '»' : 'не включає міжнародні вантажні перевезення') + '. Без чинної ліцензії на міжнародні перевезення в’їзд можуть не дозволити.</div>' : '';
-    } else { if (h) h.textContent = 'У реєстрі перевізників не знайшли — впишіть назву латиницею.'; box.innerHTML = ''; }
+    } else { if (h) h.innerHTML = '<span style="color:var(--amber)">' + (r.note === 'unavailable' ? 'Реєстр зараз не відповідає — спробуйте ще раз.' : 'У реєстрі ліцензованих перевізників цього коду немає — перевірте ЄДРПОУ. Без ліцензії на міжнародні перевезення вʼїзд можуть не дозволити.') + '</span>'; box.innerHTML = ''; }
   }
 
   function pickCarrier(id){ const c = st.contacts.find(x => x.id === id); if (c){ setVals(c.data); routeChanged(); } }
@@ -382,6 +421,7 @@ const Rmpd = (() => {
     r.direction = r.direction || d.direction;
     const noPermit = r.carrier_country === 'UA' && ['bilateral','transit'].includes(r.trip_type);
     if (noPermit){ r.permit_type = 'eu_ua'; r.permit_number = null; r.permit_country = null; r.permit_valid_to = null; }
+    r.entry_point = normCross(r.entry_point); r.exit_point = normCross(r.exit_point);
     if (!d.needEntry) r.entry_point = null;
     if (!d.needExit) r.exit_point = null;
     r.start_place = d.needEntry ? r.entry_point : r.load_place;
@@ -522,7 +562,7 @@ const Rmpd = (() => {
     st.keepDocs = src && (st.editId || st.parent) ? (src.docs || []) : [];
     renderTop(); renderForm(); setVals(data); routeChanged();
     if (src && st.editId && src.border_eta){ const d = new Date(src.border_eta); set('border_eta', new Date(d - d.getTimezoneOffset() * 6e4).toISOString().slice(0, 16)); }
-    techSavedHint(); timing();
+    techSavedHint(); timing(); datesSummary();
     if (data.driver_first || data.client_note) $('rmMore').open = true;
     $('rmForm').scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
