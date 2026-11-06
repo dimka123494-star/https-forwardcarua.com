@@ -184,7 +184,8 @@
 <script>
 let role = 'client';
 const params = new URLSearchParams(location.search);
-const nextUrl = params.get('next');
+// лише відносні шляхи на цьому ж сайті — без відкритого редиректу
+const nextUrl = (n => n && /^\/(?!\/)/.test(n) && !/[\\\s]/.test(n) ? n : null)(params.get('next'));
 
 function setMode(m){
   const login = m === 'login';
@@ -306,7 +307,7 @@ async function step2(){
       } : {})
     });
     newBrokerId = broker.id;
-    if (role === 'carrier'){ location.href = '/kabinet#cargo'; return; }
+    if (role === 'carrier'){ location.href = nextUrl || '/kabinet#cargo'; return; }
     setStep(3);
   }catch(e){
     // Якщо профіль уже є — просто йдемо в кабінет
