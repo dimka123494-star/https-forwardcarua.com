@@ -26,16 +26,20 @@ const Rmpd = (() => {
     'entry_point','exit_point','client_note'];
   const CARRIER_F = ['carrier_code','carrier_name','carrier_country','carrier_city','carrier_postcode','carrier_street','carrier_building','carrier_email'];
 
-  let st = { el:null, broker:null, acc:null, list:[], contacts:[], vehicles:[], editId:null, parent:null, filter:'active', carrierEdit:false, license:null };
+  let st = { el:null, broker:null, acc:null, list:[], contacts:[], vehicles:[], editId:null, parent:null, filter:'active', carrierEdit:false, license:null, vehDocs:[], keepDocs:[] };
   const $ = id => document.getElementById(id);
   const v = id => { const e = $('rm-' + id); return e ? String(e.value || '').trim() : ''; };
   const set = (id, val) => { const e = $('rm-' + id); if (e && val !== undefined && val !== null) e.value = val; };
   const opt = (o, sel, empty) => (empty !== undefined ? '<option value="">' + empty + '</option>' : '') +
     Object.entries(o).map(([k, l]) => '<option value="' + k + '"' + (k === sel ? ' selected' : '') + '>' + esc(l) + '</option>').join('');
-  const today = () => new Date().toISOString().slice(0, 10);
+  const today = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
   const addDays = (d, n) => { const x = new Date(d + 'T12:00:00'); x.setDate(x.getDate() + n); return x.toISOString().slice(0, 10); };
   const fmtD = d => d ? d.split('-').reverse().join('.') : '—';
   const isCarrier = () => st.broker && st.broker.kind === 'carrier';
+  const OP_FROM = 8, OP_TO = 22; // години роботи оператора, Київ
+  const kyivHour = (d = new Date()) => Number(new Intl.DateTimeFormat('en-GB', { hour: '2-digit', hourCycle: 'h23', timeZone: 'Europe/Kyiv' }).format(d));
+  const offHours = () => { const h = kyivHour(); return h < OP_FROM || h >= OP_TO; };
+  const fmtDT = iso => iso ? new Date(iso).toLocaleString('uk-UA', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Kyiv' }) : '';
   const store = (k, val) => { try { if (val === undefined) return localStorage.getItem('rmpd_' + k); localStorage.setItem('rmpd_' + k, val); } catch(e){ return null; } };
 
   /* ---------- Латиниця (КМУ №55, 2010) і держномери ---------- */
@@ -118,11 +122,13 @@ const Rmpd = (() => {
   function renderTop(){
     const a = st.acc || {}, top = $('rmTop'); if (!top) return;
     const toBilling = 'pane(\'billing\', document.querySelector(\'[data-pane=billing]\'))';
-    top.innerHTML = a.reason === 'need_premium'
+    const extra = (a.test ? '<div class="msg show" style="margin:0 0 12px;background:rgba(245,166,35,.12);color:var(--amber);border:.5px solid rgba(245,166,35,.35)">🧪 <strong>Тестовий режим адміністратора.</strong> Заявки позначаються як тестові, не йдуть у CRM і не рахуються в ліміт. В адмінці вносьте їх лише на <a href="https://test.puesc.gov.pl/" target="_blank" rel="noopener">test.puesc.gov.pl</a>, не в справжній PUESC.</div>' : '') +
+      (a.allowed && offHours() ? '<div class="msg show" style="margin:0 0 12px;background:rgba(16,185,129,.08);color:var(--muted);border:.5px solid var(--border)">🌙 Зараз неробочий час оператора (працюємо ' + OP_FROM + ':00–' + OP_TO + ':00 за Києвом). Заявку приймемо, але опрацюємо з ' + OP_FROM + ':00. Якщо машина буде на кордоні раніше — подайте заявку самостійно на <a href="' + PUESC + '" target="_blank" rel="noopener">puesc.gov.pl</a>.</div>' : '');
+    top.innerHTML = extra + (a.reason === 'need_premium'
       ? '<div class="card" style="border-color:rgba(168,85,247,.4)"><div style="font-weight:600;margin-bottom:6px">💎 Подача RMPD за клієнтів — на тарифі «Преміум»</div><p class="text-sm text-muted" style="margin-bottom:12px">Без ліміту заявок: реквізити підтягуються за ЄДРПОУ, NIP і EU VAT, тип перевезення й підстава визначаються автоматично, номер RMPD і статус — у кабінеті та Telegram. Довідник ваших перевізників, авто й контрагентів — повторна заявка за хвилину.</p><button class="btn btn-primary btn-sm" onclick="' + toBilling + '">Перейти на Преміум</button></div>'
       : a.reason === 'limit'
       ? '<div class="msg msg-err show" style="margin:0 0 12px">Використано ' + a.used + ' з ' + a.limit + ' безкоштовних заявок цього місяця. <a href="#" onclick="' + toBilling + ';return false">Будь-який платний тариф</a> — без ліміту. Оновлення поданих заявок безкоштовні завжди.</div>'
-      : a.allowed ? '<div class="text-sm text-muted" style="margin-bottom:12px">' + (a.limit ? 'Безкоштовно: використано <strong style="color:var(--text)">' + a.used + ' з ' + a.limit + '</strong> заявок цього місяця.' : 'Без ліміту · цього місяця подано <strong style="color:var(--text)">' + a.used + '</strong>.') + ' Обробляємо щодня 8:00–22:00, зазвичай за 30–60 хвилин.</div>' : '';
+      : a.allowed ? '<div class="text-sm text-muted" style="margin-bottom:12px">' + (a.limit ? 'Безкоштовно: використано <strong style="color:var(--text)">' + a.used + ' з ' + a.limit + '</strong> заявок цього місяця.' : 'Без ліміту · цього місяця подано <strong style="color:var(--text)">' + a.used + '</strong>.') + ' Обробляємо щодня 8:00–22:00, зазвичай за 30–60 хвилин.</div>' : '');
   }
 
   /* ---------- Форма ---------- */
@@ -203,6 +209,15 @@ const Rmpd = (() => {
         partyBlock('sender', 'Відправник') + partyBlock('recipient', 'Отримувач') +
       '</div>' +
 
+      sec('5. Коли на кордоні й документи') +
+      fld('border_eta', 'Коли авто буде на кордоні / почне рейс у Польщі', 'type="datetime-local" onchange="Rmpd.etaChanged()"', 'Необовʼязково, але допомагає нам встигнути: термінові заявки опрацьовуємо першими.') +
+      '<div id="rmTiming"></div>' +
+      '<div class="field"><label class="label" for="rm-doc-tech">Техпаспорт тягача й причепа</label><div id="rmTechSaved" class="hint" style="margin:0 0 6px"></div>' +
+        '<input class="input" type="file" id="rm-doc-tech" accept="image/*,application/pdf" multiple onchange="Rmpd.docsChanged()"></div>' +
+      '<div class="field"><label class="label" for="rm-doc-cmr">CMR / накладна</label>' +
+        '<input class="input" type="file" id="rm-doc-cmr" accept="image/*,application/pdf" multiple onchange="Rmpd.docsChanged()"></div>' +
+      '<p class="hint" id="rmDocsHint" style="margin:-6px 0 1rem">Фото документів — за бажанням, але оператор звірить з ними номери, назви й адреси до подачі. Так помилки ловляться до кордону, а не на ньому. Техпаспорт запамʼятаємо для цього авто.</p>' +
+
       '<details id="rmMore" style="margin:1rem 0"><summary class="text-sm" style="cursor:pointer;color:var(--blue)">Додатково: водій, коментар, ручні налаштування</summary><div style="margin-top:12px">' +
         row(fld('driver_first', 'Імʼя водія', 'maxlength="60"'), fld('driver_last', 'Прізвище водія', 'maxlength="60"')) +
         fld('driver_phone', 'Телефон водія', 'maxlength="20" inputmode="tel" placeholder="+380…"', 'Щоб оператор міг швидко уточнити дані.') +
@@ -250,7 +265,7 @@ const Rmpd = (() => {
   }
 
   function goodsToggle(){ $('rmGoods').style.display = $('rm-with_goods').checked ? '' : 'none'; }
-  function dateChanged(){ const s = v('start_date'); if (s && (!v('end_date') || v('end_date') < s)) set('end_date', addDays(s, 3)); routeChanged(); }
+  function dateChanged(){ const s = v('start_date'); if (s && (!v('end_date') || v('end_date') < s)) set('end_date', addDays(s, 3)); routeChanged(); timing(); }
 
   function routeChanged(){
     const r = readRaw(), d = derive(r);
@@ -311,11 +326,42 @@ const Rmpd = (() => {
     setVals({ [side + '_name']: c.data.name, [side + '_country']: c.data.country, [side + '_id']: c.data.id, [side + '_city']: c.data.city, [side + '_postcode']: c.data.postcode, [side + '_address']: c.data.address });
   }
   function applyVehicle(x){
+    st.vehDocs = (x.docs || []).filter(d => d.kind === 'tech'); techSavedHint();
     setVals({ plate: x.plate, trailer_plate: x.trailer_plate || '', gps_id: x.gps_id || '', plate_country: x.plate_country || 'UA', trailer_country: x.trailer_country || 'UA', vehicle_id: x.vehicle_id || '' });
     if (x.driver_first && !v('driver_first')) setVals({ driver_first: x.driver_first, driver_last: x.driver_last, driver_phone: x.driver_phone });
     routeChanged();
   }
-  function pickVehicle(plate){ const x = vehicleOptions().find(o => o.plate === plate); if (x) applyVehicle(x); else setVals({ plate: '', trailer_plate: '', gps_id: '', vehicle_id: '' }); }
+  function pickVehicle(plate){ const x = vehicleOptions().find(o => o.plate === plate); if (x) applyVehicle(x); else { st.vehDocs = []; techSavedHint(); setVals({ plate: '', trailer_plate: '', gps_id: '', vehicle_id: '' }); } }
+  function techSavedHint(){
+    const e = $('rmTechSaved'); if (!e) return;
+    const kept = st.keepDocs.filter(d => d.kind === 'tech').length, saved = st.vehDocs.length;
+    e.innerHTML = kept ? '✓ Уже додано до заявки: ' + kept + ' ' + plural(kept, 'файл', 'файли', 'файлів') + '. Можна додати ще.'
+      : saved ? '<span style="color:var(--green)">✓ Техпаспорт цього авто вже є (' + saved + ' ' + plural(saved, 'файл', 'файли', 'файлів') + ') — додамо до заявки автоматично.</span> Оберіть файли, лише якщо документ змінився.' : '';
+  }
+  function docsChanged(){
+    const n = ['tech','cmr'].reduce((a, k) => a + (($('rm-doc-' + k) || {}).files || []).length, 0);
+    $('rmDocsHint').innerHTML = n ? '📎 Обрано ' + n + ' ' + plural(n, 'файл', 'файли', 'файлів') + ' — завантажимо разом із заявкою.' : $('rmDocsHint').innerHTML;
+  }
+  function timing(){
+    const box = $('rmTiming'); if (!box) return { urgent: false, eta: null };
+    const raw = v('border_eta'), eta = raw ? new Date(raw) : null, start = v('start_date');
+    const hours = eta ? (eta - Date.now()) / 36e5 : null;
+    const urgent = (hours !== null && hours <= 6) || start === today();
+    let msg = '', cls = '';
+    if (eta && hours < 0){ msg = 'Цей час уже минув — перевірте дату й годину.'; cls = 'msg-err'; }
+    else if (eta){
+      const opensIn = offHours() ? ((kyivHour() >= OP_TO ? 24 - kyivHour() + OP_FROM : OP_FROM - kyivHour())) : 0;
+      if (opensIn && hours < opensIn + 1){ msg = '⛔ Оператор почне роботу о ' + OP_FROM + ':00 за Києвом — до кордону можемо не встигнути. Подайте заявку самостійно на puesc.gov.pl або змініть час.'; cls = 'msg-err'; }
+      else if (hours < 2){ msg = '⚠️ До кордону менше 2 годин. Після відправки зателефонуйте оператору: +38 093 110 46 62.'; cls = 'msg-err'; }
+      else if (urgent){ msg = '🔥 Позначимо як термінову — опрацюємо в першу чергу.'; cls = 'msg-ok'; }
+    } else if (start === today()){ msg = '🔥 Вʼїзд сьогодні — позначимо як термінову. Вкажіть годину, щоб ми точно встигли.'; cls = 'msg-ok'; }
+    box.innerHTML = msg ? '<div class="msg show ' + cls + '" style="margin:-6px 0 1rem">' + esc(msg) + '</div>' : '';
+    return { urgent, eta, hours, blocked: cls === 'msg-err' && /⛔|минув/.test(msg) };
+  }
+  function etaChanged(){
+    const raw = v('border_eta'); if (raw){ const d = raw.slice(0, 10); if (d >= today() && d !== v('start_date')){ set('start_date', d); dateChanged(); } }
+    timing();
+  }
 
   /* ---------- Збір, перевірка, відправка ---------- */
   const ALL = ['carrier_code','carrier_name','carrier_country','carrier_city','carrier_postcode','carrier_street','carrier_building','carrier_email',
@@ -397,15 +443,28 @@ const Rmpd = (() => {
     if (!$('rm-agree').checked){ showMsg('Підтвердіть доручення й відповідність даних документам.'); return; }
     if (gpsWarn(r) && !confirm('Номер локатора «' + r.gps_id + '» не схожий на формат SENT (Z… або M…, напр. Z12-345678-9). Все одно надіслати?')) return;
     if ((new Date(r.start_date) - new Date(today())) / 864e5 > 9 && !confirm('Номер RMPD діє 10 днів від реєстрації, а дата — більш ніж через 9 днів. Подати зараз?')) return;
+    const t = timing();
+    if (t.eta && t.hours < 0){ showMsg('Час на кордоні вже минув — виправте дату й годину.'); return; }
+    if (t.blocked && !confirm('Оператор може не встигнути подати заявку до вашого часу на кордоні. Все одно надіслати? (Безпечніше подати самостійно на puesc.gov.pl)')) return;
     store('agree', '1');
     const btn = $('rmBtn'); btn.disabled = true; btn.textContent = 'Надсилаємо…';
     try{
-      const row = { ...r };
+      const files = { tech: [...(($('rm-doc-tech') || {}).files || [])], cmr: [...(($('rm-doc-cmr') || {}).files || [])] };
+      if (files.tech.length || files.cmr.length) btn.textContent = 'Завантажуємо документи…';
+      const newTech = files.tech.length ? await uploadRmpdDocs(files.tech, 'tech') : [];
+      const newCmr = files.cmr.length ? await uploadRmpdDocs(files.cmr, 'cmr') : [];
+      const techForVehicle = newTech.length ? newTech : st.vehDocs;
+      const keep = st.keepDocs.filter(d => !(newTech.length && d.kind === 'tech'));
+      const docs = [...keep, ...(keep.some(d => d.kind === 'tech') || newTech.length ? newTech : st.vehDocs), ...newCmr];
+      r.docs = docs; r.urgent = t.urgent; r.border_eta = t.eta ? t.eta.toISOString() : null;
+      r._techForVehicle = techForVehicle;
+      btn.textContent = 'Надсилаємо…';
+      const row = { ...r }; delete row._techForVehicle;
       const saved = st.editId ? await saveRmpd(row, st.editId)
         : await saveRmpd({ ...row, owner_id: st.broker.id, kind: st.parent ? 'update' : 'new', parent_id: st.parent ? st.parent.id : null, prev_rmpd: r.prev_rmpd || (st.parent ? st.parent.ref_number : null) });
       saveContacts(r).catch(e => console.error(e));
       const i = st.list.findIndex(x => x.id === saved.id); if (i >= 0) st.list[i] = saved; else st.list.unshift(saved);
-      st.editId = null; st.parent = null; st.carrierEdit = false;
+      st.editId = null; st.parent = null; st.carrierEdit = false; st.keepDocs = [];
       track('rmpd_submit', { kind: saved.kind, role: st.broker.kind || 'broker' });
       await refreshAccess(); renderForm(); renderList(); badge();
       showToast('Заявку прийнято — номер RMPD прийде в кабінет і Telegram');
@@ -418,7 +477,7 @@ const Rmpd = (() => {
     await upsertContact('carrier', r.carrier_name, carrier, c => c.data.carrier_code === r.carrier_code || (isCarrier() && c === selfCarrier()));
     await upsertContact('vehicle', r.plate + (r.trailer_plate ? ' / ' + r.trailer_plate : ''),
       { plate: r.plate, trailer_plate: r.trailer_plate, plate_country: r.plate_country, trailer_country: r.trailer_country, gps_id: r.gps_id, vehicle_id: r.vehicle_id,
-        driver_first: r.driver_first, driver_last: r.driver_last, driver_phone: r.driver_phone, carrier_code: r.carrier_code }, c => c.data.plate === r.plate);
+        driver_first: r.driver_first, driver_last: r.driver_last, driver_phone: r.driver_phone, carrier_code: r.carrier_code, docs: r._techForVehicle || [] }, c => c.data.plate === r.plate);
     if (r.with_goods) for (const s of ['sender','recipient']){
       const d = { name: r[s + '_name'], country: r[s + '_country'], id: r[s + '_id'], city: r[s + '_city'], postcode: r[s + '_postcode'], address: r[s + '_address'] };
       await upsertContact('party', d.name, d, c => (d.id && c.data.id === d.id) || c.label.toLowerCase() === String(d.name).toLowerCase());
@@ -439,9 +498,11 @@ const Rmpd = (() => {
     if (r.status !== 'done' && r.status !== 'cancelled') a += '<button class="btn-quiet" onclick="Rmpd.cancel(\'' + r.id + '\')">Скасувати</button>';
     return '<div class="req"' + (r.status === 'needs_fix' ? ' style="border-color:rgba(241,101,75,.55)"' : '') + '><div class="spread" style="align-items:flex-start;gap:10px"><div style="min-width:0">' +
       '<div style="font-weight:600">' + esc(r.plate) + (r.trailer_plate ? ' / ' + esc(r.trailer_plate) : '') + ' · ' + esc(r.entry_point || r.exit_point || r.load_place || '') + ' · ' + fmtD(r.start_date) +
-        (r.kind === 'update' ? ' <span class="badge badge-free">оновлення</span>' : '') + (r.direction === 'back' ? ' <span class="badge badge-free">зворотний</span>' : '') + '</div>' +
+        (r.kind === 'update' ? ' <span class="badge badge-free">оновлення</span>' : '') + (r.direction === 'back' ? ' <span class="badge badge-free">зворотний</span>' : '') +
+        (r.urgent && !['done','cancelled'].includes(r.status) ? ' <span class="badge" style="background:rgba(241,101,75,.15);color:var(--red)">🔥 терміново</span>' : '') +
+        (r.is_test ? ' <span class="badge" style="background:rgba(245,166,35,.15);color:var(--amber)">🧪 тест</span>' : '') + '</div>' +
       '<div class="text-xs text-muted" style="margin-top:2px">' + (r.with_goods ? esc(r.cargo_desc || '') + (route ? ' · ' + esc(route) : '') : 'порожній рейс' + (route ? ' · ' + esc(route) : '')) +
-        (!isCarrier() ? ' · ' + esc(r.carrier_name) : '') + ' · подано ' + timeAgo(r.created_at) + '</div></div>' +
+        (!isCarrier() ? ' · ' + esc(r.carrier_name) : '') + (r.border_eta ? ' · на кордоні ' + fmtDT(r.border_eta) : '') + ((r.docs || []).length ? ' · 📎 ' + r.docs.length : '') + ' · подано ' + timeAgo(r.created_at) + '</div></div>' +
       '<span class="badge" style="background:transparent;border:.5px solid ' + s.color + ';color:' + s.color + '">' + s.label + '</span></div>' +
       (r.ref_number ? '<div style="margin-top:10px;display:flex;align-items:center;gap:10px;flex-wrap:wrap"><div style="font-family:var(--display);font-size:18px;letter-spacing:.5px">' + esc(r.ref_number) + '</div>' +
         '<button class="btn-quiet" onclick="Rmpd.copy(this.dataset.v)" data-v="' + esc(r.ref_number) + '"><i class="ti ti-copy"></i> Копіювати</button>' +
@@ -457,15 +518,18 @@ const Rmpd = (() => {
   }
 
   const copyFields = r => { const o = {}; ALL.forEach(f => o[f] = r[f] === undefined ? null : r[f]); o.with_goods = r.with_goods; return o; };
-  function openForm(data){
+  function openForm(data, src){
+    st.keepDocs = src && (st.editId || st.parent) ? (src.docs || []) : [];
     renderTop(); renderForm(); setVals(data); routeChanged();
+    if (src && st.editId && src.border_eta){ const d = new Date(src.border_eta); set('border_eta', new Date(d - d.getTimezoneOffset() * 6e4).toISOString().slice(0, 16)); }
+    techSavedHint(); timing();
     if (data.driver_first || data.client_note) $('rmMore').open = true;
     $('rmForm').scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
   const find = id => st.list.find(x => x.id === id);
   function needAccess(){ if (st.acc.allowed) return true; showToast(st.acc.reason === 'limit' ? 'Ліміт безкоштовних заявок на цей місяць вичерпано' : 'Подача недоступна на поточному тарифі', 'error'); return false; }
-  function edit(id){ const r = find(id); if (!r) return; st.editId = id; st.parent = null; openForm(copyFields(r)); }
-  function update(id){ const r = find(id); if (!r) return; st.parent = r; st.editId = null; openForm(copyFields(r)); }
+  function edit(id){ const r = find(id); if (!r) return; st.editId = id; st.parent = null; openForm(copyFields(r), r); }
+  function update(id){ const r = find(id); if (!r) return; st.parent = r; st.editId = null; openForm(copyFields(r), r); }
   function repeat(id){
     const r = find(id); if (!r || !needAccess()) return; st.editId = null; st.parent = null;
     const d = copyFields(r); d.start_date = addDays(today(), 1); d.end_date = addDays(d.start_date, 3); d.cmr_number = ''; d.client_note = ''; d.prev_rmpd = ''; d.trip_type = ''; d.direction = '';
@@ -481,7 +545,7 @@ const Rmpd = (() => {
     openForm(d); dateChanged();
     showToast('Зворотний рейс: маршрут розвернули, попередню RMPD підставили. Якщо везете вантаж — увімкніть «Рейс з вантажем».');
   }
-  function reset(){ st.editId = null; st.parent = null; renderForm(); }
+  function reset(){ st.editId = null; st.parent = null; st.keepDocs = []; renderForm(); }
   async function cancel(id){
     if (!confirm('Скасувати заявку? Якщо її вже зареєстровано, оператор анулює її в PUESC.')) return;
     try{ await cancelRmpd(id); find(id).status = 'cancelled'; renderList(); badge(); showToast('Заявку скасовано'); }catch(e){ showToast(e.message, 'error'); }
@@ -494,6 +558,6 @@ const Rmpd = (() => {
     try{ if (navigator.share) await navigator.share({ text }); else { await navigator.clipboard.writeText(text); showToast('Текст для водія скопійовано'); } }catch(e){}
   }
 
-  return { mount, submit, routeChanged, dateChanged, goodsToggle, idHint, lookupParty, lookupCarrier, pickCarrier, editCarrier, pickParty, pickVehicle,
+  return { mount, submit, routeChanged, dateChanged, etaChanged, docsChanged, goodsToggle, idHint, lookupParty, lookupCarrier, pickCarrier, editCarrier, pickParty, pickVehicle,
     setFilter, edit, update, repeat, back, reset, cancel, copy, share, translit, normPlate, derive };
 })();

@@ -560,7 +560,11 @@ function rmPlain(r){
 async function rmCopyAll(id){ const r = rmpdAdm.find(x => x.id === id); try{ await navigator.clipboard.writeText(rmPlain(r)); showToast('Усі дані заявки скопійовано'); }catch(e){} }
 function renderRmpdAdm(){
   const fs = document.getElementById('rmFStatus').value;
-  const list = rmpdAdm.filter(r => !fs || (fs === 'open' ? ['new','in_progress','needs_fix'].includes(r.status) : r.status === fs));
+  const open_ = st => ['new','in_progress','needs_fix'].includes(st);
+  const list = rmpdAdm.filter(r => !fs || (fs === 'open' ? open_(r.status) : r.status === fs))
+    .sort((a, b) => (open_(b.status) && b.urgent) - (open_(a.status) && a.urgent) ||
+      (a.border_eta && open_(a.status) ? new Date(a.border_eta) : Infinity) - (b.border_eta && open_(b.status) ? new Date(b.border_eta) : Infinity) ||
+      new Date(b.created_at) - new Date(a.created_at));
   const open = rmpdAdm.filter(r => r.status === 'new').length;
   const bd = document.getElementById('rmAdmBadge'); bd.textContent = open; bd.style.display = open ? '' : 'none';
   document.getElementById('rmTotal').textContent = '· ' + rmpdAdm.length;
@@ -570,12 +574,20 @@ function renderRmpdAdm(){
     const parent = r.parent_id ? rmpdAdm.find(x => x.id === r.parent_id) : null;
     return '<div class="card" style="margin-bottom:12px' + (r.status === 'new' ? ';border-color:rgba(16,185,129,.45)' : '') + '">' +
       '<div class="spread" style="align-items:flex-start;gap:10px">' +
-        '<div><div style="font-weight:600">' + (r.kind === 'update' ? '🔄 ОНОВЛЕННЯ (форма «RMPD – Aktualizacja»)' + (parent && parent.ref_number ? ' до ' + esc(parent.ref_number) : '') + ' · ' : 'RMPD100 · ') +
+        '<div>' + ((r.urgent && open_(r.status)) || r.is_test || r.border_eta ? '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px">' +
+            (r.urgent && open_(r.status) ? '<span class="badge" style="background:rgba(241,101,75,.18);color:var(--red)">🔥 ТЕРМІНОВО</span>' : '') +
+            (r.border_eta ? '<span class="badge badge-free">На кордоні: ' + new Date(r.border_eta).toLocaleString('uk-UA', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit', timeZone:'Europe/Kyiv' }) + ' (Київ)</span>' : '') +
+            (r.is_test ? '<span class="badge" style="background:rgba(245,166,35,.15);color:var(--amber)">🧪 ТЕСТ — лише test.puesc.gov.pl</span>' : '') + '</div>' : '') +
+          '<div style="font-weight:600">' + (r.kind === 'update' ? '🔄 ОНОВЛЕННЯ (форма «RMPD – Aktualizacja»)' + (parent && parent.ref_number ? ' до ' + esc(parent.ref_number) : '') + ' · ' : 'RMPD100 · ') +
           esc(r.plate) + ' · ' + esc(r.entry_point || r.load_place || '') + ' · ' + d(r.start_date) + '</div>' +
         '<div class="text-xs text-muted">' + esc(b.name || '—') + ' (' + (b.kind === 'carrier' ? 'перевізник' : 'брокер') + ', ' + planLabel(b.plan) + ')' +
           (b.phone ? ' · ' + esc(b.phone) : '') + (b.telegram ? ' · ' + esc(b.telegram) : '') + (r.driver_phone ? ' · водій ' + esc(r.driver_phone) : '') + ' · ' + new Date(r.created_at).toLocaleString('uk-UA') + '</div></div>' +
         '<span class="badge" style="border:.5px solid ' + st.color + ';color:' + st.color + '">' + st.label + '</span></div>' +
       '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:0 16px">' + rmSections(r) + '</div>' +
+      ((r.docs || []).length ? '<div class="card-title" style="margin:10px 0 6px">Документи клієнта — звірте з полями вище</div><div style="display:flex;gap:6px;flex-wrap:wrap" data-docs="' + r.id + '">' +
+          r.docs.map((d, i) => '<a class="btn btn-ghost btn-sm" target="_blank" rel="noopener" data-path="' + esc(d.path) + '" href="#" onclick="return rmOpenDoc(this)">' +
+            (d.type === 'pdf' ? '📄 ' : '🖼 ') + (d.kind === 'tech' ? 'Техпаспорт' : d.kind === 'cmr' ? 'CMR' : 'Документ') + ' ' + (i + 1) + '</a>').join('') + '</div>'
+        : '<p class="hint" style="margin:10px 0 0">Документів не додано — за сумнівів у даних поверніть заявку на уточнення й попросіть фото техпаспорта / CMR.</p>') +
       '<div class="card-title" style="margin:10px 0 6px">8. Oświadczenie</div><p class="hint" style="margin:0 0 8px">Позначте повноваження діяти від імені перевізника й впишіть імʼя оператора. Клієнт дав доручення у формі заявки.</p>' +
       (r.client_note ? '<div class="rv-reply text-sm" style="margin-top:8px;white-space:pre-line">💬 ' + esc(r.client_note) + '</div>' : '') +
       '<div style="margin:10px 0"><button class="btn btn-ghost btn-sm" onclick="rmCopyAll(\'' + r.id + '\')"><i class="ti ti-clipboard-text"></i> Скопіювати все текстом</button></div>' +
@@ -584,19 +596,31 @@ function renderRmpdAdm(){
           Object.entries(RMPD_STATUS).map(([v, s]) => '<option value="' + v + '"' + (r.status === v ? ' selected' : '') + '>' + s.label + '</option>').join('') + '</select></div>' +
         '<div class="field"><label class="label">Номер RMPD</label><input class="input" id="rm-ref-' + r.id + '" value="' + esc(r.ref_number || '') + '" placeholder="RMPD/…"></div></div>' +
       '<div class="field"><label class="label">Коментар клієнту (що уточнити / примітка)</label><textarea class="input" id="rm-note-' + r.id + '" style="min-height:60px">' + esc(r.admin_note || '') + '</textarea></div>' +
+      '<label class="check-row" style="margin-bottom:10px"><input type="checkbox" id="rm-406-' + r.id + '"' + (r.rmpd406_ok ? ' checked' : '') + '> <span><strong style="color:var(--text)">Перевірено в RMPD406</strong> — після реєстрації відкрив форму RMPD406 на PUESC і переконався, що заявка з цим номером активна. Без цієї позначки статус «Зареєстровано» не зберігається.</span></label>' +
       '<button class="btn btn-primary btn-sm" onclick="saveRmpdAdm(\'' + r.id + '\')">Зберегти</button>' +
       (r.valid_until ? ' <span class="text-xs text-muted">Діє до ' + d(r.valid_until) + '</span>' : '') +
       '</div>';
   }).join('') : '<div class="empty"><strong>Немає заявок</strong>Тут зʼявляться заявки RMPD від перевізників і брокерів.</div>';
 }
+async function rmOpenDoc(a){
+  if (a.dataset.url && Date.now() - Number(a.dataset.at) < 50 * 60e3) return true;
+  const w = window.open('', '_blank');
+  const url = await rmpdDocUrl(a.dataset.path);
+  if (!url){ if (w) w.close(); showToast('Не вдалося відкрити документ', 'error'); return false; }
+  a.dataset.url = url; a.dataset.at = Date.now(); a.href = url;
+  if (w) w.location = url; else location.href = url;
+  return false;
+}
 async function saveRmpdAdm(id){
   let status = document.getElementById('rm-st-' + id).value;
   const ref = document.getElementById('rm-ref-' + id).value.trim(), note = document.getElementById('rm-note-' + id).value.trim();
   if (ref && ['new','in_progress'].includes(status)) status = 'done';
+  const ok406 = document.getElementById('rm-406-' + id).checked;
   if (status === 'done' && !ref){ showToast('Вкажіть номер RMPD', 'error'); return; }
+  if (status === 'done' && !ok406){ showToast('Спершу перевірте заявку в RMPD406 і поставте позначку', 'error'); return; }
   if (status === 'needs_fix' && !note){ showToast('Напишіть, що саме уточнити', 'error'); return; }
   try{
-    await adminUpdateRmpd(id, { status, ref_number: ref || null, admin_note: note || null });
+    await adminUpdateRmpd(id, { status, ref_number: ref || null, admin_note: note || null, rmpd406_ok: ok406 });
     rmpdAdm = await adminRmpd(); renderRmpdAdm(); showToast('Збережено');
   }catch(e){ showToast(e.message, 'error'); }
 }

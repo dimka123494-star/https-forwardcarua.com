@@ -127,7 +127,7 @@ async function handleEvent(ev: string, id: string) {
     return sent;
   }
 
-  if (ev === "rmpd_new" || ev === "rmpd_done" || ev === "rmpd_fix") {
+  if (ev === "rmpd_new" || ev === "rmpd_done" || ev === "rmpd_fix" || ev === "rmpd_expiring") {
     const { data: r } = await sb.from("rmpd_requests").select("*, brokers(name, user_id, kind, plan)").eq("id", id).maybeSingle();
     if (!r) return 0;
     const head = `${esc(r.plate)}${r.trailer_plate ? " / " + esc(r.trailer_plate) : ""} · ${esc(r.entry_point || r.exit_point || r.load_place || "")} · ${fmtD(r.start_date)}`;
@@ -135,10 +135,19 @@ async function handleEvent(ev: string, id: string) {
       // оператору: адміни, що підключили Telegram
       if (r.status !== "new" || !(await once(`rmpd_new:${id}:${r.updated_at}`))) return 0;
       const { data: adm } = await sb.from("admins").select("user_id");
-      const text = `🛂 <b>${r.kind === "update" ? "Оновлення заявки RMPD" : "Нова заявка RMPD"}</b>\n${head}\n` +
+      const eta = r.border_eta ? new Date(r.border_eta).toLocaleString("uk-UA", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit", timeZone: "Europe/Kyiv" }) : "";
+      const text = `${r.is_test ? "🧪 ТЕСТ · " : ""}${r.urgent ? "🔥 <b>ТЕРМІНОВО</b> · " : ""}🛂 <b>${r.kind === "update" ? "Оновлення заявки RMPD" : "Нова заявка RMPD"}</b>\n${head}\n` +
+        (eta ? `На кордоні: <b>${esc(eta)}</b> (Київ)\n` : "") + ((r.docs ?? []).length ? `📎 Документів: ${r.docs.length}\n` : "") +
         `${esc(r.carrier_name)}${r.carrier_code ? " (" + esc(r.carrier_code) + ")" : ""}${r.driver_last ? " · водій " + esc(r.driver_first ?? "") + " " + esc(r.driver_last) : ""}\n` +
         `${esc(r.brokers?.name ?? "")} (${r.brokers?.kind === "carrier" ? "перевізник" : "брокер"}, ${esc(r.brokers?.plan ?? "free")})`;
       for (const s of await subsFor((adm ?? []).map((a: any) => a.user_id), "rmpd")) if (await send(s.chat_id, text, ["Опрацювати", `${SITE}/admin`])) sent++;
+      return sent;
+    }
+    if (ev === "rmpd_expiring") {
+      if (r.status !== "done" || !(await once(`rmpd_expiring:${id}:${r.valid_until}`))) return 0;
+      const text = `⏳ <b>Номер RMPD діє до завтра</b> (${fmtD(r.valid_until)})\n${head}\nНомер: <code>${esc(r.ref_number)}</code>\n\n` +
+        `Якщо рейс Польщею ще не завершено — оформіть оновлення або нову заявку сьогодні, щоб не їхати з простроченим номером.`;
+      for (const s of await subsFor([r.brokers?.user_id], "rmpd")) if (await send(s.chat_id, text, ["Мої заявки RMPD", `${SITE}/kabinet#rmpd`])) sent++;
       return sent;
     }
     if ("rmpd_" + (r.status === "done" ? "done" : r.status === "needs_fix" ? "fix" : "") !== ev || !(await once(`${ev}:${id}:${r.updated_at}`))) return 0;

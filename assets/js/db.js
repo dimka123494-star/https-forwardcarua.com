@@ -862,6 +862,8 @@ function rmpdError(error, fallback){
   if (m.includes('rmpd_denied:need_premium')) return 'Подача RMPD для брокерів доступна на тарифі «Преміум».';
   if (m.includes('locked')) return 'Заявку вже подаємо або зареєстровано — редагувати її не можна. Створіть оновлення.';
   if (m.includes('rmpd_goods_chk')) return 'Для рейсу з вантажем вкажіть відправника та отримувача.';
+  if (m.includes('rmpd_406_required')) return 'Спершу перевірте заявку в RMPD406 і поставте позначку «Перевірено в RMPD406».';
+  if (m.includes('rmpd_ref_required')) return 'Вкажіть номер RMPD.';
   return fallback;
 }
 async function myRmpd(brokerId){
@@ -910,6 +912,34 @@ async function rmpdLookup(type, code, cc){
     return data || { found: false };
   }catch(e){ console.error('rmpdLookup:', e); return { found: false, note: 'unavailable' }; }
 }
+/** Фото техпаспорта / CMR у приватне сховище rmpd-docs. Фото стискаємо до 1800px JPEG. */
+async function uploadRmpdDocs(files, kind){
+  const sb = await sbReady(); const user = await currentUser();
+  if (!user) throw new Error('Сесія завершилась — увійдіть знову');
+  const out = [];
+  for (const file of files){
+    let blob = file, ext = 'pdf';
+    if (/^image\//.test(file.type)){
+      const img = await new Promise((ok, bad) => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => bad(new Error('Не вдалося прочитати фото ' + file.name)); i.src = URL.createObjectURL(file); });
+      const k = Math.min(1, 1800 / Math.max(img.width, img.height));
+      const c = document.createElement('canvas'); c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      blob = await new Promise(r => c.toBlob(r, 'image/jpeg', .85)); ext = 'jpg';
+    } else if (file.type !== 'application/pdf') throw new Error('Підходять фото або PDF: ' + file.name);
+    if (blob.size > 10 * 1024 * 1024) throw new Error('Файл завеликий (до 10 МБ): ' + file.name);
+    const path = user.id + '/' + Date.now() + '-' + Math.random().toString(36).slice(2, 8) + '.' + ext;
+    const up = await sb.storage.from('rmpd-docs').upload(path, blob, { contentType: ext === 'pdf' ? 'application/pdf' : 'image/jpeg', upsert: false });
+    if (up.error){ console.error('uploadRmpdDocs:', up.error); throw new Error('Не вдалося завантажити ' + file.name); }
+    out.push({ path, name: file.name, kind, type: ext });
+  }
+  return out;
+}
+async function rmpdDocUrl(path){
+  const sb = await sbReady();
+  const { data, error } = await sb.storage.from('rmpd-docs').createSignedUrl(path, 3600);
+  if (error){ console.error('rmpdDocUrl:', error); return null; }
+  return data.signedUrl;
+}
 async function deleteRmpdContact(id){
   const sb = await sbReady();
   const { error } = await sb.from('rmpd_contacts').delete().eq('id', id);
@@ -925,5 +955,5 @@ async function adminRmpd(){
 async function adminUpdateRmpd(id, patch){
   const sb = await sbReady();
   const { error } = await sb.from('rmpd_requests').update(patch).eq('id', id);
-  if (error){ console.error('adminUpdateRmpd:', error); throw new Error('Не вдалося зберегти'); }
+  if (error){ console.error('adminUpdateRmpd:', error); throw new Error(rmpdError(error, 'Не вдалося зберегти')); }
 }
