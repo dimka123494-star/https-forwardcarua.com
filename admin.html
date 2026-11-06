@@ -518,15 +518,46 @@ async function setVeh(id, status){
 
 /* ---------- RMPD ---------- */
 let rmpdAdm = [];
-const RM_GPS = { sent_geo:'SENT GEO (застосунок)', zsl:'Локатор ZSL', external:'Зовнішня система' };
-const RM_PERMIT = { eu_ua:'Угода ЄС–Україна', bilateral:'Двосторонній', transit:'Транзитний', third:'Треті країни', ecmt:'ЄКМТ', other:'Інше' };
+const RM_TRIP = { bilateral:'dwustronny', transit:'tranzyt', third:'z/do państwa trzeciego', cabotage:'kabotaż' };
+const RM_PERMIT = { eu_ua:'bez zezwolenia — umowa UE–Ukraina', bilateral:'zezwolenie dwustronne', transit:'zezwolenie tranzytowe', third:'zezwolenie na przewóz z/do państwa trzeciego', ecmt:'zezwolenie EKMT (CEMT)', other:'inne zezwolenie' };
+const RM_DIR = { there:'tam', back:'powrót' };
+const RM_IDT = { NIP:'NIP', VAT:'VAT UE', INNY:'INNY', DOK:'dokument tożsamości' };
 function rmRow(label, v){
   if (v === null || v === undefined || v === '') return '';
   const t = String(v);
-  return '<div class="svc-line" style="padding:7px 12px;margin-bottom:4px;cursor:pointer" title="Копіювати" onclick="rmCopy(this)" data-v="' + esc(t) + '">' +
+  return '<div class="svc-line" style="padding:6px 12px;margin-bottom:4px;cursor:pointer" title="Копіювати" onclick="rmCopy(this)" data-v="' + esc(t) + '">' +
     '<span class="text-xs text-muted">' + label + '</span><span class="text-sm" style="text-align:right;word-break:break-word">' + esc(t) + ' <i class="ti ti-copy" style="opacity:.5"></i></span></div>';
 }
-async function rmCopy(el){ try{ await navigator.clipboard.writeText(el.dataset.v); showToast('Скопійовано: ' + el.dataset.v); }catch(e){} }
+async function rmCopy(el){ try{ await navigator.clipboard.writeText(el.dataset.v); showToast('Скопійовано: ' + el.dataset.v.slice(0, 60)); }catch(e){} }
+function rmSections(r){
+  const d = x => x ? x.split('-').reverse().join('.') : '';
+  const sec = (t, rows) => { const h = rows.join(''); return h ? '<div><div class="card-title" style="margin:10px 0 6px">' + t + '</div>' + h + '</div>' : ''; };
+  const party = (p) => [rmRow('Typ identyfikatora', RM_IDT[r[p + '_id_type']] || r[p + '_id_type']), rmRow('Numer identyfikatora', r[p + '_id']), rmRow('Nazwa', r[p + '_name']),
+    rmRow('Kraj', r[p + '_country']), rmRow('Miejscowość', r[p + '_city']), rmRow('Kod pocztowy', r[p + '_postcode']), rmRow('Ulica, nr', r[p + '_address'])];
+  return [
+    sec('1. Przewoźnik', [rmRow('Typ identyfikatora', r.carrier_id_type || 'INNY'), rmRow('Numer (ЄДРПОУ)', r.carrier_code), rmRow('Nazwa', r.carrier_name), rmRow('Kraj', r.carrier_country),
+      rmRow('Miejscowość', r.carrier_city), rmRow('Kod pocztowy', r.carrier_postcode), rmRow('Ulica', r.carrier_street), rmRow('Nr budynku / lokalu', r.carrier_building),
+      (!r.carrier_street ? rmRow('Adres', r.carrier_address) : '')]),
+    sec('2. Pojazd', [rmRow('Kraj rejestracji ciągnika', r.plate_country), rmRow('Nr rej. ciągnika', r.plate), rmRow('Kraj rejestracji naczepy', r.trailer_country), rmRow('Nr rej. naczepy', r.trailer_plate),
+      rmRow('Nr lokalizatora', r.gps_id), rmRow('E-mail przewoźnika', r.carrier_email)]),
+    sec('3.1 Daty', [rmRow('Data rozpoczęcia', d(r.start_date)), rmRow('Data zakończenia', d(r.end_date))]),
+    sec('3.2 Przewóz', [rmRow('Kraj załadunku', r.load_country), rmRow('Kraj rozładunku', r.unload_country), rmRow('Przewóz z towarem', r.with_goods ? 'TAK' : 'NIE (pusty przebieg)'),
+      rmRow('Dokument przewozowy', r.with_goods ? (r.cmr_type || 'CMR') : ''), rmRow('Nr dokumentu', r.cmr_number), rmRow('Rodzaj przewozu', RM_TRIP[r.trip_type] || r.trip_type),
+      rmRow('Rodzaj zezwolenia', RM_PERMIT[r.permit_type] || r.permit_type), rmRow('Kraj wydania zezwolenia', r.permit_country), rmRow('Nr zezwolenia', r.permit_number), rmRow('Ważne do', d(r.permit_valid_to))]),
+    sec('3.6 Dane przejazdu', [rmRow('Poprzedni nr RMPD', r.prev_rmpd), rmRow('Kierunek', RM_DIR[r.direction] || r.direction), rmRow('Miejsce rozpoczęcia w PL', r.start_place || r.entry_point),
+      rmRow('Miejsce zakończenia w PL', r.end_place || r.exit_point), rmRow('Przejście wjazd', r.entry_point), rmRow('Przejście wyjazd', r.exit_point),
+      rmRow('Miejsce załadunku', r.load_place), rmRow('Miejsce rozładunku', r.unload_place)]),
+    r.with_goods ? sec('4. Nadawca', party('sender')) : '',
+    r.with_goods ? sec('5. Odbiorca', party('recipient')) : '',
+    sec('6. Informacje dodatkowe', [rmRow('Towar', r.cargo_desc), rmRow('Waga, t', r.cargo_weight_t), rmRow('Kierowca', [r.driver_first, r.driver_last].filter(Boolean).join(' ')), rmRow('Tel. kierowcy', r.driver_phone)]),
+    sec('7. Kanał zwrotny (e-mail)', [rmRow('E-mail', r.contact_email || r.carrier_email)])
+  ].join('');
+}
+function rmPlain(r){
+  const tmp = document.createElement('div'); tmp.innerHTML = rmSections(r);
+  return [...tmp.querySelectorAll('.card-title, .svc-line')].map(e => e.classList.contains('card-title') ? '\n' + e.textContent : e.querySelector('.text-xs').textContent + ': ' + e.dataset.v).join('\n').trim();
+}
+async function rmCopyAll(id){ const r = rmpdAdm.find(x => x.id === id); try{ await navigator.clipboard.writeText(rmPlain(r)); showToast('Усі дані заявки скопійовано'); }catch(e){} }
 function renderRmpdAdm(){
   const fs = document.getElementById('rmFStatus').value;
   const list = rmpdAdm.filter(r => !fs || (fs === 'open' ? ['new','in_progress','needs_fix'].includes(r.status) : r.status === fs));
@@ -539,25 +570,16 @@ function renderRmpdAdm(){
     const parent = r.parent_id ? rmpdAdm.find(x => x.id === r.parent_id) : null;
     return '<div class="card" style="margin-bottom:12px' + (r.status === 'new' ? ';border-color:rgba(16,185,129,.45)' : '') + '">' +
       '<div class="spread" style="align-items:flex-start;gap:10px">' +
-        '<div><div style="font-weight:600">' + (r.kind === 'update' ? '🔄 ОНОВЛЕННЯ' + (parent && parent.ref_number ? ' до ' + esc(parent.ref_number) : '') + ' · ' : '') +
-          esc(r.plate) + ' · ' + esc(r.entry_point) + ' · ' + d(r.start_date) + '</div>' +
+        '<div><div style="font-weight:600">' + (r.kind === 'update' ? '🔄 ОНОВЛЕННЯ (форма «RMPD – Aktualizacja»)' + (parent && parent.ref_number ? ' до ' + esc(parent.ref_number) : '') + ' · ' : 'RMPD100 · ') +
+          esc(r.plate) + ' · ' + esc(r.entry_point || r.load_place || '') + ' · ' + d(r.start_date) + '</div>' +
         '<div class="text-xs text-muted">' + esc(b.name || '—') + ' (' + (b.kind === 'carrier' ? 'перевізник' : 'брокер') + ', ' + planLabel(b.plan) + ')' +
-          (b.phone ? ' · ' + esc(b.phone) : '') + (b.telegram ? ' · ' + esc(b.telegram) : '') + ' · ' + new Date(r.created_at).toLocaleString('uk-UA') + '</div></div>' +
+          (b.phone ? ' · ' + esc(b.phone) : '') + (b.telegram ? ' · ' + esc(b.telegram) : '') + (r.driver_phone ? ' · водій ' + esc(r.driver_phone) : '') + ' · ' + new Date(r.created_at).toLocaleString('uk-UA') + '</div></div>' +
         '<span class="badge" style="border:.5px solid ' + st.color + ';color:' + st.color + '">' + st.label + '</span></div>' +
-      '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:4px 14px;margin-top:12px">' +
-        '<div>' + rmRow('Перевізник', r.carrier_name) + rmRow('Країна', r.carrier_country) + rmRow('ЄДРПОУ/ІПН', r.carrier_code) + rmRow('Адреса', r.carrier_address) +
-          rmRow('Тягач', r.plate) + rmRow('Країна авто', r.plate_country) + rmRow('Причіп', r.trailer_plate) + rmRow('Країна причепа', r.trailer_country) +
-          rmRow('Водій — імʼя', r.driver_first) + rmRow('Водій — прізвище', r.driver_last) + rmRow('Тел. водія', r.driver_phone) +
-          rmRow('GPS', RM_GPS[r.gps_mode] || r.gps_mode) + rmRow('ID локатора', r.gps_id) + '</div>' +
-        '<div>' + rmRow('Вʼїзд', r.entry_point) + rmRow('Виїзд', r.exit_point) + rmRow('Дата вʼїзду', d(r.start_date)) + rmRow('Дата виїзду', d(r.end_date)) +
-          rmRow('Підстава', RM_PERMIT[r.permit_type] || r.permit_type) +
-          (r.with_goods ? rmRow('Вантаж', r.cargo_desc) + rmRow('Вага, т', r.cargo_weight_t) +
-            rmRow('Відправник', r.sender_name) + rmRow('Країна відпр.', r.sender_country) + rmRow('Адреса відпр.', r.sender_address) +
-            rmRow('Отримувач', r.recipient_name) + rmRow('Країна отрим.', r.recipient_country) + rmRow('Адреса отрим.', r.recipient_address) +
-            rmRow('Завантаження', [r.load_place, r.load_country].filter(Boolean).join(', ')) + rmRow('Розвантаження', [r.unload_place, r.unload_country].filter(Boolean).join(', '))
-            : rmRow('Вантаж', 'Порожній рейс')) + '</div></div>' +
+      '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:0 16px">' + rmSections(r) + '</div>' +
+      '<div class="card-title" style="margin:10px 0 6px">8. Oświadczenie</div><p class="hint" style="margin:0 0 8px">Позначте повноваження діяти від імені перевізника й впишіть імʼя оператора. Клієнт дав доручення у формі заявки.</p>' +
       (r.client_note ? '<div class="rv-reply text-sm" style="margin-top:8px;white-space:pre-line">💬 ' + esc(r.client_note) + '</div>' : '') +
-      '<div class="field-row" style="margin-top:12px">' +
+      '<div style="margin:10px 0"><button class="btn btn-ghost btn-sm" onclick="rmCopyAll(\'' + r.id + '\')"><i class="ti ti-clipboard-text"></i> Скопіювати все текстом</button></div>' +
+      '<div class="field-row">' +
         '<div class="field"><label class="label">Статус</label><select class="input" id="rm-st-' + r.id + '">' +
           Object.entries(RMPD_STATUS).map(([v, s]) => '<option value="' + v + '"' + (r.status === v ? ' selected' : '') + '>' + s.label + '</option>').join('') + '</select></div>' +
         '<div class="field"><label class="label">Номер RMPD</label><input class="input" id="rm-ref-' + r.id + '" value="' + esc(r.ref_number || '') + '" placeholder="RMPD/…"></div></div>' +

@@ -246,3 +246,29 @@ revoke execute on function public.rmpd_access(uuid) from public, anon;
 grant execute on function public.rmpd_access(uuid) to authenticated;
 revoke execute on function public.rmpd_protect() from public, anon, authenticated;
 revoke execute on function public.rmpd_to_crm() from public, anon, authenticated;
+
+-- ---------- v2: повний набір полів RMPD100 ----------
+alter table public.rmpd_requests
+  add column if not exists carrier_id_type text default 'INNY',
+  add column if not exists carrier_city text, add column if not exists carrier_postcode text,
+  add column if not exists carrier_street text, add column if not exists carrier_building text,
+  add column if not exists carrier_email text,
+  add column if not exists cmr_type text default 'CMR', add column if not exists cmr_number text,
+  add column if not exists trip_type text,
+  add column if not exists permit_country text, add column if not exists permit_number text,
+  add column if not exists permit_valid_from date, add column if not exists permit_valid_to date,
+  add column if not exists prev_rmpd text, add column if not exists direction text,
+  add column if not exists start_place text, add column if not exists end_place text,
+  add column if not exists sender_id_type text, add column if not exists sender_id text,
+  add column if not exists sender_city text, add column if not exists sender_postcode text,
+  add column if not exists recipient_id_type text, add column if not exists recipient_id text,
+  add column if not exists recipient_city text, add column if not exists recipient_postcode text,
+  add column if not exists contact_email text;
+alter table public.rmpd_requests alter column driver_first drop not null, alter column driver_last drop not null, alter column entry_point drop not null;
+alter table public.rmpd_requests drop constraint if exists rmpd_trip_chk;
+alter table public.rmpd_requests add constraint rmpd_trip_chk check (trip_type is null or trip_type in ('bilateral','transit','third','cabotage'));
+alter table public.rmpd_requests drop constraint if exists rmpd_dir_chk;
+alter table public.rmpd_requests add constraint rmpd_dir_chk check (direction is null or direction in ('there','back'));
+alter table public.rmpd_contacts drop constraint if exists rmpd_contacts_kind_check;
+alter table public.rmpd_contacts add constraint rmpd_contacts_kind_check check (kind in ('driver','party','carrier','vehicle'));
+-- rmpd_to_crm оновлено (coalesce для необовʼязкових полів) — актуальна версія в базі

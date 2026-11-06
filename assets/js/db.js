@@ -896,6 +896,20 @@ async function saveRmpdContact(brokerId, kind, label, data){
   if (error){ console.error('saveRmpdContact:', error); return null; }
   return row;
 }
+async function updateRmpdContact(id, label, data){
+  const sb = await sbReady();
+  const { error } = await sb.from('rmpd_contacts').update({ label, data }).eq('id', id);
+  if (error) console.error('updateRmpdContact:', error);
+}
+/** Автозаповнення реквізитів: type 'ua' (ЄДРПОУ), 'pl' (NIP), 'vat' (EU VAT, потрібен cc) */
+async function rmpdLookup(type, code, cc){
+  const sb = await sbReady();
+  try{
+    const { data, error } = await sb.functions.invoke('rmpd-lookup', { body: { type, code, cc } });
+    if (error) throw error;
+    return data || { found: false };
+  }catch(e){ console.error('rmpdLookup:', e); return { found: false, note: 'unavailable' }; }
+}
 async function deleteRmpdContact(id){
   const sb = await sbReady();
   const { error } = await sb.from('rmpd_contacts').delete().eq('id', id);
