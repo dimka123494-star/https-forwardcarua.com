@@ -243,6 +243,15 @@
         </select>
       </div>
       <p class="hint" style="margin-bottom:1rem">Порядок: «В роботі» → внести дані на <a href="https://puesc.gov.pl/" target="_blank" rel="noopener">puesc.gov.pl</a> (форма RMPD100, для оновлень — «RMPD – Aktualizacja») → вписати номер RMPD → «Зареєстровано». Номер діє 10 днів, «Діє до» підставиться автоматично. Якщо дані неповні — «Потрібне уточнення» з коментарем: клієнт отримає його в кабінеті та Telegram. Кожне поле можна скопіювати кліком.</p>
+      <details class="card card-tight" style="margin-bottom:1rem"><summary style="cursor:pointer;font-weight:600">💳 Ціни й баланси клієнтів</summary>
+        <div style="margin-top:12px">
+          <div class="card-title">Ціни послуг</div><div id="rmPrices" class="text-sm text-muted">Завантаження…</div>
+          <div class="card-title" style="margin-top:1rem">Ручне зарахування (оплата на рахунок, бонус, повернення)</div>
+          <div class="field-row"><div class="field"><label class="label">Email кабінету клієнта</label><input class="input" id="wAdjEmail" type="email" autocomplete="off"></div>
+            <div class="field"><label class="label">Сума, грн (мінус — списати)</label><input class="input" id="wAdjSum" type="number" step="1"></div></div>
+          <div class="field"><label class="label">Коментар</label><input class="input" id="wAdjNote" placeholder="Напр.: оплата за рахунком №12" autocomplete="off"></div>
+          <button class="btn btn-primary btn-sm" onclick="rmWalletAdjust()">Зарахувати</button> <span class="text-xs text-muted" id="wAdjRes"></span>
+        </div></details>
       <div id="rmAdmList"></div>
     </section>
 
@@ -467,6 +476,7 @@ async function loadAll(){
   renderDash(); renderBrokers(brokers); renderPending(); renderRequests(requests); renderPayments(); renderReviews();
   try { consults = await adminConsultations(); renderConsults(); } catch(e){ console.error(e); }
   try { rmpdAdm = await adminRmpd(); renderRmpdAdm(); } catch(e){ console.error(e); }
+  rmLoadPrices();
   try { cargoAdm = await adminCargo(); renderCargoAdm(); } catch(e){ console.error(e); }
   try { vehAdm = await adminVehicles(); renderVehAdm(); } catch(e){ console.error(e); }
 }
@@ -583,6 +593,7 @@ function renderRmpdAdm(){
           '<div style="font-weight:600">' + (r.kind === 'update' ? '🔄 ОНОВЛЕННЯ (форма «RMPD – Aktualizacja»)' + (parent && parent.ref_number ? ' до ' + esc(parent.ref_number) : '') + ' · ' : 'RMPD100 · ') +
           esc(r.plate) + ' · ' + esc(r.entry_point || r.load_place || '') + ' · ' + d(r.start_date) + '</div>' +
         '<div class="text-xs text-muted">' + esc(b.name || '—') + ' (' + (b.kind === 'carrier' ? 'перевізник' : 'брокер') + ', ' + planLabel(b.plan) + ')' +
+          (Number(r.price) ? ' · оплата ' + uah(r.price) : (r.kind === 'update' ? ' · безкоштовне оновлення' : '')) +
           (b.phone ? ' · ' + esc(b.phone) : '') + (b.telegram ? ' · ' + esc(b.telegram) : '') + (r.driver_phone ? ' · водій ' + esc(r.driver_phone) : '') + ' · ' + new Date(r.created_at).toLocaleString('uk-UA') + '</div></div>' +
         '<span class="badge" style="border:.5px solid ' + st.color + ';color:' + st.color + '">' + st.label + '</span></div>' +
       '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:0 16px">' + rmSections(r) + '</div>' +
@@ -598,11 +609,33 @@ function renderRmpdAdm(){
           Object.entries(RMPD_STATUS).map(([v, s]) => '<option value="' + v + '"' + (r.status === v ? ' selected' : '') + '>' + s.label + '</option>').join('') + '</select></div>' +
         '<div class="field"><label class="label">Номер RMPD</label><input class="input" id="rm-ref-' + r.id + '" value="' + esc(r.ref_number || '') + '" placeholder="RMPD/…"></div></div>' +
       '<div class="field"><label class="label">Коментар клієнту (що уточнити / примітка)</label><textarea class="input" id="rm-note-' + r.id + '" style="min-height:60px">' + esc(r.admin_note || '') + '</textarea></div>' +
+      (Number(r.price) && open_(r.status) ? '<p class="hint" style="margin:0 0 8px">💳 ' + uah(r.price) + ' заморожено на балансі клієнта: спишеться при статусі «Зареєстровано», повернеться при «Скасовано».</p>' : '') +
       '<label class="check-row" style="margin-bottom:10px"><input type="checkbox" id="rm-406-' + r.id + '"' + (r.rmpd406_ok ? ' checked' : '') + '> <span><strong style="color:var(--text)">Перевірено в RMPD406</strong> — після реєстрації відкрив форму RMPD406 на PUESC і переконався, що заявка з цим номером активна. Без цієї позначки статус «Зареєстровано» не зберігається.</span></label>' +
       '<button class="btn btn-primary btn-sm" onclick="saveRmpdAdm(\'' + r.id + '\')">Зберегти</button>' +
       (r.valid_until ? ' <span class="text-xs text-muted">Діє до ' + d(r.valid_until) + '</span>' : '') +
       '</div>';
   }).join('') : '<div class="empty"><strong>Немає заявок</strong>Тут зʼявляться заявки RMPD від перевізників і брокерів.</div>';
+}
+async function rmLoadPrices(){
+  const rows = await servicePrices();
+  document.getElementById('rmPrices').innerHTML = rows.map(p => '<div class="svc-line" style="padding:8px 12px;margin-bottom:4px"><span class="text-sm">' + esc(p.name) + '</span>' +
+    '<span style="display:flex;gap:6px;align-items:center"><input class="input" style="width:110px;padding:6px 10px" type="number" min="0" step="1" id="pr-' + p.code + '" value="' + Number(p.price) + '"> грн' +
+    '<button class="btn btn-ghost btn-sm" onclick="rmSavePrice(\'' + p.code + '\')">Зберегти</button></span></div>').join('') || 'Цін ще немає';
+}
+async function rmSavePrice(code){
+  const v = Number(document.getElementById('pr-' + code).value);
+  if (!(v >= 0)) { showToast('Некоректна ціна', 'error'); return; }
+  try{ await adminSetPrice(code, v); showToast('Ціну збережено — діє для нових заявок'); }catch(e){ showToast(e.message, 'error'); }
+}
+async function rmWalletAdjust(){
+  const email = document.getElementById('wAdjEmail').value.trim(), sum = Number(document.getElementById('wAdjSum').value), note = document.getElementById('wAdjNote').value.trim();
+  if (!email || !sum){ showToast('Вкажіть email і суму', 'error'); return; }
+  if (!confirm((sum > 0 ? 'Зарахувати ' : 'Списати ') + Math.abs(sum) + ' грн клієнту ' + email + '?')) return;
+  try{
+    const r = await adminWalletAdjust(email, sum, note);
+    document.getElementById('wAdjRes').textContent = '✓ ' + r.broker + ': доступно ' + uah(r.available);
+    document.getElementById('wAdjSum').value = ''; document.getElementById('wAdjNote').value = '';
+  }catch(e){ showToast(e.message, 'error'); }
 }
 async function rmOpenDoc(a){
   if (a.dataset.url && Date.now() - Number(a.dataset.at) < 50 * 60e3) return true;

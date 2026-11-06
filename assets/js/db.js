@@ -646,14 +646,22 @@ function planActive(broker){
  * Суму рахує edge-функція — з браузера її підмінити не можна.
  */
 async function startCheckout(planKey, period = 'month'){
-  const session = await currentSession();
-  if (!session) throw new Error('Увійдіть у кабінет, щоб оформити підписку');
   if (!PLANS[planKey] || planKey === 'free') throw new Error('Оберіть тариф');
-
+  return wfpCheckout({ plan: planKey, period }, 'Увійдіть у кабінет, щоб оформити підписку');
+}
+/** Поповнення балансу для оплати документів (сума — гривні, 200…50 000) */
+async function startTopup(amount){
+  amount = Math.round(Number(amount));
+  if (!(amount >= 200 && amount <= 50000)) throw new Error('Сума поповнення — від 200 до 50 000 грн');
+  return wfpCheckout({ topup: amount }, 'Увійдіть у кабінет, щоб поповнити баланс');
+}
+async function wfpCheckout(payload, authMsg){
+  const session = await currentSession();
+  if (!session) throw new Error(authMsg);
   const res = await fetch(CHECKOUT_FN, {
     method:'POST',
     headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer ' + session.access_token },
-    body: JSON.stringify({ plan: planKey, period })
+    body: JSON.stringify(payload)
   });
   if (!res.ok) throw new Error('Оплата тимчасово недоступна. Напишіть на ' + CONTACTS.email + ' — виставимо рахунок');
 
@@ -858,6 +866,7 @@ async function rmpdAccess(brokerId){
 }
 function rmpdError(error, fallback){
   const m = String(error && error.message || '');
+  if (m.includes('rmpd_denied:balance')) return 'Недостатньо коштів на балансі — поповніть його й надішліть заявку ще раз.';
   if (m.includes('rmpd_denied:limit')) return 'Ліміт безкоштовного тарифу — 3 заявки на місяць. Оформіть будь-який платний тариф, щоб подавати без ліміту.';
   if (m.includes('rmpd_denied:need_premium')) return 'Подача RMPD для брокерів доступна на тарифі «Преміум».';
   if (m.includes('locked')) return 'Заявку вже подаємо або зареєстровано — редагувати її не можна. Створіть оновлення.';
@@ -957,3 +966,29 @@ async function adminUpdateRmpd(id, patch){
   const { error } = await sb.from('rmpd_requests').update(patch).eq('id', id);
   if (error){ console.error('adminUpdateRmpd:', error); throw new Error(rmpdError(error, 'Не вдалося зберегти')); }
 }
+
+/* ---------- Баланс і ціни послуг ---------- */
+async function walletHistory(brokerId){
+  const sb = await sbReady();
+  const { data, error } = await sb.from('wallet_tx').select('*').eq('broker_id', brokerId).order('created_at', { ascending: false }).limit(100);
+  if (error) console.error('walletHistory:', error);
+  return data || [];
+}
+async function servicePrices(){
+  const sb = await sbReady();
+  const { data, error } = await sb.from('service_prices').select('*').order('sort');
+  if (error) console.error('servicePrices:', error);
+  return data || [];
+}
+async function adminSetPrice(code, price){
+  const sb = await sbReady();
+  const { error } = await sb.from('service_prices').update({ price, updated_at: new Date().toISOString() }).eq('code', code);
+  if (error) throw new Error('Не вдалося зберегти ціну');
+}
+async function adminWalletAdjust(email, amount, note){
+  const sb = await sbReady();
+  const { data, error } = await sb.rpc('admin_wallet_adjust', { p_email: email, p_amount: amount, p_note: note || null });
+  if (error) throw new Error(String(error.message).includes('not_found') ? 'Не знайшли кабінет з таким email' : 'Не вдалося зарахувати');
+  return data;
+}
+const uah = n => Number(n || 0).toLocaleString('uk-UA', { maximumFractionDigits: 2 }) + ' грн';

@@ -133,6 +133,7 @@ const Rmpd = (() => {
     const [acc, list, contacts, vehicles] = await Promise.all(tasks);
     st.acc = acc; st.list = list; st.contacts = contacts; st.vehicles = (vehicles || []).filter(x => x.status !== 'rejected');
     render(); badge();
+    if (/[?&]paid=1/.test(location.search) && location.hash === '#rmpd'){ showToast('Дякуємо! Баланс оновиться, щойно WayForPay підтвердить оплату'); setTimeout(refreshAccess, 4000); setTimeout(refreshAccess, 12000); }
   }
   async function refreshAccess(){ st.acc = await rmpdAccess(st.broker.id); renderTop(); }
   function badge(){ const b = $('rmBadge'); if (!b) return; const n = st.list.filter(r => r.status === 'needs_fix').length; b.textContent = n; b.style.display = n ? '' : 'none'; }
@@ -147,14 +148,37 @@ const Rmpd = (() => {
   }
   function renderTop(){
     const a = st.acc || {}, top = $('rmTop'); if (!top) return;
-    const toBilling = 'pane(\'billing\', document.querySelector(\'[data-pane=billing]\'))';
-    const extra = (a.test ? '<div class="msg show" style="margin:0 0 12px;background:rgba(245,166,35,.12);color:var(--amber);border:.5px solid rgba(245,166,35,.35)">🧪 <strong>Тестовий режим адміністратора.</strong> Заявки позначаються як тестові, не йдуть у CRM і не рахуються в ліміт. В адмінці вносьте їх лише на <a href="https://test.puesc.gov.pl/" target="_blank" rel="noopener">test.puesc.gov.pl</a>, не в справжній PUESC.</div>' : '') +
-      (a.allowed && offHours() ? '<div class="msg show" style="margin:0 0 12px;background:rgba(16,185,129,.08);color:var(--muted);border:.5px solid var(--border)">🌙 Зараз неробочий час оператора (працюємо ' + OP_FROM + ':00–' + OP_TO + ':00 за Києвом). Заявку приймемо, але опрацюємо з ' + OP_FROM + ':00. Якщо машина буде на кордоні раніше — подайте заявку самостійно на <a href="' + PUESC + '" target="_blank" rel="noopener">puesc.gov.pl</a>.</div>' : '');
-    top.innerHTML = extra + (a.reason === 'need_premium'
-      ? '<div class="card" style="border-color:rgba(168,85,247,.4)"><div style="font-weight:600;margin-bottom:6px">💎 Подача RMPD за клієнтів — на тарифі «Преміум»</div><p class="text-sm text-muted" style="margin-bottom:12px">Без ліміту заявок: реквізити підтягуються за ЄДРПОУ, NIP і EU VAT, тип перевезення й підстава визначаються автоматично, номер RMPD і статус — у кабінеті та Telegram. Довідник ваших перевізників, авто й контрагентів — повторна заявка за хвилину.</p><button class="btn btn-primary btn-sm" onclick="' + toBilling + '">Перейти на Преміум</button></div>'
-      : a.reason === 'limit'
-      ? '<div class="msg msg-err show" style="margin:0 0 12px">Використано ' + a.used + ' з ' + a.limit + ' безкоштовних заявок цього місяця. <a href="#" onclick="' + toBilling + ';return false">Будь-який платний тариф</a> — без ліміту. Оновлення поданих заявок безкоштовні завжди.</div>'
-      : a.allowed ? '<div class="text-sm text-muted" style="margin-bottom:12px">' + (a.limit ? 'Безкоштовно: використано <strong style="color:var(--text)">' + a.used + ' з ' + a.limit + '</strong> заявок цього місяця.' : 'Без ліміту · цього місяця подано <strong style="color:var(--text)">' + a.used + '</strong>.') + ' Обробляємо щодня 8:00–22:00, зазвичай за 30–60 хвилин.</div>' : '');
+    const price = Number(a.price || 0), avail = Number(a.available || 0), hold = Number(a.hold || 0);
+    const enough = price ? Math.floor(avail / price) : 0;
+    const extra = (a.test ? '<div class="msg show" style="margin:0 0 12px;background:rgba(245,166,35,.12);color:var(--amber);border:.5px solid rgba(245,166,35,.35)">🧪 <strong>Тестовий режим адміністратора.</strong> Заявки позначаються як тестові, не списують кошти й не йдуть у CRM. В адмінці вносьте їх лише на <a href="https://test.puesc.gov.pl/" target="_blank" rel="noopener">test.puesc.gov.pl</a>.</div>' : '') +
+      (offHours() ? '<div class="msg show" style="margin:0 0 12px;background:rgba(16,185,129,.08);color:var(--muted);border:.5px solid var(--border)">🌙 Зараз неробочий час оператора (працюємо ' + OP_FROM + ':00–' + OP_TO + ':00 за Києвом). Заявку приймемо, але опрацюємо з ' + OP_FROM + ':00. Якщо машина буде на кордоні раніше — подайте заявку самостійно на <a href="' + PUESC + '" target="_blank" rel="noopener">puesc.gov.pl</a>.</div>' : '');
+    const wallet = '<div class="card card-tight" style="margin-bottom:12px"><div class="spread" style="gap:12px;flex-wrap:wrap">' +
+        '<div><div class="text-xs text-muted">Баланс</div><div style="font-family:var(--display);font-size:26px;line-height:1.1">' + uah(avail) + '</div>' +
+          '<div class="text-xs text-muted">' + (hold ? 'ще ' + uah(hold) + ' заморожено за заявки в роботі · ' : '') + 'заявка RMPD — <strong style="color:var(--text)">' + uah(price) + '</strong>' +
+          (price && !a.test ? ' · вистачить на ' + enough + ' ' + plural(enough, 'заявку', 'заявки', 'заявок') : '') + '</div></div>' +
+        '<div style="display:flex;gap:6px;flex-wrap:wrap">' + [1000, 2000, 5000].map(n => '<button class="btn btn-ghost btn-sm" onclick="Rmpd.topup(' + n + ')">+ ' + n.toLocaleString('uk-UA') + '</button>').join('') +
+          '<button class="btn btn-ghost btn-sm" onclick="Rmpd.topup()">Інша сума</button></div></div>' +
+      '<p class="hint" style="margin:8px 0 0">Оплата лише за результат: сума заморожується при подачі й списується, коли заявку зареєстровано. Скасували — гроші повертаються на баланс. Оновлення заявки — безкоштовно. <a href="#" onclick="Rmpd.history();return false">Історія операцій</a></p>' +
+      '<div id="rmHistory"></div></div>';
+    top.innerHTML = extra + wallet + (a.reason === 'balance'
+      ? '<div class="msg msg-err show" style="margin:0 0 12px">Щоб подати заявку, поповніть баланс щонайменше на ' + uah(Math.max(price - avail, 0)) + '. Поповнення — карткою через WayForPay, зараховується одразу після оплати.</div>'
+      : a.reason === 'unavailable' ? '<div class="msg msg-err show" style="margin:0 0 12px">Подача RMPD тимчасово недоступна — напишіть нам.</div>' : '');
+  }
+  async function topup(n){
+    if (n === undefined){ const x = prompt('Сума поповнення, грн (від 200 до 50 000):', '1000'); if (x === null) return; n = Number(String(x).replace(/\s/g, '').replace(',', '.')); }
+    try{ showToast('Переходимо до оплати…'); await startTopup(n); }catch(e){ showToast(e.message, 'error'); }
+  }
+  async function history(){
+    const box = $('rmHistory'); if (!box) return;
+    if (box.innerHTML){ box.innerHTML = ''; return; }
+    box.innerHTML = '<div class="text-xs text-muted" style="margin-top:8px">Завантаження…</div>';
+    const rows = await walletHistory(st.broker.id);
+    const label = t => t.kind === 'topup' ? 'Поповнення' : t.kind === 'bonus' ? 'Зарахування' : t.kind === 'adjust' ? 'Коригування'
+      : t.status === 'hold' ? 'Заморожено за заявку' : t.status === 'released' ? 'Повернено (скасовано)' : 'Оплата заявки';
+    box.innerHTML = rows.length ? '<div style="margin-top:10px">' + rows.map(t => '<div class="svc-line" style="padding:8px 12px;margin-bottom:4px">' +
+        '<div><div class="text-sm">' + label(t) + '</div><div class="text-xs text-muted">' + new Date(t.created_at).toLocaleString('uk-UA', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) + (t.note ? ' · ' + esc(t.note) : '') + '</div></div>' +
+        '<div class="text-sm" style="white-space:nowrap;color:' + (t.status === 'released' || t.status === 'hold' ? 'var(--muted)' : t.amount > 0 ? 'var(--green)' : 'var(--text)') + (t.status === 'released' ? ';text-decoration:line-through' : '') + '">' + (t.amount > 0 ? '+' : '') + uah(t.amount) + '</div></div>').join('') + '</div>'
+      : '<div class="text-xs text-muted" style="margin-top:8px">Операцій ще не було.</div>';
   }
 
   /* ---------- Форма ---------- */
@@ -567,7 +591,7 @@ const Rmpd = (() => {
     $('rmForm').scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
   const find = id => st.list.find(x => x.id === id);
-  function needAccess(){ if (st.acc.allowed) return true; showToast(st.acc.reason === 'limit' ? 'Ліміт безкоштовних заявок на цей місяць вичерпано' : 'Подача недоступна на поточному тарифі', 'error'); return false; }
+  function needAccess(){ if (st.acc.allowed) return true; showToast(st.acc.reason === 'balance' ? 'Недостатньо коштів — поповніть баланс' : 'Подача зараз недоступна', 'error'); return false; }
   function edit(id){ const r = find(id); if (!r) return; st.editId = id; st.parent = null; openForm(copyFields(r), r); }
   function update(id){ const r = find(id); if (!r) return; st.parent = r; st.editId = null; openForm(copyFields(r), r); }
   function repeat(id){
@@ -598,6 +622,6 @@ const Rmpd = (() => {
     try{ if (navigator.share) await navigator.share({ text }); else { await navigator.clipboard.writeText(text); showToast('Текст для водія скопійовано'); } }catch(e){}
   }
 
-  return { mount, submit, routeChanged, dateChanged, etaChanged, docsChanged, goodsToggle, idHint, lookupParty, lookupCarrier, pickCarrier, editCarrier, pickParty, pickVehicle,
+  return { mount, submit, topup, history, routeChanged, dateChanged, etaChanged, docsChanged, goodsToggle, idHint, lookupParty, lookupCarrier, pickCarrier, editCarrier, pickParty, pickVehicle,
     setFilter, edit, update, repeat, back, reset, cancel, copy, share, translit, normPlate, derive };
 })();
