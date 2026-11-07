@@ -162,7 +162,8 @@ const Rmpd = (() => {
           '<div class="text-xs text-muted">' + (hold ? 'ще ' + uah(hold) + ' заморожено за заявки в роботі · ' : '') + 'RMPD: оператор — <strong style="color:var(--text)">' + uah(price) + '</strong>, самостійно — <strong style="color:var(--text)">' + uah(priceSelf) + '</strong>' +
           (pm && !a.test ? ' · вистачить на ' + enough + ' ' + plural(enough, 'заявку', 'заявки', 'заявок') : '') + '</div></div>' +
         '<div style="display:flex;gap:6px;flex-wrap:wrap">' + [1000, 2000, 5000].map(n => '<button class="btn btn-ghost btn-sm" onclick="Rmpd.topup(' + n + ')">+ ' + n.toLocaleString('uk-UA') + '</button>').join('') +
-          '<button class="btn btn-ghost btn-sm" onclick="Rmpd.topup()">Інша сума</button></div></div>' +
+          '<button class="btn btn-ghost btn-sm" onclick="Rmpd.topup()">Інша сума</button>' +
+          (typeof REQUISITES !== 'undefined' && REQUISITES.iban ? '<button class="btn btn-ghost btn-sm" onclick="Rmpd.invoice()"><i class="ti ti-file-invoice"></i> Рахунок для ТОВ / ФОП</button>' : '') + '</div></div>' +
       '<p class="hint" style="margin:8px 0 0">Через оператора — оплата лише за результат: сума заморожується й списується, коли заявку зареєстровано, а при скасуванні повертається. «Подаю сам» — списується одразу за перевірку й дані. Оновлення — безкоштовно. <a href="#" onclick="Rmpd.history();return false">Історія операцій</a></p>' +
       '<div id="rmHistory"></div></div>';
     top.innerHTML = extra + wallet + (a.reason === 'balance'
@@ -172,6 +173,12 @@ const Rmpd = (() => {
   async function topup(n){
     if (n === undefined){ const x = prompt('Сума поповнення, грн (від 200 до 50 000):', '1000'); if (x === null) return; n = Number(String(x).replace(/\s/g, '').replace(',', '.')); }
     try{ showToast('Переходимо до оплати…'); await startTopup(n); }catch(e){ showToast(e.message, 'error'); }
+  }
+  function invoice(){
+    const x = prompt('Сума рахунку для оплати з розрахункового рахунку, грн (від 200):', '2000'); if (x === null) return;
+    const n = Math.round(Number(String(x).replace(/\s/g, '').replace(',', '.')));
+    if (!(n >= 200 && n <= 200000)){ showToast('Вкажіть суму від 200 до 200 000 грн', 'error'); return; }
+    window.open('/rakhunok?sum=' + n, '_blank');
   }
   async function history(){
     const box = $('rmHistory'); if (!box) return;
@@ -840,7 +847,7 @@ const Rmpd = (() => {
     }catch(e){ if (win) win.close(); msg.className = 'msg msg-err show'; msg.textContent = e.message; btn.disabled = false; }
   }
 
-  return { mount, submit, cmr, cmrAddGoods, cmrSave, topup, history, setMode, openSheet, closeSheet, copyEl, copyAll, saveSelfRef, routeChanged, dateChanged, etaChanged, docsChanged, goodsToggle, idHint, lookupParty, lookupCarrier, pickCarrier, editCarrier, pickParty, pickVehicle,
+  return { mount, submit, invoice, cmr, cmrAddGoods, cmrSave, topup, history, setMode, openSheet, closeSheet, copyEl, copyAll, saveSelfRef, routeChanged, dateChanged, etaChanged, docsChanged, goodsToggle, idHint, lookupParty, lookupCarrier, pickCarrier, editCarrier, pickParty, pickVehicle,
     setFilter, edit, update, repeat, back, reset, cancel, copy, share, translit, normPlate, derive, sent: id => window.Sent && Sent.fromRmpd(find(id)), deleg: id => window.Deleg && Deleg.fromRmpd(find(id)),
     normGps, gpsOk: g => GPS_RE.test(g) && gpsCheck(g), normCross, crossings: () => UA_CROSS.map(c => c[0]).concat(OTHER_CROSS), COUNTRIES };
 })();

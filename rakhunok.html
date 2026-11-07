@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Рахунок на оплату — МитнийБрокер</title>
+<meta name="robots" content="noindex">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: #e9ebee; color: #111; font-family: Arial, "Helvetica Neue", Helvetica, sans-serif; }
+  .bar { position: sticky; top: 0; z-index: 5; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; padding: 10px 16px; background: #0f1a14; color: #fff; }
+  .bar b { font-size: 15px; margin-right: auto; }
+  .bar button, .bar a { font: 600 14px Arial, sans-serif; border: 0; border-radius: 8px; padding: 9px 14px; cursor: pointer; text-decoration: none; }
+  .bar .p { background: #10b981; color: #04150d; }
+  .bar .g { background: rgba(255,255,255,.12); color: #fff; }
+  .note { max-width: 210mm; margin: 12px auto 0; padding: 0 16px; font-size: 13px; color: #333; line-height: 1.45; }
+  #msg { max-width: 210mm; margin: 40px auto; padding: 0 16px; font-size: 15px; }
+  .page { width: 210mm; min-height: 297mm; margin: 12px auto 40px; background: #fff; padding: 16mm 16mm; box-shadow: 0 2px 12px rgba(0,0,0,.15); font-size: 10pt; line-height: 1.4; transform-origin: top left; }
+  h1 { font-size: 15pt; margin: 0 0 1mm; }
+  .sub { color: #555; margin-bottom: 7mm; }
+  table { width: 100%; border-collapse: collapse; }
+  .req td { padding: 1.2mm 0; vertical-align: top; }
+  .req td:first-child { width: 38mm; color: #555; }
+  .items { margin: 8mm 0 4mm; }
+  .items th, .items td { border: .7px solid #333; padding: 2mm; text-align: left; }
+  .items th { background: #f0f0f0; font-size: 9pt; }
+  .items td.n { text-align: right; white-space: nowrap; }
+  .total { text-align: right; font-size: 11pt; margin-top: 2mm; }
+  .total b { font-size: 13pt; }
+  .words { margin-top: 2mm; font-style: italic; }
+  .purpose { margin-top: 7mm; padding: 3mm 4mm; border: 1px dashed #10b981; background: #f3fbf7; }
+  .sign { margin-top: 18mm; display: flex; justify-content: space-between; }
+  .sign div { width: 45%; border-top: .7px solid #333; padding-top: 1mm; font-size: 8.5pt; color: #555; }
+  @media print {
+    @page { size: A4; margin: 0; }
+    html, body { background: #fff; }
+    .bar, .note { display: none !important; }
+    .page { margin: 0; box-shadow: none; transform: none !important; }
+  }
+</style>
+</head>
+<body>
+<div class="bar"><b>Рахунок на оплату</b>
+  <button class="p" onclick="window.print()">🖨 Друкувати / PDF</button>
+  <a class="g" href="/kabinet#rmpd">← Кабінет</a>
+</div>
+<p class="note" id="note" hidden>Оплатіть рахунок з розрахункового рахунку компанії, обовʼязково вказавши призначення платежу як у рахунку — так ми швидко зарахуємо кошти на баланс (зазвичай того ж робочого дня).</p>
+<div id="msg">Завантаження…</div>
+<div id="sheet"></div>
+
+<script src="/assets/js/config.js"></script>
+<script src="/assets/js/db.js"></script>
+<script src="/assets/js/requisites.js"></script>
+<script>
+const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' })[c]);
+function words(n){
+  const ones = [['','один','два','три','чотири','пʼять','шість','сім','вісім','девʼять'],['','одна','дві','три','чотири','пʼять','шість','сім','вісім','девʼять']];
+  const teens = ['десять','одинадцять','дванадцять','тринадцять','чотирнадцять','пʼятнадцять','шістнадцять','сімнадцять','вісімнадцять','девʼятнадцять'];
+  const tens = ['','','двадцять','тридцять','сорок','пʼятдесят','шістдесят','сімдесят','вісімдесят','девʼяносто'];
+  const hund = ['','сто','двісті','триста','чотириста','пʼятсот','шістсот','сімсот','вісімсот','девʼятсот'];
+  const tri = (x, g) => { const h = Math.floor(x / 100), t = Math.floor(x % 100 / 10), o = x % 10; return [hund[h], t === 1 ? teens[o] : tens[t], t === 1 ? '' : ones[g][o]].filter(Boolean).join(' '); };
+  const form = (x, a, b, c) => { const d = x % 100; if (d > 10 && d < 20) return c; const o = x % 10; return o === 1 ? a : o >= 2 && o <= 4 ? b : c; };
+  const th = Math.floor(n / 1000), rest = n % 1000;
+  const s = [th ? tri(th, 1) + ' ' + form(th, 'тисяча', 'тисячі', 'тисяч') : '', tri(rest, 1)].filter(Boolean).join(' ') || 'нуль';
+  return s.charAt(0).toUpperCase() + s.slice(1) + ' ' + form(n, 'гривня', 'гривні', 'гривень') + ' 00 копійок';
+}
+function fit(){ const p = document.querySelector('.page'); if (!p) return; const w = window.innerWidth, px = 210 * 3.7795; if (w < px + 24){ const k = (w - 16) / px; p.style.transform = 'scale(' + k + ')'; p.style.marginLeft = '8px'; p.style.marginBottom = (-(1 - k) * 297 * 3.7795 + 12) + 'px'; } else { p.style.transform = ''; p.style.marginLeft = ''; p.style.marginBottom = ''; } }
+window.addEventListener('resize', fit);
+window.addEventListener('beforeprint', () => { const p = document.querySelector('.page'); if (p){ p.style.transform = ''; p.style.marginLeft = ''; p.style.marginBottom = ''; } });
+window.addEventListener('afterprint', fit);
+
+(async () => {
+  const msg = document.getElementById('msg'), q = new URLSearchParams(location.search);
+  const sum = Math.round(Number(q.get('sum')));
+  if (!REQUISITES.iban){ msg.textContent = 'Оплата з рахунку компанії скоро буде доступна. Поки що поповніть баланс карткою або напишіть нам — виставимо рахунок вручну.'; return; }
+  if (!(sum >= 200 && sum <= 200000)){ msg.textContent = 'Вкажіть суму від 200 до 200 000 грн.'; return; }
+  const user = await currentUser();
+  if (!user){ location.href = '/vhid?next=' + encodeURIComponent(location.pathname + location.search); return; }
+  const b = await getMyBroker();
+  if (!b){ msg.textContent = 'Спершу створіть профіль у кабінеті.'; return; }
+  let payer = b.name || '', code = '';
+  try { const cs = await rmpdContacts(b.id); const c = cs.find(x => x.kind === 'carrier'); if (c && c.data){ code = c.data.carrier_code || ''; } } catch(e){}
+  const d = new Date(), pad = n => String(n).padStart(2, '0');
+  const no = 'MB-' + String(b.id).slice(0, 6).toUpperCase() + '-' + String(d.getFullYear()).slice(2) + pad(d.getMonth() + 1) + pad(d.getDate()) + pad(d.getHours()) + pad(d.getMinutes());
+  const date = pad(d.getDate()) + '.' + pad(d.getMonth() + 1) + '.' + d.getFullYear();
+  const purpose = 'Оплата за послуги з оформлення документів згідно з рахунком № ' + no + ' від ' + date + ', ' + REQUISITES.vat.toLowerCase();
+  msg.remove(); document.getElementById('note').hidden = false;
+  document.title = 'Рахунок № ' + no;
+  const money = n => n.toLocaleString('uk-UA', { minimumFractionDigits: 2 });
+  document.getElementById('sheet').innerHTML = '<div class="page">' +
+    '<h1>Рахунок на оплату № ' + esc(no) + '</h1><div class="sub">від ' + date + ' · дійсний 10 банківських днів</div>' +
+    '<table class="req"><tr><td>Постачальник</td><td><b>' + esc(REQUISITES.name) + '</b><br>ЄДРПОУ ' + esc(REQUISITES.edrpou) + '<br>' + esc(REQUISITES.address) +
+      '<br>IBAN <b>' + esc(REQUISITES.iban) + '</b>' + (REQUISITES.bank ? ' в ' + esc(REQUISITES.bank) : '') + '<br>' + esc(REQUISITES.phone) + ' · ' + esc(REQUISITES.email) + '</td></tr>' +
+    '<tr><td>Покупець</td><td><b>' + esc(payer) + '</b>' + (code ? '<br>Код ' + esc(code) : '') + '<br>Кабінет: ' + esc(user.email || '') + '</td></tr></table>' +
+    '<table class="items"><tr><th>№</th><th>Найменування</th><th>Од.</th><th>К-сть</th><th>Ціна, грн</th><th>Сума, грн</th></tr>' +
+      '<tr><td>1</td><td>Послуги з підготовки та подання документів для міжнародних перевезень (RMPD, SENT, CMR, Delegowanie) — поповнення балансу кабінету forwardcarua.com</td><td>послуга</td><td class="n">1</td><td class="n">' + money(sum) + '</td><td class="n">' + money(sum) + '</td></tr></table>' +
+    '<div class="total">Разом до сплати: <b>' + money(sum) + ' грн</b><br>' + esc(REQUISITES.vat) + '</div>' +
+    '<div class="words">' + words(sum) + '</div>' +
+    '<div class="purpose"><b>Призначення платежу:</b><br>' + esc(purpose) + '</div>' +
+    '<div class="sign"><div>Директор ' + esc(REQUISITES.name) + '</div><div>Виписав(ла)</div></div></div>';
+  fit();
+})();
+</script>
+</body>
+</html>
