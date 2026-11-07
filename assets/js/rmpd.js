@@ -74,7 +74,11 @@ const Rmpd = (() => {
   const PLATE_MAP = { А:'A',В:'B',Е:'E',І:'I',К:'K',М:'M',Н:'H',О:'O',Р:'P',С:'C',Т:'T',Х:'X',У:'Y' };
   const normPlate = s => String(s || '').toUpperCase().replace(/[\s\-–.]/g, '').replace(/[АВЕІКМНОРСТХУ]/g, c => PLATE_MAP[c]);
   const normGps = s => { const x = String(s || '').toUpperCase().replace(/[АВЕІКМНОРСТХУ]/g, c => PLATE_MAP[c]).replace(/[\s\-–]/g, '');
-    return /^[ZM][A-Z0-9]{9}$/.test(x) ? x.slice(0, 3) + '-' + x.slice(3, 9) + '-' + x.slice(9) : x; };
+    return /^[ZAUM][A-Z0-9]{9}$/.test(x) ? x.slice(0, 3) + '-' + x.slice(3, 9) + '-' + x.slice(9) : x; };
+  // Офіційний формат PUESC (STypes.xsd LocatorNumber + SENT_SPEC-ZSL): [ZAUM]РР-ЛЛЦЦЛЛ-К, контрольна цифра — ваги 9,7,3,1, mod 10
+  const GPS_RE = /^[ZAUM][0-9]{2}-[ABCEFGHKMNPRSTWXYZ]{2}[0-9]{2}[ABCEFGHKMNPRSTWXYZ]{2}-[0-9]$/;
+  const gpsCheck = g => { const c = g.replace(/-/g, ''), w = [9, 7, 3, 1]; let sum = 0;
+    for (let i = 0; i < 9; i++){ const ch = c[i]; sum += (/\d/.test(ch) ? +ch : ch.charCodeAt(0) - 55) * w[i % 4]; } return sum % 10 === +c[9]; };
   const notLatin = s => /[^\x20-\x7E -ſ]/.test(String(s || ''));
 
   /* ---------- Автовизначення ---------- */
@@ -256,7 +260,7 @@ const Rmpd = (() => {
       (vehs.length ? sel('pick-veh', 'Ваше авто', '<option value="">— нове авто —</option>' + vehs.map(x => '<option value="' + esc(x.plate) + '">' + esc(x.plate) + (x.trailer_plate ? ' / ' + esc(x.trailer_plate) : '') + (x.make ? ' · ' + esc(x.make) : '') + (x.gps_id ? ' · GPS ✓' : '') + '</option>').join(''), 'onchange="Rmpd.pickVehicle(this.value)"') : '') +
       '<input type="hidden" id="rm-vehicle_id">' +
       row(fld('plate', 'Номер тягача *', 'maxlength="12" placeholder="AC1234BH" style="text-transform:uppercase"'), fld('trailer_plate', 'Номер причепа', 'maxlength="12" placeholder="AC5678XT" style="text-transform:uppercase"')) +
-      fld('gps_id', 'Номер локатора GPS *', 'maxlength="20" placeholder="Z12-345678-9" style="text-transform:uppercase"',
+      fld('gps_id', 'Номер локатора GPS *', 'maxlength="20" placeholder="Z17-AA00AA-3" style="text-transform:uppercase"',
         'Ідентифікатор пристрою в SENT: стаціонарний локатор (ZSL) — Z…, застосунок e-TOLL PL — M…. Запамʼятаємо для цього авто.') +
       '<details style="margin-bottom:1rem"><summary class="text-xs text-muted" style="cursor:pointer">Авто чи причіп зареєстровані не в Україні</summary><div style="margin-top:10px">' +
         row(sel('plate_country', 'Країна тягача', opt(COUNTRIES, 'UA')), sel('trailer_country', 'Країна причепа', opt(COUNTRIES, 'UA'))) + '</div></details>' +
@@ -522,7 +526,7 @@ const Rmpd = (() => {
     if (bad.some(f => f.startsWith('carrier_')) && $('rm-carrier_code') && $('rm-carrier_code').type === 'hidden') editCarrier();
     return msgs;
   }
-  function gpsWarn(r){ return r.gps_id && !/^[ZM][A-Z0-9]{2}-[A-Z0-9]{6}-[A-Z0-9]$/.test(r.gps_id); }
+  function gpsWarn(r){ return r.gps_id && (!GPS_RE.test(r.gps_id) || !gpsCheck(r.gps_id)); }
   function showMsg(t, ok){ const m = $('rmMsg'); m.className = 'msg show ' + (ok ? 'msg-ok' : 'msg-err'); m.innerHTML = t; }
 
   async function submit(){
@@ -531,7 +535,7 @@ const Rmpd = (() => {
     if (!$('rm-agree').checked){ showMsg(isSelf() ? 'Підтвердіть, що дані відповідають документам.' : 'Підтвердіть доручення й відповідність даних документам.'); return; }
     const self = isSelf();
     if (!st.editId && !st.parent && !(self ? st.acc.allowed_self : st.acc.allowed)){ showMsg('Недостатньо коштів на балансі для цього варіанту — поповніть баланс або оберіть інший.'); return; }
-    if (gpsWarn(r) && !confirm('Номер локатора «' + r.gps_id + '» не схожий на формат SENT (Z… або M…, напр. Z12-345678-9). Все одно надіслати?')) return;
+    if (gpsWarn(r) && !confirm('Номер локатора «' + r.gps_id + '» не проходить перевірку формату SENT (напр. Z17-AA00AA-3: літера, 2 цифри, 2 літери, 2 цифри, 2 літери, контрольна цифра). Найчастіше це помилка в одному символі — перевірте з договором оператора локатора. Все одно надіслати?')) return;
     if ((new Date(r.start_date) - new Date(today())) / 864e5 > 9 && !confirm('Номер RMPD діє 10 днів від реєстрації, а дата — більш ніж через 9 днів. Подати зараз?')) return;
     const t = self ? { urgent: false, eta: null } : timing();
     if (t.eta && t.hours < 0){ showMsg('Час на кордоні вже минув — виправте дату й годину.'); return; }
