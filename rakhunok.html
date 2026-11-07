@@ -93,7 +93,7 @@ window.addEventListener('afterprint', fit);
   document.getElementById('sheet').innerHTML = '<div class="page">' +
     '<h1>Рахунок на оплату № ' + esc(no) + '</h1><div class="sub">від ' + date + ' · дійсний 10 банківських днів</div>' +
     '<table class="req"><tr><td>Постачальник</td><td><b>' + esc(REQUISITES.name) + '</b><br>ЄДРПОУ ' + esc(REQUISITES.edrpou) + (REQUISITES.ipn ? ', ІПН ' + esc(REQUISITES.ipn) : '') + (Number(REQUISITES.vatRate) ? ', платник ПДВ' : '') + '<br>' + esc(REQUISITES.address) +
-      '<br>IBAN <b>' + esc(REQUISITES.iban) + '</b>' + (REQUISITES.bank ? ' в ' + esc(REQUISITES.bank) : '') + '<br>' + esc(REQUISITES.phone) + ' · ' + esc(REQUISITES.email) + '</td></tr>' +
+      '<br>IBAN <b>' + esc(REQUISITES.iban.replace(/(.{4})/g, '$1 ').trim()) + '</b> (UAH)' + (REQUISITES.bank ? ' в ' + esc(REQUISITES.bank) : '') + '<br>' + esc(REQUISITES.phone) + ' · ' + esc(REQUISITES.email) + '</td></tr>' +
     '<tr><td>Покупець</td><td><b>' + esc(payer) + '</b>' + (code ? '<br>Код ' + esc(code) : '') + '<br>Кабінет: ' + esc(user.email || '') + '</td></tr></table>' +
     '<table class="items"><tr><th>№</th><th>Найменування</th><th>Од.</th><th>К-сть</th><th>Ціна, грн</th><th>Сума, грн</th></tr>' +
       '<tr><td>1</td><td>Послуги з підготовки та подання документів для міжнародних перевезень (RMPD, SENT, CMR, Delegowanie) — поповнення балансу кабінету forwardcarua.com</td><td>послуга</td><td class="n">1</td><td class="n">' + money(sum) + '</td><td class="n">' + money(sum) + '</td></tr></table>' +
