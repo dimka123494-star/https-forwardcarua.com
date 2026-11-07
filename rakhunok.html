@@ -84,18 +84,21 @@ window.addEventListener('afterprint', fit);
   const d = new Date(), pad = n => String(n).padStart(2, '0');
   const no = 'MB-' + String(b.id).slice(0, 6).toUpperCase() + '-' + String(d.getFullYear()).slice(2) + pad(d.getMonth() + 1) + pad(d.getDate()) + pad(d.getHours()) + pad(d.getMinutes());
   const date = pad(d.getDate()) + '.' + pad(d.getMonth() + 1) + '.' + d.getFullYear();
-  const purpose = 'Оплата за послуги з оформлення документів згідно з рахунком № ' + no + ' від ' + date + ', ' + REQUISITES.vat.toLowerCase();
+  const rate = Number(REQUISITES.vatRate || 0), vat = rate ? Math.round(sum * rate / (100 + rate) * 100) / 100 : 0;
+  const vatText = rate ? 'у т.ч. ПДВ ' + rate + '% — ' + vat.toLocaleString('uk-UA', { minimumFractionDigits: 2 }) + ' грн' : 'без ПДВ';
+  const purpose = 'Оплата за послуги з оформлення документів згідно з рахунком № ' + no + ' від ' + date + ', ' + vatText;
   msg.remove(); document.getElementById('note').hidden = false;
   document.title = 'Рахунок № ' + no;
-  const money = n => n.toLocaleString('uk-UA', { minimumFractionDigits: 2 });
+  const money = n => Number(n).toLocaleString('uk-UA', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   document.getElementById('sheet').innerHTML = '<div class="page">' +
     '<h1>Рахунок на оплату № ' + esc(no) + '</h1><div class="sub">від ' + date + ' · дійсний 10 банківських днів</div>' +
-    '<table class="req"><tr><td>Постачальник</td><td><b>' + esc(REQUISITES.name) + '</b><br>ЄДРПОУ ' + esc(REQUISITES.edrpou) + '<br>' + esc(REQUISITES.address) +
+    '<table class="req"><tr><td>Постачальник</td><td><b>' + esc(REQUISITES.name) + '</b><br>ЄДРПОУ ' + esc(REQUISITES.edrpou) + (REQUISITES.ipn ? ', ІПН ' + esc(REQUISITES.ipn) : '') + (Number(REQUISITES.vatRate) ? ', платник ПДВ' : '') + '<br>' + esc(REQUISITES.address) +
       '<br>IBAN <b>' + esc(REQUISITES.iban) + '</b>' + (REQUISITES.bank ? ' в ' + esc(REQUISITES.bank) : '') + '<br>' + esc(REQUISITES.phone) + ' · ' + esc(REQUISITES.email) + '</td></tr>' +
     '<tr><td>Покупець</td><td><b>' + esc(payer) + '</b>' + (code ? '<br>Код ' + esc(code) : '') + '<br>Кабінет: ' + esc(user.email || '') + '</td></tr></table>' +
     '<table class="items"><tr><th>№</th><th>Найменування</th><th>Од.</th><th>К-сть</th><th>Ціна, грн</th><th>Сума, грн</th></tr>' +
       '<tr><td>1</td><td>Послуги з підготовки та подання документів для міжнародних перевезень (RMPD, SENT, CMR, Delegowanie) — поповнення балансу кабінету forwardcarua.com</td><td>послуга</td><td class="n">1</td><td class="n">' + money(sum) + '</td><td class="n">' + money(sum) + '</td></tr></table>' +
-    '<div class="total">Разом до сплати: <b>' + money(sum) + ' грн</b><br>' + esc(REQUISITES.vat) + '</div>' +
+    '<div class="total">' + (rate ? 'Сума без ПДВ: ' + money(Math.round((sum - vat) * 100) / 100) + ' грн<br>ПДВ ' + rate + '%: ' + money(vat) + ' грн<br>' : '') +
+      'Разом до сплати: <b>' + money(sum) + ' грн</b>' + (rate ? '' : '<br>Без ПДВ') + '</div>' +
     '<div class="words">' + words(sum) + '</div>' +
     '<div class="purpose"><b>Призначення платежу:</b><br>' + esc(purpose) + '</div>' +
     '<div class="sign"><div>Директор ' + esc(REQUISITES.name) + '</div><div>Виписав(ла)</div></div></div>';
