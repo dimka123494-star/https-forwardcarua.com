@@ -206,7 +206,7 @@ const Sent = (() => {
       else saved = await saveSent(Object.assign({ owner_id: st.broker.id, rmpd_id: st.rmpdId, mode }, r));
       const i = st.list.findIndex(x => x.id === saved.id); if (i >= 0) st.list[i] = saved; else st.list.unshift(saved);
       const wasEdit = !!st.editId; st.editId = null; st.rmpdId = null;
-      if (!wasEdit) refreshAcc();
+      if (!wasEdit){ refreshAcc(); try { track('sent_submit', { id: saved.id, test: !!saved.is_test, mode: saved.mode, value: Number(saved.price) || 0, currency: 'UAH' }); } catch(e){} }
       renderList(); badge();
       if (saved.mode === 'self'){ openSheet(saved.id); showToast('Дані перевірено — вносьте в PUESC'); }
       else { renderForm(); showToast(wasEdit ? 'Зміни надіслано оператору' : 'Заявку надіслано — повідомимо в Telegram, щойно подамо'); }

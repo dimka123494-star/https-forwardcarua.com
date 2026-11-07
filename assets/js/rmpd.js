@@ -566,7 +566,7 @@ const Rmpd = (() => {
       saveContacts(r).catch(e => console.error(e));
       const i = st.list.findIndex(x => x.id === saved.id); if (i >= 0) st.list[i] = saved; else st.list.unshift(saved);
       st.editId = null; st.parent = null; st.carrierEdit = false; st.keepDocs = [];
-      track('rmpd_submit', { kind: saved.kind, role: st.broker.kind || 'broker' });
+      track('rmpd_submit', { id: saved.id, test: !!saved.is_test, kind: saved.kind, mode: saved.mode, value: Number(saved.price) || 0, role: st.broker.kind || 'broker' });
       await refreshAccess(); renderForm(); renderList(); badge();
       if (saved.mode === 'self'){ openSheet(saved.id); showToast('Дані перевірено — переносьте в PUESC'); return; }
       showToast('Заявку прийнято — номер RMPD прийде в кабінет і Telegram');
@@ -840,7 +840,7 @@ const Rmpd = (() => {
     try{
       const saved = await saveCmr({ owner_id: st.broker.id, rmpd_id: ed.rid, number: v('number') || null, data }, ed.id);
       const i = st.cmr.findIndex(c => c.id === saved.id); if (i >= 0) st.cmr[i] = saved; else st.cmr.unshift(saved);
-      if (!ed.id) refreshAccess();
+      if (!ed.id){ refreshAccess(); try { track('cmr_create', { id: saved.id, test: !!saved.is_test, value: Number(saved.price) || 0, currency: 'UAH' }); } catch(e){} }
       const url = '/cmr?id=' + saved.id;
       if (win) win.location.href = url; else location.href = url;
       showToast(ed.id ? 'CMR оновлено' : 'CMR створено'); closeSheet(); renderList();

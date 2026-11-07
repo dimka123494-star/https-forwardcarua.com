@@ -153,6 +153,13 @@ function showToast(msg, type = 'success'){
 }
 
 /* ---------- Аналітика ---------- */
+// Мітки конверсій Google Ads (Цілі → Конверсії → дія → «Налаштування тегу» → send_to «AW-18171698074/<мітка>»).
+// Порожня мітка — подія все одно йде в Google як звичайна подія.
+const ADS_ID = 'AW-18171698074';
+const ADS_CONVERSIONS = { rmpd_submit: '', sent_submit: '', deleg_submit: '', cmr_create: '' };
 function track(event, params = {}){
-  if (typeof gtag === 'function') gtag('event', event, params);
+  if (typeof gtag !== 'function') return;
+  gtag('event', event, params);
+  const label = ADS_CONVERSIONS[event];
+  if (label && !params.test) gtag('event', 'conversion', { send_to: ADS_ID + '/' + label, value: Number(params.value) || 1, currency: 'UAH', transaction_id: params.id || undefined });
 }

@@ -191,7 +191,7 @@ const Deleg = (() => {
       const i = st.list.findIndex(x => x.id === saved.id); if (i >= 0) st.list[i] = saved; else st.list.unshift(saved);
       const wasEdit = !!st.editId; st.editId = null; st.rmpdId = null;
       remember(saved).catch(() => {});
-      if (!wasEdit) refreshAcc();
+      if (!wasEdit){ refreshAcc(); try { track('deleg_submit', { id: saved.id, test: !!saved.is_test, mode: saved.mode, value: Number(saved.price) || 0, currency: 'UAH' }); } catch(e){} }
       renderList(); badge();
       if (saved.mode === 'self') openSheet(saved.id);
       else { renderForm(); openSheet(saved.id); }
