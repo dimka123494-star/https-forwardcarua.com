@@ -23,6 +23,7 @@ const Deleg = (() => {
   const fmtD = d => d ? d.split('-').reverse().join('.') : '—';
   const store = (k, val) => { try { if (val === undefined) return localStorage.getItem('deleg_' + k); localStorage.setItem('deleg_' + k, val); } catch(e){ return null; } };
   const price = m => Number(st.prices[m === 'self' ? 'deleg_self' : 'deleg'] || 0);
+  const teamOn = () => st.prices.deleg !== undefined; // «Подає оператор» вмикається в адмінці (ціна «активна»)
   const normPhone = s => { let x = String(s || '').replace(/[^\d+]/g, ''); if (/^0\d{9}$/.test(x)) x = '+38' + x; else if (/^380\d{9}$/.test(x)) x = '+' + x; return x; };
   const normLic = s => String(s || '').toUpperCase().replace(/\s/g, '').replace(/[АВЕІКМНОРСТХ]/g, c => ({ А:'A',В:'B',Е:'E',І:'I',К:'K',М:'M',Н:'H',О:'O',Р:'P',С:'C',Т:'T',Х:'X' })[c]);
 
@@ -33,6 +34,7 @@ const Deleg = (() => {
     const [acc, list, contacts, rmpd, prices] = await Promise.all([rmpdAccess(broker.id), myDeleg(broker.id), rmpdContacts(broker.id), myRmpd(broker.id), servicePrices().catch(() => [])]);
     st.acc = acc || {}; st.list = list; st.contacts = contacts; st.rmpd = rmpd;
     (prices || []).forEach(p => { if (p.active) st.prices[p.code] = Number(p.price); });
+    if (!teamOn()) st.mode = 'self';
     render(); badge();
     if (st.pending){ const r = st.pending; st.pending = null; fromRmpd(r); }
   }
@@ -55,7 +57,7 @@ const Deleg = (() => {
     top.innerHTML = (a.test ? '<div class="msg show" style="margin:0 0 12px;background:rgba(245,166,35,.12);color:var(--amber);border:.5px solid rgba(245,166,35,.35)">🧪 <strong>Тестовий режим адміністратора.</strong> Заявки тестові й безкоштовні.</div>' : '') +
       '<div class="card card-tight" style="margin-bottom:12px"><div class="spread" style="gap:12px;flex-wrap:wrap"><div><div class="text-xs text-muted">Баланс</div>' +
         '<div style="font-family:var(--display);font-size:26px;line-height:1.1">' + uah(avail) + '</div>' +
-        '<div class="text-xs text-muted">Відрядження: оператор — <strong style="color:var(--text)">' + uah(price('team')) + '</strong>, самостійно — <strong style="color:var(--text)">' + uah(price('self')) + '</strong>. Баланс спільний з RMPD, SENT і CMR.</div></div>' +
+        '<div class="text-xs text-muted">Відрядження: ' + (teamOn() ? 'оператор — <strong style="color:var(--text)">' + uah(price('team')) + '</strong>, ' : '') + 'самостійно — <strong style="color:var(--text)">' + uah(price('self')) + '</strong>. Баланс спільний з RMPD, SENT і CMR.</div></div>' +
         '<div style="display:flex;gap:6px;flex-wrap:wrap">' + [1000, 2000].map(n => '<button class="btn btn-ghost btn-sm" onclick="Rmpd.topup(' + n + ')">+ ' + n.toLocaleString('uk-UA') + '</button>').join('') +
         '<button class="btn btn-ghost btn-sm" onclick="Rmpd.topup()">Інша сума</button></div></div></div>' +
       (!a.test && need && avail < need ? '<div class="msg msg-err show" style="margin:0 0 12px">Щоб подати заявку, поповніть баланс щонайменше на ' + uah(need - avail) + '.</div>' : '');
@@ -73,11 +75,13 @@ const Deleg = (() => {
     const card = (m, icon, title, text) => '<button type="button" class="card card-tight" onclick="Deleg.setMode(\'' + m + '\')" style="text-align:left;cursor:pointer;flex:1;min-width:150px;margin:0;' +
       (st.mode === m ? 'border-color:var(--green);box-shadow:0 0 0 1px var(--green)' : 'opacity:.85') + '"><div style="font-weight:600">' + icon + ' ' + title + '</div>' +
       '<div style="font-family:var(--display);font-size:18px;margin:2px 0">' + uah(price(m)) + '</div><div class="text-xs text-muted">' + text + '</div></button>';
+    if (!teamOn()) return '<div class="card card-tight" style="margin:12px 0 4px;border-color:var(--green)"><div style="font-weight:600">🙋 Подаю сам · ' + uah(price('self')) + '</div>' +
+      '<div class="text-xs text-muted">Сформуємо офіційний бланк Potwierdzenie для водія й дамо всі дані в порядку майстра biznes.gov.pl — подаєте зі свого акаунта. Подачу оператором за вас додамо незабаром.</div></div>';
     return '<div style="display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 4px">' +
       card('team', '👨‍💼', 'Подає оператор', 'Подамо zgłoszenie до PIP за довіреністю. Готовий бланк для водія — одразу. Оплата — коли подано.') +
       card('self', '🙋', 'Подаю сам', 'Готовий бланк Potwierdzenie і дані в порядку майстра biznes.gov.pl — подаєте зі свого акаунта.') + '</div>';
   }
-  function setMode(m){ if (st.mode === m) return; const keep = readForm(); st.mode = m; store('mode', m); renderTop(); renderForm(); fill(keep); }
+  function setMode(m){ if (m === 'team' && !teamOn()) return; if (st.mode === m) return; const keep = readForm(); st.mode = m; store('mode', m); renderTop(); renderForm(); fill(keep); }
   function renderForm(){
     const w = $('dlFormWrap'); if (!w) return;
     const C = Rmpd.COUNTRIES, cOpts = s => Object.entries(C).map(([k, n]) => '<option value="' + k + '"' + (k === s ? ' selected' : '') + '>' + k + ' — ' + n + '</option>').join('');

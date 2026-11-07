@@ -985,6 +985,11 @@ async function adminSetPrice(code, price){
   const { error } = await sb.from('service_prices').update({ price, updated_at: new Date().toISOString() }).eq('code', code);
   if (error) throw new Error('Не вдалося зберегти ціну');
 }
+async function adminSetPriceActive(code, active){
+  const sb = await sbReady();
+  const { error } = await sb.from('service_prices').update({ active, updated_at: new Date().toISOString() }).eq('code', code);
+  if (error) throw new Error('Не вдалося змінити');
+}
 async function adminWalletAdjust(email, amount, note){
   const sb = await sbReady();
   const { data, error } = await sb.rpc('admin_wallet_adjust', { p_email: email, p_amount: amount, p_note: note || null });

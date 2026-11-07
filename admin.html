@@ -653,7 +653,11 @@ async function rmLoadPrices(){
   const rows = await servicePrices();
   document.getElementById('rmPrices').innerHTML = rows.map(p => '<div class="svc-line" style="padding:8px 12px;margin-bottom:4px"><span class="text-sm">' + esc(p.name) + '</span>' +
     '<span style="display:flex;gap:6px;align-items:center"><input class="input" style="width:110px;padding:6px 10px" type="number" min="0" step="1" id="pr-' + p.code + '" value="' + Number(p.price) + '"> грн' +
-    '<button class="btn btn-ghost btn-sm" onclick="rmSavePrice(\'' + p.code + '\')">Зберегти</button></span></div>').join('') || 'Цін ще немає';
+    '<button class="btn btn-ghost btn-sm" onclick="rmSavePrice(\'' + p.code + '\')">Зберегти</button>' +
+    '<label class="text-xs" style="display:flex;gap:4px;align-items:center;white-space:nowrap"><input type="checkbox"' + (p.active ? ' checked' : '') + ' onchange="rmToggleService(\'' + p.code + '\', this.checked)"> діє</label></span></div>').join('') || 'Цін ще немає';
+}
+async function rmToggleService(code, on){
+  try{ await adminSetPriceActive(code, on); showToast(on ? 'Послугу ввімкнено' : 'Послугу вимкнено — клієнти її не бачать'); }catch(e){ showToast(e.message, 'error'); rmLoadPrices(); }
 }
 async function rmSavePrice(code){
   const v = Number(document.getElementById('pr-' + code).value);

@@ -177,8 +177,8 @@
       <div class="card"><h3>📄 CMR за хвилину</h3><p>Заповнена міжнародна накладна з даних рейсу: усі 24 графи, підписи українською, польською й англійською, 3 кольорові примірники. Друкуйте або зберігайте в PDF з телефона.</p>
         <p class="text-sm" style="margin-top:8px"><strong><span data-price="cmr">100</span> грн</strong> за документ, правки безкоштовно</p>
         <a class="btn btn-ghost btn-sm rm-cta" data-cta="cmr" href="/vhid?role=carrier&next=%2Fkabinet%23rmpd" style="margin-top:8px">Створити CMR</a></div>
-      <div class="card"><h3>👤 Відрядження водія (Delegowanie)</h3><p>Перевізники з України мають повідомляти інспекцію праці Польщі про кожне відрядження водія — навіть на двосторонні рейси — і мати в кабіні підписаний бланк. Сформуємо офіційний бланк Potwierdzenie delegowania і подамо повідомлення на biznes.gov.pl. Штраф без нього — до 7 000 zł.</p>
-        <p class="text-sm" style="margin-top:8px">Оператор — <strong><span data-price="deleg">250</span> грн</strong> · самостійно — <strong><span data-price="deleg_self">100</span> грн</strong></p>
+      <div class="card"><h3>👤 Відрядження водія (Delegowanie)</h3><p>Перевізники з України мають повідомляти інспекцію праці Польщі про кожне відрядження водія — навіть на двосторонні рейси — і мати в кабіні підписаний бланк. Сформуємо офіційний бланк Potwierdzenie delegowania і всі дані для повідомлення на biznes.gov.pl. Штраф без нього — до 7 000 zł.</p>
+        <p class="text-sm" style="margin-top:8px"><span data-team="deleg" hidden>Оператор — <strong><span data-price="deleg">250</span> грн</strong> · </span>самостійно — <strong><span data-price="deleg_self">100</span> грн</strong></p>
         <a class="btn btn-ghost btn-sm rm-cta" data-cta="deleg" href="/vhid?role=carrier&next=%2Fkabinet%23deleg" style="margin-top:8px">Оформити відрядження</a></div>
     </div>
   </section>
@@ -250,6 +250,7 @@ document.querySelectorAll('.rm-cta').forEach(a => a.addEventListener('click', ()
   try {
     const prices = await servicePrices();
     prices.forEach(p => document.querySelectorAll('[data-price="' + p.code + '"]').forEach(e => { e.textContent = Number(p.price).toLocaleString('uk-UA'); }));
+    prices.forEach(p => document.querySelectorAll('[data-team="' + p.code + '"]').forEach(e => { e.hidden = !p.active; }));
   } catch(e){}
   // Уже в кабінеті — ведемо одразу до форми
   try {
