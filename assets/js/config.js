@@ -156,7 +156,7 @@ function showToast(msg, type = 'success'){
 // Мітки конверсій Google Ads (Цілі → Конверсії → дія → «Налаштування тегу» → send_to «AW-18171698074/<мітка>»).
 // Порожня мітка — подія все одно йде в Google як звичайна подія.
 const ADS_ID = 'AW-18171698074';
-const ADS_CONVERSIONS = { rmpd_submit: '', sent_submit: '', deleg_submit: '', cmr_create: '' };
+const ADS_CONVERSIONS = { sign_up: '', rmpd_submit: '', sent_submit: '', deleg_submit: '', cmr_create: '' };
 function track(event, params = {}){
   if (typeof gtag !== 'function') return;
   gtag('event', event, params);
