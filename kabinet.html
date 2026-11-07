@@ -84,6 +84,7 @@
         <button class="cab-item cr-only" data-pane="fleet"   onclick="pane('fleet',this)" style="display:none"><i class="ti ti-steering-wheel"></i>Автопарк</button>
         <button class="cab-item"        data-pane="rmpd"     onclick="pane('rmpd',this)"><i class="ti ti-file-certificate"></i>RMPD Польща <span class="cab-badge" id="rmBadge" style="display:none">0</span></button>
         <button class="cab-item"        data-pane="sent"     onclick="pane('sent',this)"><i class="ti ti-map-pin-check"></i>SENT Польща <span class="cab-badge" id="snBadge" style="display:none">0</span></button>
+        <button class="cab-item"        data-pane="deleg"    onclick="pane('deleg',this)"><i class="ti ti-id"></i>Відрядження водія <span class="cab-badge" id="dlBadge" style="display:none">0</span></button>
         <button class="cab-item"        data-pane="requests" onclick="pane('requests',this)"><i class="ti ti-inbox"></i>Заявки <span class="cab-badge" id="reqBadge" style="display:none">0</span></button>
         <button class="cab-item"        data-pane="reviews"  onclick="pane('reviews',this)"><i class="ti ti-star"></i>Відгуки <span class="cab-badge" id="rvBadge" style="display:none">0</span></button>
         <button class="cab-item"        data-pane="calc"     onclick="pane('calc',this)"><i class="ti ti-calculator"></i>Калькулятор</button>
@@ -283,6 +284,13 @@
         <div id="sentMount"></div>
       </section>
 
+      <!-- ВІДРЯДЖЕННЯ ВОДІЯ -->
+      <section class="cab-pane" id="pane-deleg">
+        <h1 class="h-md" style="margin-bottom:.5rem">Відрядження водія в Польщу (Delegowanie)</h1>
+        <p class="text-sm text-muted" style="margin-bottom:1.25rem">Перевізники з України мають повідомляти Державну інспекцію праці Польщі (PIP) про кожне відрядження водія — навіть на двосторонні рейси — і мати в кабіні підписаний бланк Potwierdzenie delegowania. Заповніть дані один раз: бланк для водія сформуємо одразу, а повідомлення до PIP подамо за вас або підготуємо все, щоб ви подали самі.</p>
+        <div id="delegMount"></div>
+      </section>
+
       <!-- КОНСУЛЬТАЦІЇ -->
       <section class="cab-pane" id="pane-consult">
         <h1 class="h-md" style="margin-bottom:.5rem">Консультації з митних питань</h1>
@@ -432,6 +440,7 @@
 <script src="/assets/js/tg-connect.js"></script>
 <script src="/assets/js/rmpd.js"></script>
 <script src="/assets/js/sent.js"></script>
+<script src="/assets/js/deleg.js"></script>
 <script>
 let broker = null, requests = [], myRevs = [], period = 'month', reqFilter = 'all';
 
@@ -1013,6 +1022,7 @@ window.addEventListener('DOMContentLoaded', async () => {
   VinCert.mount(document.getElementById('vinMount'), { broker });
   Rmpd.mount(document.getElementById('rmpdMount'), { broker });
   Sent.mount(document.getElementById('sentMount'), { broker });
+  Deleg.mount(document.getElementById('delegMount'), { broker });
   csHowChange(); myConsultations().then(l => { myCons = l; renderConsult(); });
   renderConsult();
   renderServices();
@@ -1020,8 +1030,8 @@ window.addEventListener('DOMContentLoaded', async () => {
   renderPayments();
 
   TgConnect.mount('tgCard', { prefs: broker.kind === 'carrier'
-    ? [['cargo', 'Нові вантажі на моїх напрямках і статус авто'], ['offers', 'Мене обрали перевізником / ставки на мої вантажі'], ['rmpd', 'Статус заявок RMPD і SENT на Польщу'], ['requests', 'Заявки клієнтів']]
-    : [['requests', 'Нові заявки клієнтів'], ['offers', 'Ставки перевізників на мої вантажі'], ['rmpd', 'Статус заявок RMPD і SENT на Польщу']],
+    ? [['cargo', 'Нові вантажі на моїх напрямках і статус авто'], ['offers', 'Мене обрали перевізником / ставки на мої вантажі'], ['rmpd', 'Статус заявок RMPD, SENT і відряджень'], ['requests', 'Заявки клієнтів']]
+    : [['requests', 'Нові заявки клієнтів'], ['offers', 'Ставки перевізників на мої вантажі'], ['rmpd', 'Статус заявок RMPD, SENT і відряджень']],
     hint: broker.kind === 'carrier' ? 'Нові вантажі на ваших напрямках приходять у Telegram одразу — відгукуйтесь першим.' : 'Нові заявки клієнтів приходять у Telegram одразу — відповідайте першим.' });
   requests = await brokerRequests(broker.id);
   renderRequests();

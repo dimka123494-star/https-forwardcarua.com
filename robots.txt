@@ -3,6 +3,7 @@ Allow: /
 Disallow: /admin
 Disallow: /kabinet
 Disallow: /cmr
+Disallow: /delegowanie
 Disallow: /moi-zayavky
 Disallow: /vhid
 

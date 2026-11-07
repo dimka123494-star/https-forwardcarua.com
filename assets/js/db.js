@@ -1059,3 +1059,50 @@ async function adminUpdateSent(id, patch){
   const { error } = await sb.from('sent_requests').update(patch).eq('id', id);
   if (error){ console.error('adminUpdateSent:', error); throw new Error(sentError(error, 'Не вдалося зберегти')); }
 }
+
+/* ---------- Відрядження водія (Delegowanie) ---------- */
+function delegError(error, fallback){
+  const m = String((error && error.message) || '');
+  if (/deleg_denied:balance/.test(m)) return 'Недостатньо коштів на балансі — поповніть, щоб подати заявку';
+  if (/deleg_denied/.test(m)) return 'Подача тимчасово недоступна — напишіть нам';
+  if (/deleg_poa_required/.test(m)) return 'Щоб ми подали за вас, потрібна згода на довіреність';
+  if (/deleg_dates/.test(m)) return 'Дата закінчення відрядження раніше за дату початку';
+  if (/locked/.test(m)) return 'Заявку вже опрацьовує оператор — змінити її не можна. Напишіть нам.';
+  return fallback;
+}
+async function myDeleg(brokerId){
+  const sb = await sbReady();
+  const { data, error } = await sb.from('deleg_requests').select('*').eq('owner_id', brokerId).order('created_at', { ascending: false }).limit(300);
+  if (error) console.error('myDeleg:', error);
+  return data || [];
+}
+async function getDeleg(id){
+  const sb = await sbReady();
+  const { data, error } = await sb.from('deleg_requests').select('*').eq('id', id).maybeSingle();
+  if (error) console.error('getDeleg:', error);
+  return data;
+}
+async function saveDeleg(row, id){
+  const sb = await sbReady();
+  const q = id ? sb.from('deleg_requests').update(row).eq('id', id) : sb.from('deleg_requests').insert(row);
+  const { data, error } = await q.select('*').single();
+  if (error){ console.error('saveDeleg:', error); throw new Error(delegError(error, 'Не вдалося зберегти заявку. Спробуйте ще раз.')); }
+  return data;
+}
+async function setDelegStatus(id, status){
+  const sb = await sbReady();
+  const { data, error } = await sb.from('deleg_requests').update({ status }).eq('id', id).select('*').single();
+  if (error){ console.error('setDelegStatus:', error); throw new Error(delegError(error, 'Не вдалося змінити статус')); }
+  return data;
+}
+async function adminDeleg(){
+  const sb = await sbReady();
+  const { data, error } = await sb.from('deleg_requests').select('*, brokers(name, phone, telegram, email, plan, kind)').order('created_at', { ascending: false }).limit(500);
+  if (error) throw new Error('Не вдалося завантажити відрядження');
+  return data || [];
+}
+async function adminUpdateDeleg(id, patch){
+  const sb = await sbReady();
+  const { error } = await sb.from('deleg_requests').update(patch).eq('id', id);
+  if (error){ console.error('adminUpdateDeleg:', error); throw new Error(delegError(error, 'Не вдалося зберегти')); }
+}

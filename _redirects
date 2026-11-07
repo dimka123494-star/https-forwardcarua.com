@@ -26,6 +26,7 @@
 /terms           /terms.html         200
 /admin           /admin.html         200
 /cmr             /cmr.html           200
+/delegowanie     /delegowanie.html   200
 /taryfy          /index.html         200
 
 # ── Службові файли генератора ──

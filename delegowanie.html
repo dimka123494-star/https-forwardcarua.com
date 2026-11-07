@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Potwierdzenie delegowania — МитнийБрокер</title>
+<meta name="robots" content="noindex">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: #e9ebee; color: #111; font-family: Arial, "Helvetica Neue", Helvetica, sans-serif; }
+  .bar { position: sticky; top: 0; z-index: 5; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; padding: 10px 16px; background: #0f1a14; color: #fff; }
+  .bar b { font-size: 15px; margin-right: auto; }
+  .bar button, .bar a { font: 600 14px Arial, sans-serif; border: 0; border-radius: 8px; padding: 9px 14px; cursor: pointer; text-decoration: none; }
+  .bar .p { background: #10b981; color: #04150d; }
+  .bar .g { background: rgba(255,255,255,.12); color: #fff; }
+  .note { max-width: 210mm; margin: 12px auto 0; padding: 0 16px; font-size: 13px; color: #333; line-height: 1.45; }
+  #msg { max-width: 210mm; margin: 40px auto; padding: 0 16px; font-size: 15px; }
+  .sheets { padding: 12px 0 40px; }
+  .page { width: 210mm; min-height: 297mm; margin: 12px auto; background: #fff; padding: 11mm 15mm 12mm; box-shadow: 0 2px 12px rgba(0,0,0,.15); position: relative; font-size: 9.5pt; line-height: 1.35; }
+  .wz { text-align: right; font-size: 8pt; color: #444; }
+  h1 { font-size: 11pt; text-align: center; margin: 2mm 0 1mm; line-height: 1.3; }
+  h1 small { display: block; font-weight: 400; font-size: 9.5pt; margin-top: 1mm; }
+  .instr { text-align: center; font-size: 7.6pt; color: #333; margin: 1.5mm 0 4mm; }
+  .f { margin-bottom: 3mm; }
+  .f .l { font-size: 8.3pt; color: #222; }
+  .f .l b { margin-right: 1mm; }
+  .f .val { border-bottom: 1px dotted #555; min-height: 5.5mm; padding: .6mm 1mm .2mm; font-size: 10pt; font-weight: 600; font-family: "Courier New", Courier, monospace; white-space: pre-line; word-break: break-word; }
+  .row3 { display: grid; grid-template-columns: 1fr 1fr; gap: 6mm; }
+  .sig .val { min-height: 11mm; }
+  .notes { font-size: 7.5pt; color: #333; margin-top: 6mm; border-top: .6px solid #999; padding-top: 2mm; }
+  .foot { position: absolute; bottom: 7mm; left: 17mm; right: 17mm; font-size: 6.5pt; color: #777; display: flex; justify-content: space-between; }
+  .poa p { margin: 0 0 3.5mm; text-align: justify; }
+  .poa .ua { color: #444; font-size: 8.6pt; }
+  .poa h1 { margin-bottom: 6mm; }
+  .poa .line { border-bottom: 1px dotted #555; display: inline-block; min-width: 60mm; }
+  @media print {
+    @page { size: A4; margin: 0; }
+    html, body { background: #fff; }
+    .bar, .note { display: none !important; }
+    .sheets { padding: 0; }
+    .page { margin: 0; box-shadow: none; page-break-after: always; break-after: page; height: 297mm; min-height: 0; transform: none !important; }
+    .page:last-child { page-break-after: auto; break-after: auto; }
+  }
+</style>
+</head>
+<body>
+<div class="bar"><b id="barT">Potwierdzenie delegowania</b>
+  <select id="copies" onchange="render()" style="font:14px Arial;padding:7px;border-radius:8px"><option value="1">1 примірник</option><option value="2">2 примірники</option></select>
+  <button class="p" onclick="window.print()">🖨 Друкувати / PDF</button>
+  <a class="g" href="/kabinet#deleg">← Кабінет</a>
+</div>
+<p class="note" id="note" hidden></p>
+<div id="msg">Завантаження…</div>
+<div class="sheets" id="sheets"></div>
+
+<script src="/assets/js/config.js"></script>
+<script src="/assets/js/db.js"></script>
+<script>
+// Хто подає zgłoszenia від імені клієнтів (pełnomocnik). Змінюється тут.
+const ATTORNEY = { name: 'Dmytro Krykun', company: 'TOV "FORVARD KAR IUA" (forwardcarua.com)' };
+const TYPES_PL = { goods_intl: 'przewóz rzeczy, przewóz międzynarodowy / carriage of goods, international carriage', goods_cabotage: 'przewóz rzeczy, przewóz kabotażowy / carriage of goods, cabotage operation',
+  pass_intl: 'przewóz osób, przewóz międzynarodowy / carriage of passengers, international carriage', pass_cabotage: 'przewóz osób, przewóz kabotażowy / carriage of passengers, cabotage operation' };
+const CN = { UA: 'Ukraina / Ukraine', MD: 'Mołdawia / Moldova', GE: 'Gruzja / Georgia', TR: 'Turcja / Türkiye', KZ: 'Kazachstan / Kazakhstan', PL: 'Polska / Poland' };
+let r = null, doc = 'confirm';
+const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' })[c]);
+const dmy = d => d && /^\d{4}-\d{2}-\d{2}/.test(d) ? d.slice(8, 10) + '/' + d.slice(5, 7) + '/' + d.slice(0, 4) : (d || '');
+const f = (n, pl, en, val, cls = '') => '<div class="f ' + cls + '"><div class="l">' + (n === '' ? '' : '<b>' + n + '.</b>') + pl + ' / ' + en + '</div><div class="val">' + esc(val) + '</div></div>';
+
+function confirmPage(){
+  const addr = [r.carrier_street, [r.carrier_postcode, r.carrier_city].filter(Boolean).join(' '), CN[r.carrier_country] || r.carrier_country].filter(Boolean).join(', ');
+  return '<div class="page"><div class="wz">WZÓR — Dz. U. 2023 poz. 1638</div>' +
+    '<h1>POTWIERDZENIE DELEGOWANIA KIEROWCY NA TERYTORIUM RZECZYPOSPOLITEJ POLSKIEJ Z PAŃSTWA TRZECIEGO<small>CONFIRMATION OF A POSTING DECLARATION OF A DRIVER POSTED TO THE REPUBLIC OF POLAND FROM A THIRD COUNTRY</small></h1>' +
+    '<div class="instr">Należy wypełnić na komputerze lub maszynowo łacińskimi znakami i podpisać przed rozpoczęciem podróży / To be filled in on a computer or typewriter in Latin characters and signed before a journey</div>' +
+    f(1, 'Nazwa przewoźnika drogowego', 'Company’s name', r.carrier_name) +
+    f(2, 'Adres siedziby przewoźnika albo jego adres zamieszkania (ulica i numer, kod pocztowy, miejscowość, państwo)', 'Company’s address or carrier address of residence (Street address, postal code, city, country)', addr) +
+    f(3, 'Numer telefonu przewoźnika drogowego (w tym międzynarodowy numer kierunkowy)', 'Company’s telephone number (including international prefix)', r.carrier_phone) +
+    f(4, 'Adres e-mail przewoźnika drogowego', 'Company’s e-mail address', r.carrier_email) +
+    f(5, 'Numer zezwolenia wymaganego w międzynarodowym transporcie drogowym lub formularza jazdy *)', 'Number of permit to perform international road transport or number of journey form *)', r.permit_number || '—') +
+    f(6, 'Imię i nazwisko kierowcy', 'Driver’s first name and surname', [r.driver_first, r.driver_last].filter(Boolean).join(' ')) +
+    f(7, 'Adres zamieszkania kierowcy (ulica i numer, kod pocztowy, miejscowość, państwo)', 'Driver’s address of residence (Street address, postal code, city, country)', r.driver_address) +
+    f(8, 'Numer prawa jazdy kierowcy', 'Driver’s driving licence number', r.driver_licence) +
+    f(9, 'Data rozpoczęcia obowiązywania umowy o pracę kierowcy lub dokumentu równoważnego z taką umową, lub innej umowy, na podstawie której kierowca delegowany wykonuje przewozy drogowe na rzecz tego przewoźnika, oraz właściwe dla tej umowy prawo (dzień/miesiąc/rok)',
+      'Date of commencement of the driver’s employment contract or of the equivalent document, or another contract under which the posted driver carries out road transport operations for that haulier, and the law applicable to it (day/month/year)',
+      [dmy(r.contract_start), r.contract_law].filter(Boolean).join(' — ')) +
+    f(10, 'Numer rejestracyjny pojazdu silnikowego, którym wykonywany jest przewóz objęty delegowaniem', 'Number plates of the motor vehicle by which the carriage covered by the posting rules is performed', r.plate) +
+    f(11, 'Rodzaj przewozu objętego zasadami delegowania (przewóz rzeczy, przewóz osób, przewóz międzynarodowy lub przewóz kabotażowy)', 'Type of carriage covered by the posting rules (carriage of goods, carriage of passengers, international carriage or cabotage operation)', TYPES_PL[r.carriage_type] || '') +
+    '<div class="row3">' + f(12, 'Miejscowość', 'place', r.issue_place) + f(13, 'Data (dzień/miesiąc/rok)', 'date (day/month/year)', dmy(r.issue_date)) + '</div>' +
+    '<div class="row3">' + f(14, 'Podpis kierowcy', 'Driver’s signature', '', 'sig') + f(15, 'Podpis przewoźnika drogowego', 'Carrier’s signature', '', 'sig') + '</div>' +
+    '<div class="notes"><b>Objaśnienia / Explanatory notes:</b><br>*) Wypełnić jeśli wymagane jest zezwolenie w międzynarodowym transporcie drogowym / To be filled in if permit to perform international road transport is required.' +
+      '<br>Okres delegowania / Posting period: ' + dmy(r.date_from) + ' – ' + dmy(r.date_to) + '</div>' +
+    '<div class="foot"><span>Wypełniono w serwisie forwardcarua.com</span><span>' + (r.is_test ? 'DOKUMENT TESTOWY · ' : '') + 'ID ' + esc(String(r.id).slice(0, 8)) + '</span></div></div>';
+}
+function poaPage(){
+  const addr = [r.carrier_street, [r.carrier_postcode, r.carrier_city].filter(Boolean).join(' '), CN[r.carrier_country] || r.carrier_country].filter(Boolean).join(', ');
+  return '<div class="page poa"><h1>PEŁNOMOCNICTWO<small>ДОВІРЕНІСТЬ</small></h1>' +
+    '<p>' + esc(r.issue_place || r.carrier_city || '') + ', dnia ' + dmy(r.issue_date || new Date().toISOString().slice(0, 10)) + ' r.</p>' +
+    '<p><b>' + esc(r.carrier_name) + '</b>, z siedzibą: ' + esc(addr) + ', reprezentowany przez: <span class="line"></span> (imię, nazwisko, funkcja),</p>' +
+    '<p>niniejszym udziela pełnomocnictwa <b>' + esc(ATTORNEY.name) + '</b> (' + esc(ATTORNEY.company) + ') do składania w imieniu ' + esc(r.carrier_name) +
+      ' zgłoszeń delegowania kierowców na terytorium Rzeczypospolitej Polskiej z państwa trzeciego do Państwowej Inspekcji Pracy za pośrednictwem serwisu Biznes.gov.pl, ich podpisywania oraz dokonywania wszelkich czynności z tym związanych, zgodnie z ustawą z dnia 28 lipca 2023 r. o delegowaniu kierowców w transporcie drogowym.</p>' +
+    '<p>Pełnomocnictwo udzielone jest na czas nieokreślony, do odwołania.</p>' +
+    '<p class="ua">' + esc(r.carrier_name) + ' в особі <span class="line"></span> (ПІБ, посада) уповноважує <b>' + esc(ATTORNEY.name) + '</b> подавати від імені перевізника повідомлення про відрядження водіїв на територію Республіки Польща до Державної інспекції праці (PIP) через портал Biznes.gov.pl, підписувати їх і вчиняти всі пов’язані з цим дії. Довіреність безстрокова, діє до відкликання.</p>' +
+    '<div class="row3" style="margin-top:22mm">' + f('', 'Podpis i pieczęć mocodawcy', 'Підпис і печатка', '', 'sig') + f('', 'Imię, nazwisko, funkcja', 'ПІБ, посада', '', 'sig') + '</div>' +
+    '<div class="notes">Opłata skarbowa od pełnomocnictwa: 17 zł (art. 1 ust. 1 pkt 2 ustawy o opłacie skarbowej). / Державне мито за довіреність у Польщі — 17 zł, сплачуємо ми під час першої подачі.</div>' +
+    '<div class="foot"><span>forwardcarua.com</span><span>' + (r.is_test ? 'DOKUMENT TESTOWY · ' : '') + 'ID ' + esc(String(r.id).slice(0, 8)) + '</span></div></div>';
+}
+function render(){
+  if (!r) return;
+  const n = doc === 'poa' ? 1 : Number(document.getElementById('copies').value) || 1;
+  document.getElementById('sheets').innerHTML = Array.from({ length: n }, () => doc === 'poa' ? poaPage() : confirmPage()).join('');
+  fit();
+}
+function fit(){
+  const w = window.innerWidth, px = 210 * 3.7795;
+  document.querySelectorAll('.page').forEach(p => {
+    if (w < px + 24){ const k = (w - 16) / px; p.style.transform = 'scale(' + k + ')'; p.style.transformOrigin = 'top left'; p.style.marginBottom = (-(1 - k) * 297 * 3.7795 + 12) + 'px'; p.style.marginLeft = '8px'; }
+    else { p.style.transform = ''; p.style.marginBottom = ''; p.style.marginLeft = ''; }
+  });
+}
+window.addEventListener('resize', fit);
+window.addEventListener('beforeprint', () => document.querySelectorAll('.page').forEach(p => { p.style.transform = ''; p.style.marginBottom = ''; p.style.marginLeft = ''; }));
+window.addEventListener('afterprint', fit);
+
+(async () => {
+  const msg = document.getElementById('msg'), q = new URLSearchParams(location.search), id = q.get('id');
+  doc = q.get('doc') === 'poa' ? 'poa' : 'confirm';
+  if (!id){ msg.textContent = 'Не вказано документ. Відкрийте його з кабінету.'; return; }
+  const user = await currentUser();
+  if (!user){ location.href = '/vhid?next=' + encodeURIComponent(location.pathname + location.search); return; }
+  r = await getDeleg(id);
+  if (!r){ msg.textContent = 'Документ не знайдено або він належить іншому акаунту.'; return; }
+  msg.remove();
+  const note = document.getElementById('note'); note.hidden = false;
+  if (doc === 'poa'){
+    document.getElementById('barT').textContent = 'Pełnomocnictwo'; document.getElementById('copies').style.display = 'none';
+    note.textContent = 'Довіреність підписує керівник перевізника (з печаткою, якщо є). Надішліть нам фото або скан — вона безстрокова, тож потрібна один раз для всіх наступних відряджень.';
+  } else note.textContent = 'Роздрукуйте, підпишіть (графи 14 і 15) до початку рейсу й покладіть у кабіну разом із CMR і записами тахографа. Щоб зберегти PDF на iPhone: «Друкувати / PDF» → «Поділитися» → «Зберегти у Файли».';
+  document.title = (doc === 'poa' ? 'Pełnomocnictwo — ' : 'Potwierdzenie delegowania — ') + r.driver_last;
+  render();
+})();
+</script>
+</body>
+</html>

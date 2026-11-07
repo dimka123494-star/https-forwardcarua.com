@@ -179,6 +179,26 @@ async function handleEvent(ev: string, id: string) {
     for (const s of await subsFor([r.brokers?.user_id], "rmpd")) if (await send(s.chat_id, text, ["Мої заявки SENT", `${SITE}/kabinet#sent`])) sent++;
     return sent;
   }
+  if (ev === "deleg_new" || ev === "deleg_done" || ev === "deleg_fix") {
+    const { data: r } = await sb.from("deleg_requests").select("*, brokers(name, user_id, kind, plan)").eq("id", id).maybeSingle();
+    if (!r) return 0;
+    const head = `${esc(r.driver_first)} ${esc(r.driver_last)} · ${esc(r.plate)} · ${fmtD(r.date_from)}–${fmtD(r.date_to)}`;
+    if (ev === "deleg_new") {
+      if (r.status !== "new" || !(await once(`deleg_new:${id}:${r.updated_at}`))) return 0;
+      const { data: adm } = await sb.from("admins").select("user_id");
+      const text = `${r.is_test ? "🧪 ТЕСТ · " : ""}👤 <b>Нове відрядження водія</b> (Delegowanie, PIP)\n${head}\n${esc(r.carrier_name)}\n` +
+        `${esc(r.brokers?.name ?? "")} (${r.brokers?.kind === "carrier" ? "перевізник" : "брокер"})`;
+      for (const s of await subsFor((adm ?? []).map((a: any) => a.user_id), "rmpd")) if (await send(s.chat_id, text, ["Опрацювати", `${SITE}/admin`])) sent++;
+      return sent;
+    }
+    if ("deleg_" + (r.status === "done" ? "done" : r.status === "needs_fix" ? "fix" : "") !== ev || !(await once(`${ev}:${id}:${r.updated_at}`))) return 0;
+    const text = ev === "deleg_done"
+      ? `✅ <b>Відрядження водія подано до PIP</b>\n${head}\n\nРоздрукуйте бланк Potwierdzenie delegowania в кабінеті, підпишіть (перевізник і водій) і покладіть у кабіну разом із CMR і записами тахографа.` +
+        (r.admin_note ? `\n\n${esc(r.admin_note)}` : "")
+      : `⚠️ <b>Відрядження водія потребує уточнення</b>\n${head}\n\n${esc(r.admin_note ?? "")}\n\nВиправте дані в кабінеті — ми одразу подамо.`;
+    for (const s of await subsFor([r.brokers?.user_id], "rmpd")) if (await send(s.chat_id, text, ["Відрядження водіїв", `${SITE}/kabinet#deleg`])) sent++;
+    return sent;
+  }
   return 0;
 }
 
