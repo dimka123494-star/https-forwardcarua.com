@@ -992,3 +992,29 @@ async function adminWalletAdjust(email, amount, note){
   return data;
 }
 const uah = n => Number(n || 0).toLocaleString('uk-UA', { maximumFractionDigits: 2 }) + ' грн';
+
+/* ---------- CMR ---------- */
+async function myCmr(brokerId){
+  const sb = await sbReady();
+  const { data, error } = await sb.from('cmr_docs').select('id, rmpd_id, number, created_at, updated_at, price, is_test').eq('owner_id', brokerId).order('created_at', { ascending: false }).limit(300);
+  if (error) console.error('myCmr:', error);
+  return data || [];
+}
+async function getCmr(id){
+  const sb = await sbReady();
+  const { data, error } = await sb.from('cmr_docs').select('*').eq('id', id).maybeSingle();
+  if (error) console.error('getCmr:', error);
+  return data;
+}
+async function saveCmr(row, id){
+  const sb = await sbReady();
+  const q = id ? sb.from('cmr_docs').update({ data: row.data, number: row.number }).eq('id', id) : sb.from('cmr_docs').insert(row);
+  const { data, error } = await q.select('id, rmpd_id, number, created_at, updated_at, price, is_test').single();
+  if (error){
+    console.error('saveCmr:', error);
+    const m = String(error.message || '');
+    throw new Error(/cmr_denied:balance/.test(m) ? 'Недостатньо коштів на балансі — поповніть, щоб створити CMR'
+      : /cmr_unavailable/.test(m) ? 'Створення CMR тимчасово недоступне' : 'Не вдалося зберегти CMR. Спробуйте ще раз.');
+  }
+  return data;
+}

@@ -41,7 +41,7 @@ const Rmpd = (() => {
     'entry_point','exit_point','client_note'];
   const CARRIER_F = ['carrier_code','carrier_name','carrier_country','carrier_city','carrier_postcode','carrier_street','carrier_building','carrier_email'];
 
-  let st = { el:null, broker:null, acc:null, list:[], contacts:[], vehicles:[], editId:null, parent:null, filter:'active', carrierEdit:false, license:null, vehDocs:[], keepDocs:[], mode:'team', sheet:null };
+  let st = { el:null, broker:null, acc:null, list:[], contacts:[], vehicles:[], editId:null, parent:null, filter:'active', carrierEdit:false, license:null, vehDocs:[], keepDocs:[], mode:'team', sheet:null, cmr:[], cmrPrice:100 };
   const $ = id => document.getElementById(id);
   const v = id => { const e = $('rm-' + id); return e ? String(e.value || '').trim() : ''; };
   const set = (id, val) => { const e = $('rm-' + id); if (e && val !== undefined && val !== null) e.value = val; };
@@ -128,10 +128,11 @@ const Rmpd = (() => {
     injectCss();
     st.el = el; st.broker = broker; st.mode = store('mode') === 'self' ? 'self' : 'team';
     el.innerHTML = '<div class="empty">Завантаження…</div>';
-    const tasks = [rmpdAccess(broker.id), myRmpd(broker.id), rmpdContacts(broker.id)];
+    const tasks = [rmpdAccess(broker.id), myRmpd(broker.id), rmpdContacts(broker.id), myCmr(broker.id).catch(() => []), servicePrices().catch(() => [])];
     if (broker.kind === 'carrier' && typeof myVehicles === 'function') tasks.push(myVehicles().catch(() => []));
-    const [acc, list, contacts, vehicles] = await Promise.all(tasks);
+    const [acc, list, contacts, cmr, prices, vehicles] = await Promise.all(tasks);
     st.acc = acc; st.list = list; st.contacts = contacts; st.vehicles = (vehicles || []).filter(x => x.status !== 'rejected');
+    st.cmr = cmr || []; const cp = (prices || []).find(x => x.code === 'cmr'); st.cmrPrice = cp && cp.active ? Number(cp.price) : null;
     render(); badge();
     if (/[?&]paid=1/.test(location.search) && location.hash === '#rmpd'){ showToast('Дякуємо! Баланс оновиться, щойно WayForPay підтвердить оплату'); setTimeout(refreshAccess, 4000); setTimeout(refreshAccess, 12000); }
   }
@@ -174,7 +175,7 @@ const Rmpd = (() => {
     box.innerHTML = '<div class="text-xs text-muted" style="margin-top:8px">Завантаження…</div>';
     const rows = await walletHistory(st.broker.id);
     const label = t => t.kind === 'topup' ? 'Поповнення' : t.kind === 'bonus' ? 'Зарахування' : t.kind === 'adjust' ? 'Коригування'
-      : t.status === 'hold' ? 'Заморожено за заявку' : t.status === 'released' ? 'Повернено (скасовано)' : 'Оплата заявки';
+      : t.service === 'cmr' ? 'Оплата CMR' : t.status === 'hold' ? 'Заморожено за заявку' : t.status === 'released' ? 'Повернено (скасовано)' : 'Оплата заявки';
     box.innerHTML = rows.length ? '<div style="margin-top:10px">' + rows.map(t => '<div class="svc-line" style="padding:8px 12px;margin-bottom:4px">' +
         '<div><div class="text-sm">' + label(t) + '</div><div class="text-xs text-muted">' + new Date(t.created_at).toLocaleString('uk-UA', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) + (t.note ? ' · ' + esc(t.note) : '') + '</div></div>' +
         '<div class="text-sm" style="white-space:nowrap;color:' + (t.status === 'released' || t.status === 'hold' ? 'var(--muted)' : t.amount > 0 ? 'var(--green)' : 'var(--text)') + (t.status === 'released' ? ';text-decoration:line-through' : '') + '">' + (t.amount > 0 ? '+' : '') + uah(t.amount) + '</div></div>').join('') + '</div>'
@@ -663,6 +664,7 @@ const Rmpd = (() => {
     if (r.status === 'new' || r.status === 'needs_fix') a += '<button class="btn-quiet" onclick="Rmpd.edit(\'' + r.id + '\')">' + (r.status === 'needs_fix' ? '✏️ Виправити' : 'Редагувати') + '</button>';
     if (r.status === 'done' && !expired) a += '<button class="btn-quiet" onclick="Rmpd.update(\'' + r.id + '\')">Оновити заявку</button>';
     if (r.status === 'done' && r.direction !== 'back') a += '<button class="btn-quiet" onclick="Rmpd.back(\'' + r.id + '\')">↩ Зворотний рейс</button>';
+    if (r.status !== 'cancelled' && (st.cmrPrice !== null || cmrOf(r.id))) a += '<button class="btn-quiet" onclick="Rmpd.cmr(\'' + r.id + '\')">📄 ' + (cmrOf(r.id) ? 'CMR' : 'Створити CMR') + '</button>';
     a += '<button class="btn-quiet" onclick="Rmpd.repeat(\'' + r.id + '\')">Повторити</button>';
     if (r.status !== 'done' && r.status !== 'cancelled') a += '<button class="btn-quiet" onclick="Rmpd.cancel(\'' + r.id + '\')">Скасувати</button>';
     return '<div class="req"' + (r.status === 'needs_fix' ? ' style="border-color:rgba(241,101,75,.55)"' : '') + '><div class="spread" style="align-items:flex-start;gap:10px"><div style="min-width:0">' +
@@ -728,6 +730,110 @@ const Rmpd = (() => {
     try{ if (navigator.share) await navigator.share({ text }); else { await navigator.clipboard.writeText(text); showToast('Текст для водія скопійовано'); } }catch(e){}
   }
 
-  return { mount, submit, topup, history, setMode, openSheet, closeSheet, copyEl, copyAll, saveSelfRef, routeChanged, dateChanged, etaChanged, docsChanged, goodsToggle, idHint, lookupParty, lookupCarrier, pickCarrier, editCarrier, pickParty, pickVehicle,
+  /* ---------- CMR ---------- */
+  const cmrOf = rid => st.cmr.find(c => c.rmpd_id === rid);
+  const joinA = (...p) => p.filter(x => x && String(x).trim()).join(', ');
+  const CNAME = { UA:'Україна', PL:'Polska', DE:'Deutschland', CZ:'Česko', SK:'Slovensko', LT:'Lietuva', LV:'Latvija', EE:'Eesti', HU:'Magyarország', RO:'România', MD:'Moldova', NL:'Nederland', BE:'Belgique', FR:'France', IT:'Italia', AT:'Österreich', ES:'España', BG:'България', TR:'Türkiye' };
+  const cc = c => c ? (CNAME[c] ? c + ' — ' + CNAME[c] : c) : '';
+  function cmrDefaults(r){
+    const party = p => ({ name: r[p + '_name'] || '', address: joinA(r[p + '_address'], [r[p + '_postcode'], r[p + '_city']].filter(Boolean).join(' '), cc(r[p + '_country'])) });
+    const kg = r.cargo_weight_t ? String(Math.round(Number(r.cargo_weight_t) * 1000)) : '';
+    return {
+      number: r.cmr_number || '',
+      sender: party('sender'), consignee: party('recipient'),
+      delivery_place: joinA(r.unload_place, cc(r.unload_country)),
+      taking_place: joinA(r.load_place, cc(r.load_country)), taking_date: r.start_date || '',
+      docs: '', goods: [{ marks: '', packages: '', packing: '', nature: r.cargo_desc || '', stat: '', gross: kg, volume: '' }],
+      instructions: '', payment: 'frei', cod: '',
+      carrier: { name: r.carrier_name || '', address: joinA(r.carrier_address || joinA([r.carrier_street, r.carrier_building].filter(Boolean).join(' '), [r.carrier_postcode, r.carrier_city].filter(Boolean).join(' ')), cc(r.carrier_country)) },
+      plate: r.plate || '', trailer: r.trailer_plate || '', successive: '', reservations: '', special: '',
+      issue_place: r.load_place || '', issue_date: r.start_date || today()
+    };
+  }
+  async function cmr(rid){
+    const r = find(rid); if (!r) return;
+    const ex = cmrOf(rid); let d = cmrDefaults(r);
+    if (ex){ const full = await getCmr(ex.id); if (full) d = Object.assign(d, full.data || {}, { number: full.number || '' }); }
+    st.cmrEdit = { rid, id: ex && ex.id };
+    const w = $('rmFormWrap'); st.sheet = 'cmr';
+    const f = (k, label, v, ph = '', area = false) => '<div class="field"><label class="label" for="cm-' + k + '">' + label + '</label>' +
+      (area ? '<textarea class="input" rows="2" id="cm-' + k + '" placeholder="' + esc(ph) + '">' + esc(v || '') + '</textarea>' : '<input class="input" id="cm-' + k + '" value="' + esc(v || '') + '" placeholder="' + esc(ph) + '" autocomplete="off" spellcheck="false">') + '</div>';
+    const g = d.goods || [{}];
+    const goodsRow = (x, i) => '<div class="card card-tight" style="margin:0 0 8px"><div class="text-xs text-muted" style="margin-bottom:6px">Позиція ' + (i + 1) + '</div>' +
+      f('g' + i + '_nature', '9 · Назва вантажу', x.nature, 'напр. Furniture / Meble') +
+      row(f('g' + i + '_packages', '7 · Кількість місць', x.packages, '33'), f('g' + i + '_packing', '8 · Упаковка', x.packing, 'палети / pallets')) +
+      row(f('g' + i + '_gross', '11 · Вага брутто, кг', x.gross, '20000'), f('g' + i + '_volume', '12 · Обʼєм, м³', x.volume, '')) +
+      row(f('g' + i + '_marks', '6 · Знаки й номери', x.marks, ''), f('g' + i + '_stat', '10 · Код УКТЗЕД/HS', x.stat, '9403')) + '</div>';
+    const paid = !ex && st.cmrPrice > 0 && !(st.acc && st.acc.test);
+    w.innerHTML = '<div class="card" id="rmCmr"><div class="spread"><div class="card-title" style="margin:0">📄 CMR · ' + esc(r.plate) + '</div><button class="btn-quiet" onclick="Rmpd.closeSheet()">Закрити</button></div>' +
+      '<p class="hint" style="margin:6px 0 12px">Ми підставили дані з заявки. Перевірте й допишіть упаковку та кількість місць — далі відкриється готова накладна на 3 примірники для друку або збереження в PDF. ' +
+        (ex ? 'Правки цієї CMR — безкоштовно.' : paid ? 'Вартість — <strong>' + uah(st.cmrPrice) + '</strong> з балансу, наступні правки безкоштовні.' : '') + '</p>' +
+      sec('Сторони') +
+      f('sender_name', '1 · Відправник — назва', d.sender.name) + f('sender_address', 'Адреса відправника', d.sender.address, '', true) +
+      f('consignee_name', '2 · Одержувач — назва', d.consignee.name) + f('consignee_address', 'Адреса одержувача', d.consignee.address, '', true) +
+      f('carrier_name', '16 · Перевізник', d.carrier.name) + f('carrier_address', 'Адреса перевізника', d.carrier.address, '', true) +
+      row(f('plate', 'Тягач', d.plate), f('trailer', 'Причіп', d.trailer)) +
+      sec('Маршрут') +
+      f('delivery_place', '3 · Місце розвантаження', d.delivery_place) +
+      row(f('taking_place', '4 · Місце завантаження', d.taking_place), '<div class="field"><label class="label" for="cm-taking_date">Дата завантаження</label><input type="date" class="input" id="cm-taking_date" value="' + esc(d.taking_date || '') + '"></div>') +
+      sec('Вантаж') + '<div id="cmGoods">' + g.map(goodsRow).join('') + '</div>' +
+      (g.length < 4 ? '<button type="button" class="btn btn-ghost btn-sm" onclick="Rmpd.cmrAddGoods()">+ Ще позиція</button>' : '') +
+      sec('Документи та умови') +
+      f('docs', '5 · Додані документи', d.docs, 'Invoice №…, packing list, T1/EX…', true) +
+      f('instructions', '13 · Вказівки відправника', d.instructions, 'митне оформлення в …, температура …', true) +
+      row('<div class="field"><label class="label" for="cm-payment">14 · Оплата перевезення</label><select class="input" id="cm-payment"><option value="frei"' + (d.payment !== 'unfrei' ? ' selected' : '') + '>Frei — сплачує відправник</option><option value="unfrei"' + (d.payment === 'unfrei' ? ' selected' : '') + '>Unfrei — сплачує одержувач</option></select></div>',
+        f('cod', '15 · Накладений платіж', d.cod, '')) +
+      f('successive', '17 · Наступні перевізники', d.successive) +
+      f('reservations', '18 · Застереження перевізника', d.reservations, '', true) +
+      f('special', '19 · Особливі умови', d.special, '', true) +
+      sec('Оформлення') +
+      row(f('number', '№ CMR', d.number, 'необовʼязково'), f('issue_place', '21 · Місце складання', d.issue_place)) +
+      '<div class="field"><label class="label" for="cm-issue_date">Дата складання</label><input type="date" class="input" id="cm-issue_date" value="' + esc(d.issue_date || '') + '"></div>' +
+      '<div class="msg" id="cmMsg"></div>' +
+      '<button class="btn btn-primary btn-block" id="cmSave" onclick="Rmpd.cmrSave()">' + (ex ? 'Зберегти й відкрити CMR' : paid ? 'Створити CMR · ' + uah(st.cmrPrice) : 'Створити CMR') + '</button>' +
+      (ex ? '<a class="btn btn-ghost btn-block" style="margin-top:8px" href="/cmr?id=' + ex.id + '" target="_blank" rel="noopener">Відкрити без змін</a>' : '') + '</div>';
+    st.cmrGoods = g.length;
+    w.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+  function cmrAddGoods(){
+    const box = $('cmGoods'); if (!box || st.cmrGoods >= 4) return;
+    const i = st.cmrGoods++;
+    const f = (k, label, ph = '') => '<div class="field"><label class="label" for="cm-' + k + '">' + label + '</label><input class="input" id="cm-' + k + '" placeholder="' + ph + '" autocomplete="off"></div>';
+    box.insertAdjacentHTML('beforeend', '<div class="card card-tight" style="margin:0 0 8px"><div class="text-xs text-muted" style="margin-bottom:6px">Позиція ' + (i + 1) + '</div>' +
+      f('g' + i + '_nature', '9 · Назва вантажу') + row(f('g' + i + '_packages', '7 · Кількість місць'), f('g' + i + '_packing', '8 · Упаковка')) +
+      row(f('g' + i + '_gross', '11 · Вага брутто, кг'), f('g' + i + '_volume', '12 · Обʼєм, м³')) + row(f('g' + i + '_marks', '6 · Знаки й номери'), f('g' + i + '_stat', '10 · Код УКТЗЕД/HS')) + '</div>');
+  }
+  async function cmrSave(){
+    const v = k => { const e = $('cm-' + k); return e ? e.value.trim() : ''; };
+    const msg = $('cmMsg'), btn = $('cmSave');
+    const goods = [];
+    for (let i = 0; i < st.cmrGoods; i++){
+      const x = { marks: v('g' + i + '_marks'), packages: v('g' + i + '_packages'), packing: v('g' + i + '_packing'), nature: v('g' + i + '_nature'), stat: v('g' + i + '_stat'), gross: v('g' + i + '_gross').replace(',', '.'), volume: v('g' + i + '_volume').replace(',', '.') };
+      if (Object.values(x).some(Boolean)) goods.push(x);
+    }
+    const data = { sender: { name: v('sender_name'), address: v('sender_address') }, consignee: { name: v('consignee_name'), address: v('consignee_address') },
+      carrier: { name: v('carrier_name'), address: v('carrier_address') }, plate: normPlate(v('plate')), trailer: normPlate(v('trailer')),
+      delivery_place: v('delivery_place'), taking_place: v('taking_place'), taking_date: v('taking_date'), goods,
+      docs: v('docs'), instructions: v('instructions'), payment: v('payment') || 'frei', cod: v('cod'), successive: v('successive'),
+      reservations: v('reservations'), special: v('special'), issue_place: v('issue_place'), issue_date: v('issue_date') };
+    const miss = [];
+    if (!data.sender.name) miss.push('відправник'); if (!data.consignee.name) miss.push('одержувач'); if (!data.carrier.name) miss.push('перевізник');
+    if (!data.delivery_place) miss.push('місце розвантаження'); if (!data.taking_place) miss.push('місце завантаження');
+    if (!goods.some(x => x.nature)) miss.push('назва вантажу'); if (!data.plate) miss.push('номер тягача');
+    if (miss.length){ msg.className = 'msg msg-err show'; msg.textContent = 'Заповніть: ' + miss.join(', '); return; }
+    const ed = st.cmrEdit || {};
+    const win = window.open('about:blank', '_blank');
+    btn.disabled = true;
+    try{
+      const saved = await saveCmr({ owner_id: st.broker.id, rmpd_id: ed.rid, number: v('number') || null, data }, ed.id);
+      const i = st.cmr.findIndex(c => c.id === saved.id); if (i >= 0) st.cmr[i] = saved; else st.cmr.unshift(saved);
+      if (!ed.id) refreshAccess();
+      const url = '/cmr?id=' + saved.id;
+      if (win) win.location.href = url; else location.href = url;
+      showToast(ed.id ? 'CMR оновлено' : 'CMR створено'); closeSheet(); renderList();
+    }catch(e){ if (win) win.close(); msg.className = 'msg msg-err show'; msg.textContent = e.message; btn.disabled = false; }
+  }
+
+  return { mount, submit, cmr, cmrAddGoods, cmrSave, topup, history, setMode, openSheet, closeSheet, copyEl, copyAll, saveSelfRef, routeChanged, dateChanged, etaChanged, docsChanged, goodsToggle, idHint, lookupParty, lookupCarrier, pickCarrier, editCarrier, pickParty, pickVehicle,
     setFilter, edit, update, repeat, back, reset, cancel, copy, share, translit, normPlate, derive };
 })();
