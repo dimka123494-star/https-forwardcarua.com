@@ -158,6 +158,27 @@ async function handleEvent(ev: string, id: string) {
     for (const s of await subsFor([r.brokers?.user_id], "rmpd")) if (await send(s.chat_id, text, ["Мої заявки RMPD", `${SITE}/kabinet#rmpd`])) sent++;
     return sent;
   }
+  if (ev === "sent_new" || ev === "sent_done" || ev === "sent_fix") {
+    const { data: r } = await sb.from("sent_requests").select("*, brokers(name, user_id, kind, plan)").eq("id", id).maybeSingle();
+    if (!r) return 0;
+    const head = `${esc(r.plate)}${r.trailer_plate ? " / " + esc(r.trailer_plate) : ""} · <code>${esc(r.sent_number)}</code> · ${fmtD(r.start_date)}`;
+    if (ev === "sent_new") {
+      if (r.status !== "new" || !(await once(`sent_new:${id}:${r.updated_at}`))) return 0;
+      const { data: adm } = await sb.from("admins").select("user_id");
+      const text = `${r.is_test ? "🧪 ТЕСТ · " : ""}📦 <b>Нова заявка SENT</b> (доповнення перевізника)\n${head}\n` +
+        `${esc(r.carrier_name ?? "")}${r.entry_point ? " · в'їзд " + esc(r.entry_point) : ""}${r.exit_point ? " · виїзд " + esc(r.exit_point) : ""}\n` +
+        `${esc(r.brokers?.name ?? "")} (${r.brokers?.kind === "carrier" ? "перевізник" : "брокер"})`;
+      for (const s of await subsFor((adm ?? []).map((a: any) => a.user_id), "rmpd")) if (await send(s.chat_id, text, ["Опрацювати", `${SITE}/admin`])) sent++;
+      return sent;
+    }
+    if ("sent_" + (r.status === "done" ? "done" : r.status === "needs_fix" ? "fix" : "") !== ev || !(await once(`${ev}:${id}:${r.updated_at}`))) return 0;
+    const text = ev === "sent_done"
+      ? `✅ <b>SENT доповнено</b>\n${head}\n\nДані перевізника внесено в PUESC. Перед в'їздом у Польщу увімкніть локатор GPS — він має працювати весь час руху Польщею.` +
+        (r.admin_note ? `\n\n${esc(r.admin_note)}` : "")
+      : `⚠️ <b>Заявка SENT потребує уточнення</b>\n${head}\n\n${esc(r.admin_note ?? "")}\n\nВиправте дані в кабінеті — ми одразу подамо.`;
+    for (const s of await subsFor([r.brokers?.user_id], "rmpd")) if (await send(s.chat_id, text, ["Мої заявки SENT", `${SITE}/kabinet#sent`])) sent++;
+    return sent;
+  }
   return 0;
 }
 

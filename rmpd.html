@@ -53,6 +53,7 @@
   .rm-steps .card{position:relative;padding-top:2.6rem}
   .rm-steps .card:before{counter-increment:s;content:counter(s);position:absolute;top:14px;left:18px;width:26px;height:26px;border-radius:50%;background:var(--green);color:#04120c;font-weight:700;display:flex;align-items:center;justify-content:center;font-size:13px}
   .rm-steps h3{font-size:16px;margin:0 0 .35rem}
+  .rm-steps.nonum .card{padding-top:1.25rem}.rm-steps.nonum .card:before{display:none}
   .rm-steps p{font-size:14px;color:var(--muted);line-height:1.6}
   .rm-checks{columns:2 260px;column-gap:24px;margin:1rem 0}
   .rm-checks div{break-inside:avoid;font-size:14px;color:var(--muted-strong);padding:6px 0 6px 26px;position:relative;line-height:1.5}
@@ -167,6 +168,18 @@
     </div>
   </section>
 
+  <section class="container seo" id="sent-cmr">
+    <h2>Також у кабінеті: SENT і CMR</h2>
+    <div class="rm-steps nonum">
+      <div class="card"><h3>📦 SENT — доповнення перевізника</h3><p>Везете паливо, олії, алкоголь чи інший товар під контролем SENT? Отримали від польського партнера номер SENT і ключ KD-… — впишіть їх, решту підставимо з рейсу. Номер GPS-локатора перевіряємо за офіційним форматом PUESC з контрольною цифрою.</p>
+        <p class="text-sm" style="margin-top:8px">Оператор — <strong><span data-price="sent">450</span> грн</strong> · самостійно — <strong><span data-price="sent_self">100</span> грн</strong></p>
+        <a class="btn btn-ghost btn-sm rm-cta" data-cta="sent" href="/vhid?role=carrier&next=%2Fkabinet%23sent" style="margin-top:8px">Доповнити SENT</a></div>
+      <div class="card"><h3>📄 CMR за хвилину</h3><p>Заповнена міжнародна накладна з даних рейсу: усі 24 графи, підписи українською, польською й англійською, 3 кольорові примірники. Друкуйте або зберігайте в PDF з телефона.</p>
+        <p class="text-sm" style="margin-top:8px"><strong><span data-price="cmr">100</span> грн</strong> за документ, правки безкоштовно</p>
+        <a class="btn btn-ghost btn-sm rm-cta" data-cta="cmr" href="/vhid?role=carrier&next=%2Fkabinet%23rmpd" style="margin-top:8px">Створити CMR</a></div>
+    </div>
+  </section>
+
   <section class="container seo">
     <h2>Питання й відповіді</h2>
     <div class="faq" onclick="this.classList.toggle('open')"><div class="faq-q">Хто зобовʼязаний подавати заявку RMPD? <i class="ti ti-chevron-down"></i></div><div class="faq-a">Перевізники з країн поза ЄС, зокрема з України, реєструють кожне міжнародне перевезення територією Польщі в системі SENT/RMPD до перетину кордону. Також під час руху Польщею потрібно передавати геолокацію транспортного засобу.</div></div>
@@ -238,7 +251,7 @@ document.querySelectorAll('.rm-cta').forEach(a => a.addEventListener('click', ()
   // Уже в кабінеті — ведемо одразу до форми
   try {
     const u = await currentUser(); if (!u) return;
-    document.querySelectorAll('.rm-cta').forEach(a => { a.href = '/kabinet#rmpd'; });
+    document.querySelectorAll('.rm-cta').forEach(a => { a.href = '/kabinet#' + (a.dataset.cta === 'sent' ? 'sent' : 'rmpd'); });
     const b = document.getElementById('loginBtn'); if (b){ b.textContent = 'Кабінет'; b.href = '/kabinet#rmpd'; }
     const m = document.getElementById('menuAuth'); if (m){ m.textContent = 'Мій кабінет'; m.href = '/kabinet#rmpd'; }
   } catch(e){}

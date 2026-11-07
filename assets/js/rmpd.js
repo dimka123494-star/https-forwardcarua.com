@@ -669,6 +669,7 @@ const Rmpd = (() => {
     if (r.status === 'done' && !expired) a += '<button class="btn-quiet" onclick="Rmpd.update(\'' + r.id + '\')">Оновити заявку</button>';
     if (r.status === 'done' && r.direction !== 'back') a += '<button class="btn-quiet" onclick="Rmpd.back(\'' + r.id + '\')">↩ Зворотний рейс</button>';
     if (r.status !== 'cancelled' && (st.cmrPrice !== null || cmrOf(r.id))) a += '<button class="btn-quiet" onclick="Rmpd.cmr(\'' + r.id + '\')">📄 ' + (cmrOf(r.id) ? 'CMR' : 'Створити CMR') + '</button>';
+    if (r.status !== 'cancelled' && window.Sent) a += '<button class="btn-quiet" onclick="Rmpd.sent(\'' + r.id + '\')">📦 SENT</button>';
     a += '<button class="btn-quiet" onclick="Rmpd.repeat(\'' + r.id + '\')">Повторити</button>';
     if (r.status !== 'done' && r.status !== 'cancelled') a += '<button class="btn-quiet" onclick="Rmpd.cancel(\'' + r.id + '\')">Скасувати</button>';
     return '<div class="req"' + (r.status === 'needs_fix' ? ' style="border-color:rgba(241,101,75,.55)"' : '') + '><div class="spread" style="align-items:flex-start;gap:10px"><div style="min-width:0">' +
@@ -839,5 +840,6 @@ const Rmpd = (() => {
   }
 
   return { mount, submit, cmr, cmrAddGoods, cmrSave, topup, history, setMode, openSheet, closeSheet, copyEl, copyAll, saveSelfRef, routeChanged, dateChanged, etaChanged, docsChanged, goodsToggle, idHint, lookupParty, lookupCarrier, pickCarrier, editCarrier, pickParty, pickVehicle,
-    setFilter, edit, update, repeat, back, reset, cancel, copy, share, translit, normPlate, derive };
+    setFilter, edit, update, repeat, back, reset, cancel, copy, share, translit, normPlate, derive, sent: id => window.Sent && Sent.fromRmpd(find(id)),
+    normGps, gpsOk: g => GPS_RE.test(g) && gpsCheck(g), normCross, crossings: () => UA_CROSS.map(c => c[0]).concat(OTHER_CROSS), COUNTRIES };
 })();

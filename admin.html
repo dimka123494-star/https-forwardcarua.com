@@ -62,6 +62,7 @@
     <button class="nav-link"        data-p="cargo"    onclick="pane('cargo',this)">Вантажі <span class="cab-badge" id="cgAdmBadge" style="display:none">0</span></button>
     <button class="nav-link"        data-p="consult"  onclick="pane('consult',this)">Консультації <span class="cab-badge" id="csBadge" style="display:none">0</span></button>
     <button class="nav-link"        data-p="rmpd"     onclick="pane('rmpd',this)">RMPD <span class="cab-badge" id="rmAdmBadge" style="display:none">0</span></button>
+    <button class="nav-link"        data-p="sent"     onclick="pane('sent',this)">SENT <span class="cab-badge" id="snAdmBadge" style="display:none">0</span></button>
     <button class="nav-link"        data-p="reviews"  onclick="pane('reviews',this)">Відгуки <span class="cab-badge" id="modBadge" style="display:none">0</span></button>
     <button class="nav-link"        data-p="billing"  onclick="pane('billing',this)">Платежі</button>
   </div>
@@ -255,6 +256,19 @@
       <div id="rmAdmList"></div>
     </section>
 
+    <!-- SENT -->
+    <section class="cab-pane" id="pane-sent">
+      <div class="spread" style="margin-bottom:1rem">
+        <h1 class="h-md">Заявки SENT <span class="text-sm text-muted" id="snTotal"></span></h1>
+        <a class="btn btn-ghost btn-sm" href="/kabinet#sent">🧪 Подати тестову заявку</a>
+        <select class="input" style="width:190px" id="snFStatus" onchange="renderSentAdm()">
+          <option value="open">До опрацювання</option><option value="">Всі</option><option value="done">Подані</option><option value="cancelled">Скасовані</option>
+        </select>
+      </div>
+      <p class="hint" style="margin-bottom:1rem">Порядок: «В роботі» → на <a href="https://puesc.gov.pl/" target="_blank" rel="noopener">puesc.gov.pl</a> відкрити форму доповнення перевізником (SENT-301 / 202 / 102 — вказано в заявці), ввести номер SENT і ключ KD-…, внести дані → після підтвердження PUESC поставити «Подано в PUESC». Якщо номер або ключ не приймаються — «Потрібне уточнення» з коментарем. Ціни SENT — у розділі RMPD → «💳 Ціни й баланси клієнтів».</p>
+      <div id="snAdmList"></div>
+    </section>
+
     <!-- ВІДГУКИ -->
     <section class="cab-pane" id="pane-reviews">
       <div class="spread" style="margin-bottom:1rem">
@@ -417,6 +431,7 @@
 
 <script src="/assets/js/config.js"></script>
 <script src="/assets/js/db.js"></script>
+<script src="/assets/js/sent.js"></script>
 <script src="/assets/js/regions-loc.js"></script>
 <script src="/assets/js/outreach.js"></script>
 <script>
@@ -477,6 +492,7 @@ async function loadAll(){
   try { consults = await adminConsultations(); renderConsults(); } catch(e){ console.error(e); }
   try { rmpdAdm = await adminRmpd(); renderRmpdAdm(); } catch(e){ console.error(e); }
   rmLoadPrices();
+  try { sentAdm = await adminSent(); renderSentAdm(); } catch(e){ console.error(e); }
   try { cargoAdm = await adminCargo(); renderCargoAdm(); } catch(e){ console.error(e); }
   try { vehAdm = await adminVehicles(); renderVehAdm(); } catch(e){ console.error(e); }
 }
@@ -659,6 +675,48 @@ async function saveRmpdAdm(id){
     await adminUpdateRmpd(id, { status, ref_number: ref || null, admin_note: note || null, rmpd406_ok: ok406 });
     rmpdAdm = await adminRmpd(); renderRmpdAdm(); showToast('Збережено');
   }catch(e){ showToast(e.message, 'error'); }
+}
+
+/* ---------- SENT ---------- */
+let sentAdm = [];
+function renderSentAdm(){
+  const fs = document.getElementById('snFStatus').value;
+  const open_ = st => ['new','in_progress','needs_fix'].includes(st);
+  const list = sentAdm.filter(r => !fs || (fs === 'open' ? open_(r.status) && r.mode !== 'self' : r.status === fs))
+    .sort((a, b) => (a.start_date || '').localeCompare(b.start_date || '') * (fs === 'open' ? 1 : 0) || new Date(b.created_at) - new Date(a.created_at));
+  const open = sentAdm.filter(r => r.status === 'new' && r.mode !== 'self').length;
+  const bd = document.getElementById('snAdmBadge'); bd.textContent = open; bd.style.display = open ? '' : 'none';
+  document.getElementById('snTotal').textContent = '· ' + sentAdm.length;
+  const d = x => x ? x.split('-').reverse().join('.') : '';
+  document.getElementById('snAdmList').innerHTML = list.length ? list.map(r => {
+    const b = r.brokers || {}, st = Sent.STATUS[r.status] || Sent.STATUS.new, dir = Sent.DIRS[r.direction] || Sent.DIRS.import;
+    return '<div class="card" style="margin-bottom:12px' + (r.status === 'new' ? ';border-color:rgba(16,185,129,.45)' : '') + '">' +
+      '<div class="spread" style="align-items:flex-start;gap:10px"><div>' +
+        (r.is_test ? '<div style="margin-bottom:6px"><span class="badge" style="background:rgba(245,166,35,.15);color:var(--amber)">🧪 ТЕСТ — лише test.puesc.gov.pl</span></div>' : '') +
+        (r.mode === 'self' ? '<div style="margin-bottom:6px"><span class="badge badge-free">🙋 Подає клієнт сам — довідково</span></div>' : '') +
+        '<div style="font-weight:600">' + dir.f + ' · ' + esc(r.plate) + ' · ' + esc(r.entry_point || r.exit_point || '') + ' · ' + d(r.start_date) + '</div>' +
+        '<div class="text-xs text-muted">' + esc(b.name || '—') + ' (' + (b.kind === 'carrier' ? 'перевізник' : 'брокер') + ')' + (Number(r.price) ? ' · оплата ' + uah(r.price) : '') +
+          (b.phone ? ' · ' + esc(b.phone) : '') + (b.telegram ? ' · ' + esc(b.telegram) : '') + ' · ' + new Date(r.created_at).toLocaleString('uk-UA') + '</div></div>' +
+      '<span class="badge" style="border:.5px solid ' + st.color + ';color:' + st.color + '">' + st.label + '</span></div>' +
+      '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:0 16px">' +
+        Sent.sections(r).filter(s => s[0] !== 'Oświadczenie').map(([t, rows]) => '<div><div class="card-title" style="margin:10px 0 6px">' + t + '</div>' + rows.map(x => rmRow(x[0], x[1])).join('') + '</div>').join('') + '</div>' +
+      '<div class="card-title" style="margin:10px 0 6px">Oświadczenie</div><p class="hint" style="margin:0 0 8px">Позначте повноваження діяти від імені перевізника й впишіть імʼя оператора. Клієнт дав доручення у формі заявки.</p>' +
+      (r.client_note ? '<div class="rv-reply text-sm" style="margin-top:8px;white-space:pre-line">💬 ' + esc(r.client_note) + '</div>' : '') +
+      '<div style="margin:10px 0"><button class="btn btn-ghost btn-sm" onclick="snCopyAll(\'' + r.id + '\')"><i class="ti ti-clipboard-text"></i> Скопіювати все текстом</button></div>' +
+      '<div class="field"><label class="label">Статус</label><select class="input" id="sn-st-' + r.id + '">' +
+        Object.entries(Sent.STATUS).map(([k, s]) => '<option value="' + k + '"' + (r.status === k ? ' selected' : '') + '>' + s.label + '</option>').join('') + '</select></div>' +
+      '<div class="field"><label class="label">Коментар клієнту (що уточнити / примітка)</label><textarea class="input" id="sn-note-' + r.id + '" style="min-height:60px">' + esc(r.admin_note || '') + '</textarea></div>' +
+      (Number(r.price) && open_(r.status) ? '<p class="hint" style="margin:0 0 8px">💳 ' + uah(r.price) + ' заморожено на балансі клієнта: спишеться при «Подано в PUESC», повернеться при «Скасовано».</p>' : '') +
+      '<button class="btn btn-primary btn-sm" onclick="saveSentAdm(\'' + r.id + '\')">Зберегти</button></div>';
+  }).join('') : '<div class="empty"><strong>Немає заявок</strong>Тут зʼявляться заявки SENT від перевізників.</div>';
+}
+async function snCopyAll(id){ const r = sentAdm.find(x => x.id === id); try{ await navigator.clipboard.writeText(Sent.plain(r)); showToast('Усі дані заявки скопійовано'); }catch(e){} }
+async function saveSentAdm(id){
+  const status = document.getElementById('sn-st-' + id).value, note = document.getElementById('sn-note-' + id).value.trim();
+  if (status === 'needs_fix' && !note){ showToast('Напишіть, що саме уточнити', 'error'); return; }
+  if (status === 'done' && !confirm('PUESC прийняв доповнення заявки? Клієнт отримає повідомлення, а кошти буде списано.')) return;
+  try{ await adminUpdateSent(id, { status, admin_note: note || null }); sentAdm = await adminSent(); renderSentAdm(); showToast('Збережено'); }
+  catch(e){ showToast(e.message, 'error'); }
 }
 
 /* ---------- Консультації ---------- */

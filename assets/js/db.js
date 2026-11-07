@@ -1018,3 +1018,44 @@ async function saveCmr(row, id){
   }
   return data;
 }
+
+/* ---------- SENT (доповнення заявки перевізником) ---------- */
+function sentError(error, fallback){
+  const m = String((error && error.message) || '');
+  if (/sent_denied:balance/.test(m)) return 'Недостатньо коштів на балансі — поповніть, щоб подати заявку';
+  if (/sent_denied/.test(m)) return 'Подача SENT тимчасово недоступна — напишіть нам';
+  if (/sent_number_format/.test(m)) return 'Номер SENT має вигляд SENT + 14 цифр, напр. SENT20261107123456';
+  if (/sent_key_format/.test(m)) return 'Ключ перевізника має вигляд KD-12XL (KD, дефіс, 2 цифри, 2 літери)';
+  if (/locked/.test(m)) return 'Заявку вже опрацьовує оператор — змінити її не можна. Напишіть нам.';
+  return fallback;
+}
+async function mySent(brokerId){
+  const sb = await sbReady();
+  const { data, error } = await sb.from('sent_requests').select('*').eq('owner_id', brokerId).order('created_at', { ascending: false }).limit(200);
+  if (error) console.error('mySent:', error);
+  return data || [];
+}
+async function saveSent(row, id){
+  const sb = await sbReady();
+  const q = id ? sb.from('sent_requests').update(row).eq('id', id) : sb.from('sent_requests').insert(row);
+  const { data, error } = await q.select('*').single();
+  if (error){ console.error('saveSent:', error); throw new Error(sentError(error, 'Не вдалося зберегти заявку SENT. Спробуйте ще раз.')); }
+  return data;
+}
+async function setSentStatus(id, status){
+  const sb = await sbReady();
+  const { data, error } = await sb.from('sent_requests').update({ status }).eq('id', id).select('*').single();
+  if (error){ console.error('setSentStatus:', error); throw new Error(sentError(error, 'Не вдалося змінити статус')); }
+  return data;
+}
+async function adminSent(){
+  const sb = await sbReady();
+  const { data, error } = await sb.from('sent_requests').select('*, brokers(name, phone, telegram, email, plan, kind)').order('created_at', { ascending: false }).limit(500);
+  if (error) throw new Error('Не вдалося завантажити заявки SENT');
+  return data || [];
+}
+async function adminUpdateSent(id, patch){
+  const sb = await sbReady();
+  const { error } = await sb.from('sent_requests').update(patch).eq('id', id);
+  if (error){ console.error('adminUpdateSent:', error); throw new Error(sentError(error, 'Не вдалося зберегти')); }
+}
