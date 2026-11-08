@@ -118,13 +118,8 @@ const PuescFill = (() => {
   }
 
   /* Закладка: читає буфер, ставить значення через jQuery форми (щоб спрацювали її обробники), чекає перебудови розділів */
-  const BOOKMARKLET = "javascript:(async()=>{try{const t=await navigator.clipboard.readText();if(!t.startsWith('MBPUESC:'))return alert('Спершу натисніть «⚡ Автозаповнення» у заявці на forwardcarua.com');" +
-    "const d=JSON.parse(t.slice(8)),J=(window.pl_gov_mf_sent_Sent&&pl_gov_mf_sent_Sent.$)||window.jQuery,ns='_Sent_Rmpd100Portlet_',w=m=>new Promise(r=>setTimeout(r,m)),miss=[];" +
-    "if(!document.getElementById(ns+'carrierName'))return alert('Відкрийте форму RMPD100 на puesc.gov.pl і натисніть закладку ще раз');" +
-    "for(const[k,v]of d){if(k==='@wait'){await w(v);continue}const e=document.getElementById(ns+k);if(!e){miss.push(k);continue}" +
-    "if(e.type==='checkbox'){if(e.checked!==!!v)e.click()}else{if(e.tagName==='SELECT'&&![...e.options].some(o=>o.value===String(v))){miss.push(k+'='+v);continue}" +
-    "if(J)J(e).val(String(v)).trigger('change');else{e.value=v;e.dispatchEvent(new Event('change',{bubbles:true}))}}await w(40)}" +
-    "alert('Готово: заповнено '+(d.length-miss.length)+' полів.'+(miss.length?'\\nНе вдалося: '+miss.join(', '):'')+'\\n\\nПеревірте форму, позначте декларацію в розділі 8 і лише тоді натискайте «Wyślij».')}catch(x){alert('Автозаповнення: '+x.message)}})()";
+  /* Закладка — лише завантажувач: сам код у /assets/js/puesc-run.js, тож виправлення не вимагають перетягувати закладку заново */
+  const BOOKMARKLET = "javascript:(()=>{const s=document.createElement('script');s.src='https://forwardcarua.com/assets/js/puesc-run.js?v='+Date.now();s.onerror=()=>alert('Не вдалося завантажити автозаповнення з forwardcarua.com');document.body.appendChild(s)})()";
 
   /* Блок з інструкцією й закладкою для перетягування */
   function howto(){
@@ -132,7 +127,7 @@ const PuescFill = (() => {
       '<li>Перетягніть цю кнопку на панель закладок браузера: <a href="' + BOOKMARKLET.replace(/"/g, '&quot;') + '" onclick="alert(\'Не натискайте тут — перетягніть кнопку на панель закладок (Cmd/Ctrl+Shift+B показує панель).\');return false" ' +
         'style="display:inline-block;padding:3px 10px;border-radius:7px;background:var(--blue);color:var(--on-accent);font-weight:600;text-decoration:none">MB → PUESC</a></li>' +
       '<li>У заявці натисніть «⚡ Автозаповнення PUESC» — дані скопіюються.</li>' +
-      '<li>Відкрийте форму RMPD100 на puesc.gov.pl (увійшовши в акаунт) і натисніть закладку «MB → PUESC». Браузер може спитати дозвіл на буфер обміну — дозвольте.</li>' +
+      '<li>Відкрийте форму RMPD100 на puesc.gov.pl (увійшовши в акаунт) і натисніть закладку «MB → PUESC». Якщо браузер попросить — вставте дані у віконце (Cmd/Ctrl+V) і натисніть OK.</li>' +
       '<li>Перевірте поля, позначте декларацію (розділ 8) і надішліть.</li></ol></details>';
   }
   return { pairs, text, copy, route, howto, BOOKMARKLET, ROUTES };
