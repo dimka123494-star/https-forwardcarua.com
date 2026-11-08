@@ -26,6 +26,51 @@ const Rmpd = (() => {
   }
   const OTHER_CROSS = ['Świecko','Kołbaskowo','Jędrzychowice','Olszyna','Gubinek','Lubieszyn','Gorzyczki','Cieszyn','Chyżne','Barwinek',
     'Łysa Polana','Kudowa-Słone','Budzisko','Terespol','Kukuryki','Port Gdańsk','Port Gdynia','Port Szczecin'];
+  /* Польські пункти пропуску для RMPD100 3.7/3.8: адреса, воєводство, координати (OpenStreetMap, PL-бік КПП) */
+  const PL_PLACES = {
+    'Dorohusk':    { city:'Dorohusk',    zip:'22-175', prov:'lubelskie',    lat:51.18120, lon:23.80180 },
+    'Hrebenne':    { city:'Hrebenne',    zip:'22-681', prov:'lubelskie',    lat:50.27620, lon:23.58680 },
+    'Zosin':       { city:'Zosin',       zip:'22-523', prov:'lubelskie',    lat:50.85970, lon:24.13580 },
+    'Dołhobyczów': { city:'Dołhobyczów', zip:'22-540', prov:'lubelskie',    lat:50.58050, lon:24.08700 },
+    'Korczowa':    { city:'Korczowa',    zip:'37-552', prov:'podkarpackie', lat:49.95481, lon:23.11403 },
+    'Medyka':      { city:'Medyka',      zip:'37-732', prov:'podkarpackie', lat:49.79967, lon:22.94767 },
+    'Krościenko':  { city:'Krościenko',  zip:'38-700', prov:'podkarpackie', lat:49.48140, lon:22.69860 },
+    'Budomierz':   { city:'Budomierz',   zip:'37-625', prov:'podkarpackie', lat:50.10028, lon:23.27417 },
+    'Kukuryki':    { city:'Kukuryki',    zip:'21-550', prov:'lubelskie',    lat:52.11050, lon:23.56090 },
+    'Terespol':    { city:'Terespol',    zip:'21-550', prov:'lubelskie',    lat:52.07085, lon:23.64349 },
+    'Sławatycze':  { city:'Sławatycze',  zip:'21-515', prov:'lubelskie',    lat:51.76730, lon:23.58630 },
+    'Połowce':     { city:'Połowce',     zip:'17-240', prov:'podlaskie',    lat:52.47480, lon:23.35650 },
+    'Bobrowniki':  { city:'Bobrowniki',  zip:'16-040', prov:'podlaskie',    lat:53.12370, lon:23.89090 },
+    'Kuźnica':     { city:'Kuźnica',     zip:'16-123', prov:'podlaskie',    lat:53.52100, lon:23.65720 },
+    'Budzisko':    { city:'Budzisko',    zip:'16-411', prov:'podlaskie',    lat:54.30833, lon:23.11944 }
+  };
+  const placeOf = name => { const p = PL_PLACES[normCross(name || '')]; return p ? { ...p, street:'NONE', bld:'NONE', apt:'', src:'cross' } : null; };
+  /* «ul. Prosta 5/2» → street «ul. Prosta», bld «5», apt «2» */
+  function splitAddr(t){
+    t = String(t || '').trim().replace(/\s+/g, ' ');
+    if (!t) return { street:'NONE', bld:'NONE', apt:'' };
+    const m = t.match(/^(.*?)[\s,]+(\d+[A-Za-z]?)(?:\s*[\/-]\s*(\d+[A-Za-z]?))?$/);
+    return m && m[1] ? { street: m[1].replace(/,$/, '').trim(), bld: m[2], apt: m[3] || '' } : { street: t, bld:'NONE', apt:'' };
+  }
+  const zipOk = z => /^\d{2}-\d{3}$/.test(String(z || ''));
+  const normZip = z => { const d = String(z || '').replace(/\D/g, ''); return d.length === 5 ? d.slice(0, 2) + '-' + d.slice(2) : String(z || '').trim(); };
+  /* Координати й воєводство для адреси в Польщі (Nominatim / OpenStreetMap); без відповіді — повертаємо як є */
+  async function geocode(a){
+    if (!a || a.src === 'cross' || (a.lat && a.prov)) return a;
+    const get = async q => { const c = new AbortController(), t = setTimeout(() => c.abort(), 6000);
+      try{ const r = await fetch('https://nominatim.openstreetmap.org/search?' + new URLSearchParams({ format:'json', limit:'1', addressdetails:'1', 'accept-language':'pl', countrycodes:'pl', ...q }), { signal: c.signal }); return r.ok ? await r.json() : []; }
+      catch(e){ return []; } finally{ clearTimeout(t); } };
+    const street = [a.street !== 'NONE' ? a.street : '', a.bld !== 'NONE' ? a.bld : ''].join(' ').trim();
+    let j = street ? await get({ street, city: a.city || '', postalcode: a.zip || '' }) : [];
+    let approx = !j.length;
+    if (!j.length) j = await get({ city: a.city || '', postalcode: a.zip || '' });
+    if (!j.length && a.city) j = await get({ q: a.city });
+    if (!j.length) return a;
+    const ad = j[0].address || {};
+    const out = { ...a, lat: +(+j[0].lat).toFixed(6), lon: +(+j[0].lon).toFixed(6), prov: a.prov || String(ad.state || '').replace(/^województwo\s+/i, ''), zip: a.zip || ad.postcode || '' };
+    if (approx) out.approx = true;
+    return out;
+  }
   const COUNTRIES = { UA:'Україна', PL:'Польща', DE:'Німеччина', LT:'Литва', LV:'Латвія', EE:'Естонія', SK:'Словаччина', CZ:'Чехія',
     HU:'Угорщина', RO:'Румунія', MD:'Молдова', AT:'Австрія', NL:'Нідерланди', BE:'Бельгія', FR:'Франція', IT:'Італія', ES:'Іспанія',
     DK:'Данія', SE:'Швеція', FI:'Фінляндія', BG:'Болгарія', GR:'Греція', PT:'Португалія', HR:'Хорватія', SI:'Словенія', LU:'Люксембург',
@@ -38,7 +83,8 @@ const Rmpd = (() => {
   const IDT = { NIP:'NIP (Польща)', VAT:'EU VAT', INNY:'ЄДРПОУ / інший код', DOK:'Документ особи' };
   const LATIN = ['carrier_name','carrier_city','carrier_street','carrier_building','driver_first','driver_last','cargo_desc',
     'sender_name','sender_city','sender_address','recipient_name','recipient_city','recipient_address','load_place','unload_place',
-    'entry_point','exit_point','client_note'];
+    'entry_point','exit_point','load_addr','unload_addr','client_note'];
+  const ADDR_F = ['load_addr','load_zip','unload_addr','unload_zip'];
   const CARRIER_F = ['carrier_code','carrier_name','carrier_country','carrier_city','carrier_postcode','carrier_street','carrier_building','carrier_email'];
 
   let st = { el:null, broker:null, acc:null, list:[], contacts:[], vehicles:[], editId:null, parent:null, filter:'active', carrierEdit:false, license:null, vehDocs:[], keepDocs:[], mode:'team', sheet:null, cmr:[], cmrPrice:100 };
@@ -274,11 +320,13 @@ const Rmpd = (() => {
 
       sec('3. Маршрут і дата') +
       row(sel('load_country', 'Звідки — країна *', opt(COUNTRIES, 'UA'), 'onchange="Rmpd.routeChanged()"'), fld('load_place', 'Місто завантаження *', 'maxlength="80" placeholder="Lviv"')) +
+      '<div id="rmLoadAddr" style="display:none">' + row(fld('load_addr', 'Адреса завантаження в Польщі *', 'maxlength="80" placeholder="ul. Prosta 5"', 'Вулиця й номер будинку — PUESC вимагає точне місце старту.'), fld('load_zip', 'Індекс *', 'maxlength="6" placeholder="00-001" inputmode="numeric"')) + '</div>' +
       row(sel('unload_country', 'Куди — країна *', opt(COUNTRIES, 'PL'), 'onchange="Rmpd.routeChanged()"'), fld('unload_place', 'Місто розвантаження *', 'maxlength="80" placeholder="Warszawa"')) +
+      '<div id="rmUnloadAddr" style="display:none">' + row(fld('unload_addr', 'Адреса розвантаження в Польщі *', 'maxlength="80" placeholder="ul. Polna 12"', 'Підставимо з адреси отримувача, якщо вона в Польщі.'), fld('unload_zip', 'Індекс *', 'maxlength="6" placeholder="00-001" inputmode="numeric"')) + '</div>' +
       '<div class="field-row"><div id="rmEntryWrap">' + fld('entry_point', 'Пункт вʼїзду в Польщу *', 'list="rmCross" maxlength="60" placeholder="Dorohusk"') + '</div>' +
         '<div id="rmExitWrap">' + fld('exit_point', 'Пункт виїзду з Польщі *', 'list="rmCross" maxlength="60" placeholder="Świecko"') + '</div></div>' +
       row(fld('start_date', 'Дата вʼїзду / початку *', 'type="date" min="' + today() + '" onchange="Rmpd.dateChanged()"'),
-          fld('end_date', 'Дата завершення в Польщі', 'type="date" min="' + today() + '"', 'Підставили +3 дні — змініть за потреби. Не пізніше 10 днів.')) +
+          fld('end_date', 'Дата завершення в Польщі', 'type="date" min="' + today() + '"', 'Підставили +3 дні — змініть за потреби. PUESC приймає дати не пізніше ніж через 9 днів від подачі.')) +
       '<div id="rmDates" class="text-sm" style="margin:-6px 0 10px"></div>' +
       '<div id="rmAuto" class="pchips" style="margin:-4px 0 1rem"></div>' +
       '<div id="rmPermit" style="display:none">' +
@@ -357,12 +405,15 @@ const Rmpd = (() => {
   function goodsToggle(){ $('rmGoods').style.display = $('rm-with_goods').checked ? '' : 'none'; }
   const wd = d => d ? new Date(d + 'T12:00:00').toLocaleDateString('uk-UA', { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' }) : '—';
   function datesSummary(){ const e = $('rmDates'); if (e) e.innerHTML = '📅 Вʼїзд: <strong>' + wd(v('start_date')) + '</strong> · завершення: <strong>' + wd(v('end_date')) + '</strong>'; }
-  function dateChanged(){ const s = v('start_date'); if (s && (!v('end_date') || v('end_date') < s)) set('end_date', addDays(s, 3)); datesSummary(); routeChanged(); timing(); }
+  function dateChanged(){ const s = v('start_date'); if (s && (!v('end_date') || v('end_date') < s)){ const e = addDays(s, 3), lim = addDays(today(), 9); set('end_date', e > lim && s <= lim ? lim : e); } datesSummary(); routeChanged(); timing(); }
 
   function routeChanged(){
     const r = readRaw(), d = derive(r);
     $('rmEntryWrap').style.display = d.needEntry ? '' : 'none';
     $('rmExitWrap').style.display = d.needExit ? '' : 'none';
+    $('rmLoadAddr').style.display = d.needEntry ? 'none' : '';
+    $('rmUnloadAddr').style.display = d.needExit ? 'none' : '';
+    plFill();
     const trip = r.trip_type || d.trip, noPermit = r.carrier_country === 'UA' && ['bilateral','transit'].includes(trip);
     $('rmPermit').style.display = trip && !noPermit && trip !== 'cabotage' ? '' : 'none';
     if (!$('rm-sender_country').dataset.touched && r.load_country) set('sender_country', r.load_country);
@@ -378,6 +429,14 @@ const Rmpd = (() => {
     ['sender','recipient'].forEach(idHint);
   }
 
+  /* Порожні поля адреси в Польщі заповнюємо адресою відправника / отримувача, якщо вони в Польщі */
+  function plFill(){
+    [['load','sender'],['unload','recipient']].forEach(([k, p]) => {
+      if (v(p + '_country') !== 'PL' || !$('rm-' + k + '_addr')) return;
+      if (!v(k + '_addr') && v(p + '_address')) set(k + '_addr', v(p + '_address'));
+      if (!v(k + '_zip') && v(p + '_postcode')) set(k + '_zip', v(p + '_postcode'));
+    });
+  }
   function idHint(side){
     const c = v(side + '_country'), h = $('rm-' + side + '_id-hint'); if (!h) return;
     $('rm-' + side + '_id').placeholder = c === 'PL' ? 'NIP, 10 цифр' : EU.includes(c) ? 'VAT, напр. ' + (c === 'GR' ? 'EL' : c) + '123456789' : c === 'UA' ? 'ЄДРПОУ' : 'Код компанії';
@@ -464,7 +523,7 @@ const Rmpd = (() => {
   /* ---------- Збір, перевірка, відправка ---------- */
   const ALL = ['carrier_code','carrier_name','carrier_country','carrier_city','carrier_postcode','carrier_street','carrier_building','carrier_email',
     'vehicle_id','plate','trailer_plate','plate_country','trailer_country','gps_id','load_country','load_place','unload_country','unload_place',
-    'entry_point','exit_point','start_date','end_date','permit_type','permit_country','permit_number','permit_valid_to','cargo_desc','cmr_number','cargo_weight_t',
+    'entry_point','exit_point','load_addr','load_zip','unload_addr','unload_zip','start_date','end_date','permit_type','permit_country','permit_number','permit_valid_to','cargo_desc','cmr_number','cargo_weight_t',
     'sender_country','sender_id','sender_name','sender_city','sender_postcode','sender_address',
     'recipient_country','recipient_id','recipient_name','recipient_city','recipient_postcode','recipient_address',
     'driver_first','driver_last','driver_phone','trip_type','direction','prev_rmpd','contact_email','client_note'];
@@ -485,6 +544,11 @@ const Rmpd = (() => {
     if (!d.needExit) r.exit_point = null;
     r.start_place = d.needEntry ? r.entry_point : r.load_place;
     r.end_place = d.needExit ? r.exit_point : r.unload_place;
+    const plA = (city, zip, addr) => ({ city, zip: normZip(zip), ...splitAddr(addr), src:'addr' });
+    if (!r.load_addr && r.with_goods && r.sender_country === 'PL'){ r.load_addr = r.sender_address; r.load_zip = r.load_zip || r.sender_postcode; }
+    if (!r.unload_addr && r.with_goods && r.recipient_country === 'PL'){ r.unload_addr = r.recipient_address; r.unload_zip = r.unload_zip || r.recipient_postcode; }
+    r.start_addr = d.needEntry ? (placeOf(r.entry_point) || (r.entry_point ? { city: r.entry_point, src:'cross' } : null)) : plA(r.load_place, r.load_zip, r.load_addr);
+    r.end_addr = d.needExit ? (placeOf(r.exit_point) || (r.exit_point ? { city: r.exit_point, src:'cross' } : null)) : plA(r.unload_place, r.unload_zip, r.unload_addr);
     r.carrier_address = [r.carrier_street, r.carrier_building].filter(Boolean).join(' ') + ', ' + [r.carrier_postcode, r.carrier_city].filter(Boolean).join(' ');
     r.contact_email = r.contact_email || r.carrier_email;
     r.cargo_weight_t = r.cargo_weight_t ? Number(r.cargo_weight_t) : null;
@@ -511,6 +575,8 @@ const Rmpd = (() => {
      'plate:номер тягача','gps_id:номер локатора GPS','load_place:місто завантаження','unload_place:місто розвантаження','start_date:дата'].forEach(x => { const [f, l] = x.split(':'); need(f, l); });
     if (d.needEntry) need('entry_point', 'пункт вʼїзду');
     if (d.needExit) need('exit_point', 'пункт виїзду');
+    if (!d.needEntry){ need('load_addr', 'адреса завантаження в Польщі'); need('load_zip', 'індекс завантаження'); }
+    if (!d.needExit){ need('unload_addr', 'адреса розвантаження в Польщі'); need('unload_zip', 'індекс розвантаження'); }
     if (r.with_goods){ need('cargo_desc', 'що везете'); need('sender_name', 'відправник'); need('sender_city', 'місто відправника'); need('recipient_name', 'отримувач'); need('recipient_city', 'місто отримувача'); }
     if (!['eu_ua'].includes(r.permit_type) && r.trip_type !== 'cabotage' && $('rmPermit').style.display !== 'none') need('permit_number', 'номер дозволу');
     if (miss.length) msgs.push('Заповніть: ' + miss.join(', ') + '.');
@@ -524,6 +590,10 @@ const Rmpd = (() => {
     if (r.start_date && r.start_date < today()){ msgs.push('Дата не може бути в минулому.'); bad.push('start_date'); }
     if (r.end_date && r.start_date && r.end_date < r.start_date){ msgs.push('Дата завершення раніше за дату початку.'); bad.push('end_date'); }
     if (r.end_date && r.start_date && (new Date(r.end_date) - new Date(r.start_date)) / 864e5 > 10){ msgs.push('Між датою початку й завершення — не більше 10 днів.'); bad.push('end_date'); }
+    [['load', !d.needEntry], ['unload', !d.needExit]].forEach(([k, on]) => { if (on && r[k + '_zip'] && !zipOk(normZip(r[k + '_zip']))){ msgs.push('Польський індекс — у форматі 00-000.'); bad.push(k + '_zip'); } });
+    const lim = addDays(today(), 9), limT = lim.split('-').reverse().join('.');
+    if (r.start_date && r.start_date > lim){ msgs.push('PUESC приймає заявку не раніше ніж за 9 днів до рейсу — подайте її ближче до дати (дата початку не пізніше ' + limT + ').'); bad.push('start_date'); }
+    else if (r.end_date && r.end_date > lim){ msgs.push('Дата завершення — не пізніше ' + limT + ' (9 днів від сьогодні): так вимагає PUESC.'); bad.push('end_date'); }
     if (r.driver_phone && !isValidPhone(r.driver_phone)){ msgs.push('Перевірте телефон водія.'); bad.push('driver_phone'); }
     LATIN.forEach(f => { if (r[f] && notLatin(r[f])){ const l = document.querySelector('label[for="rm-' + f + '"]'); msgs.push('«' + (l ? l.textContent.replace(/\s*\*$/, '') : f) + '» — лише латиниця.'); bad.push(f); } });
     if (r.with_goods && r.sender_country === 'PL' && r.sender_id && !/^\d{10}$/.test(r.sender_id.replace(/^PL/, ''))){ msgs.push('NIP відправника — 10 цифр.'); bad.push('sender_id'); }
@@ -543,7 +613,6 @@ const Rmpd = (() => {
     const self = isSelf();
     if (!st.editId && !st.parent && !(self ? st.acc.allowed_self : st.acc.allowed)){ showMsg('Недостатньо коштів на балансі для цього варіанту — поповніть баланс або оберіть інший.'); return; }
     if (gpsWarn(r) && !confirm('Номер локатора «' + r.gps_id + '» не проходить перевірку формату SENT (напр. Z17-AA00AA-3: літера, 2 цифри, 2 літери, 2 цифри, 2 літери, контрольна цифра). Найчастіше це помилка в одному символі — перевірте з договором оператора локатора. Все одно надіслати?')) return;
-    if ((new Date(r.start_date) - new Date(today())) / 864e5 > 9 && !confirm('Номер RMPD діє 10 днів від реєстрації, а дата — більш ніж через 9 днів. Подати зараз?')) return;
     const t = self ? { urgent: false, eta: null } : timing();
     if (t.eta && t.hours < 0){ showMsg('Час на кордоні вже минув — виправте дату й годину.'); return; }
     if (t.blocked && !confirm('Оператор може не встигнути подати заявку до вашого часу на кордоні. Все одно надіслати? (Безпечніше подати самостійно на puesc.gov.pl)')) return;
@@ -559,8 +628,10 @@ const Rmpd = (() => {
       const docs = [...keep, ...(keep.some(d => d.kind === 'tech') || newTech.length ? newTech : st.vehDocs), ...newCmr];
       r.docs = docs; r.urgent = t.urgent; r.border_eta = t.eta ? t.eta.toISOString() : null;
       r._techForVehicle = techForVehicle;
+      btn.textContent = 'Визначаємо координати…';
+      [r.start_addr, r.end_addr] = await Promise.all([geocode(r.start_addr), geocode(r.end_addr)]);
       btn.textContent = 'Надсилаємо…';
-      const row = { ...r }; delete row._techForVehicle;
+      const row = { ...r }; delete row._techForVehicle; ADDR_F.forEach(f => delete row[f]);
       const saved = st.editId ? await saveRmpd(row, st.editId)
         : await saveRmpd({ ...row, owner_id: st.broker.id, kind: st.parent ? 'update' : 'new', parent_id: st.parent ? st.parent.id : null, prev_rmpd: r.prev_rmpd || (st.parent ? st.parent.ref_number : null), mode: modeOf() });
       saveContacts(r).catch(e => console.error(e));
@@ -597,6 +668,13 @@ const Rmpd = (() => {
     return '<div class="svc-line" style="padding:8px 12px;margin-bottom:4px;cursor:pointer;gap:10px" onclick="Rmpd.copyEl(this)" data-v="' + esc(t) + '">' +
       '<span class="text-xs text-muted">' + label + '</span><span class="text-sm" style="text-align:right;word-break:break-word">' + esc(t) + ' <i class="ti ti-copy" style="opacity:.5"></i></span></div>';
   }
+  /* Рядки розділів 3.7/3.8 PUESC: країна PL, місто, індекс, вулиця, будинок, воєводство, координати */
+  function placeRows(a, fallback, row){
+    a = a || placeOf(fallback) || (fallback ? { city: fallback } : null);
+    if (!a) return [];
+    return [row('Kraj', 'PL'), row('Miejscowość', a.city), row('Kod pocztowy', a.zip), row('Ulica', a.street || 'NONE'), row('Nr budynku', a.bld || 'NONE'), row('Nr lokalu', a.apt),
+      row('Województwo', a.prov), row('Szerokość (lat)', a.lat != null ? Number(a.lat).toFixed(6) : ''), row('Długość (lon)', a.lon != null ? Number(a.lon).toFixed(6) : '')];
+  }
   function puescSections(r){
     const d = x => x ? x.split('-').reverse().join('.') : '';
     const sec2 = (t, rows) => { const h = rows.join(''); return h ? '<div class="card-title" style="margin:14px 0 6px">' + t + '</div>' + h : ''; };
@@ -611,8 +689,9 @@ const Rmpd = (() => {
       sec2('3.2 Przewóz', [pRow('Kraj załadunku', r.load_country), pRow('Kraj rozładunku', r.unload_country), pRow('Przewóz z towarem', r.with_goods ? 'TAK' : 'NIE'),
         pRow('Dokument przewozowy', r.with_goods ? (r.cmr_type || 'CMR') : ''), pRow('Nr dokumentu', r.cmr_number), pRow('Rodzaj przewozu', P_TRIP[r.trip_type] || r.trip_type),
         pRow('Rodzaj zezwolenia', P_PERMIT[r.permit_type] || r.permit_type), pRow('Kraj wydania zezwolenia', r.permit_country), pRow('Nr zezwolenia', r.permit_number), pRow('Ważne do', d(r.permit_valid_to))]),
-      sec2('3.6 Dane przejazdu', [pRow('Poprzedni nr RMPD', r.prev_rmpd), pRow('Kierunek', P_DIR[r.direction] || r.direction), pRow('Miejsce rozpoczęcia w PL', r.start_place || r.entry_point),
-        pRow('Miejsce zakończenia w PL', r.end_place || r.exit_point)]),
+      sec2('3.6 Dane przejazdu', [pRow('Poprzedni nr RMPD', r.prev_rmpd), pRow('Kierunek', P_DIR[r.direction] || r.direction)]),
+      sec2('3.7 Miejsce rozpoczęcia', placeRows(r.start_addr, r.start_place || r.entry_point, pRow)),
+      sec2('3.8 Miejsce docelowe', placeRows(r.end_addr, r.end_place || r.exit_point, pRow)),
       r.with_goods ? sec2('4. Nadawca', party('sender')) : '',
       r.with_goods ? sec2('5. Odbiorca', party('recipient')) : '',
       sec2('7. E-mail do potwierdzenia', [pRow('E-mail', r.contact_email || r.carrier_email)])
@@ -702,7 +781,10 @@ const Rmpd = (() => {
     l.innerHTML = list.length ? list.map(card).join('') : '<div class="empty"><strong>' + (st.filter === 'active' ? 'Активних заявок немає' : 'Заявок ще немає') + '</strong>' + (st.acc && st.acc.allowed ? 'Заповніть форму вище — номер RMPD прийде сюди й у Telegram.' : '') + '</div>';
   }
 
-  const copyFields = r => { const o = {}; ALL.forEach(f => o[f] = r[f] === undefined ? null : r[f]); o.with_goods = r.with_goods; return o; };
+  const addrText = a => a && a.src === 'addr' ? [a.street !== 'NONE' ? a.street : '', a.bld !== 'NONE' ? a.bld + (a.apt ? '/' + a.apt : '') : ''].filter(Boolean).join(' ') : '';
+  const copyFields = r => { const o = {}; ALL.forEach(f => o[f] = r[f] === undefined ? null : r[f]); o.with_goods = r.with_goods;
+    o.load_addr = addrText(r.start_addr); o.load_zip = r.start_addr && r.start_addr.src === 'addr' ? r.start_addr.zip || '' : '';
+    o.unload_addr = addrText(r.end_addr); o.unload_zip = r.end_addr && r.end_addr.src === 'addr' ? r.end_addr.zip || '' : ''; return o; };
   function openForm(data, src){
     st.keepDocs = src && (st.editId || st.parent) ? (src.docs || []) : [];
     renderTop(); renderForm(); setVals(data); routeChanged();
@@ -724,7 +806,7 @@ const Rmpd = (() => {
     const r = find(id); if (!r || !needAccess()) return; st.editId = null; st.parent = null;
     const d = copyFields(r);
     Object.assign(d, { load_country: r.unload_country, load_place: r.unload_place, unload_country: r.load_country, unload_place: r.load_place,
-      entry_point: r.exit_point, exit_point: r.entry_point, with_goods: false, cargo_desc: '', cmr_number: '', prev_rmpd: r.ref_number, trip_type: '', direction: '',
+      entry_point: r.exit_point, exit_point: r.entry_point, load_addr: d.unload_addr, load_zip: d.unload_zip, unload_addr: d.load_addr, unload_zip: d.load_zip, with_goods: false, cargo_desc: '', cmr_number: '', prev_rmpd: r.ref_number, trip_type: '', direction: '',
       start_date: r.end_date && r.end_date >= today() ? r.end_date : addDays(today(), 1), end_date: '', client_note: '' });
     ['sender','recipient'].forEach(s => ['name','country','id','city','postcode','address'].forEach(k => d[s + '_' + k] = ''));
     openForm(d); dateChanged();
@@ -849,5 +931,5 @@ const Rmpd = (() => {
 
   return { mount, submit, invoice, cmr, cmrAddGoods, cmrSave, topup, history, setMode, openSheet, closeSheet, copyEl, copyAll, saveSelfRef, routeChanged, dateChanged, etaChanged, docsChanged, goodsToggle, idHint, lookupParty, lookupCarrier, pickCarrier, editCarrier, pickParty, pickVehicle,
     setFilter, edit, update, repeat, back, reset, cancel, copy, share, translit, normPlate, derive, sent: id => window.Sent && Sent.fromRmpd(find(id)), deleg: id => window.Deleg && Deleg.fromRmpd(find(id)),
-    normGps, gpsOk: g => GPS_RE.test(g) && gpsCheck(g), normCross, crossings: () => UA_CROSS.map(c => c[0]).concat(OTHER_CROSS), COUNTRIES };
+    normGps, gpsOk: g => GPS_RE.test(g) && gpsCheck(g), normCross, placeOf, placeRows, geocode, crossings: () => UA_CROSS.map(c => c[0]).concat(OTHER_CROSS), COUNTRIES };
 })();

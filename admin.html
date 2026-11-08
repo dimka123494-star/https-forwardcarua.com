@@ -469,6 +469,7 @@
 
 <script src="/assets/js/config.js"></script>
 <script src="/assets/js/db.js"></script>
+<script src="/assets/js/rmpd.js"></script>
 <script src="/assets/js/sent.js"></script>
 <script src="/assets/js/deleg.js"></script>
 <script src="/assets/js/regions-loc.js"></script>
@@ -616,17 +617,39 @@ function rmSections(r){
     sec('3.2 Przewóz', [rmRow('Kraj załadunku', r.load_country), rmRow('Kraj rozładunku', r.unload_country), rmRow('Przewóz z towarem', r.with_goods ? 'TAK' : 'NIE (pusty przebieg)'),
       rmRow('Dokument przewozowy', r.with_goods ? (r.cmr_type || 'CMR') : ''), rmRow('Nr dokumentu', r.cmr_number), rmRow('Rodzaj przewozu', RM_TRIP[r.trip_type] || r.trip_type),
       rmRow('Rodzaj zezwolenia', RM_PERMIT[r.permit_type] || r.permit_type), rmRow('Kraj wydania zezwolenia', r.permit_country), rmRow('Nr zezwolenia', r.permit_number), rmRow('Ważne do', d(r.permit_valid_to))]),
-    sec('3.6 Dane przejazdu', [rmRow('Poprzedni nr RMPD', r.prev_rmpd), rmRow('Kierunek', RM_DIR[r.direction] || r.direction), rmRow('Miejsce rozpoczęcia w PL', r.start_place || r.entry_point),
-      rmRow('Miejsce zakończenia w PL', r.end_place || r.exit_point), rmRow('Przejście wjazd', r.entry_point), rmRow('Przejście wyjazd', r.exit_point),
-      rmRow('Miejsce załadunku', r.load_place), rmRow('Miejsce rozładunku', r.unload_place)]),
+    sec('3.6 Dane przejazdu', [rmRow('Poprzedni nr RMPD', r.prev_rmpd), rmRow('Kierunek', RM_DIR[r.direction] || r.direction),
+      rmRow('Przejście wjazd', r.entry_point), rmRow('Przejście wyjazd', r.exit_point), rmRow('Miejsce załadunku', r.load_place), rmRow('Miejsce rozładunku', r.unload_place)]),
+    sec('3.7 Miejsce rozpoczęcia' + rmMap(rmStart(r)), Rmpd.placeRows(rmStart(r), null, rmRow)),
+    sec('3.8 Miejsce docelowe' + rmMap(rmEnd(r)), Rmpd.placeRows(rmEnd(r), null, rmRow)),
     r.with_goods ? sec('4. Nadawca', party('sender')) : '',
     r.with_goods ? sec('5. Odbiorca', party('recipient')) : '',
     sec('6. Informacje dodatkowe', [rmRow('Towar', r.cargo_desc), rmRow('Waga, t', r.cargo_weight_t), rmRow('Kierowca', [r.driver_first, r.driver_last].filter(Boolean).join(' ')), rmRow('Tel. kierowcy', r.driver_phone)]),
     sec('7. Kanał zwrotny (e-mail)', [rmRow('E-mail', r.contact_email || r.carrier_email)])
   ].join('');
 }
+/* 3.7/3.8: збережена адреса, або пункт пропуску з довідника, або хоча б місто (для старих заявок) */
+const rmStart = r => r.start_addr || Rmpd.placeOf(r.entry_point) || (r.load_place ? { city: r.load_place, src:'addr' } : null);
+const rmEnd = r => r.end_addr || Rmpd.placeOf(r.exit_point) || (r.unload_place ? { city: r.unload_place, src:'addr' } : null);
+const rmNoGeo = a => a && (a.lat == null || !a.prov);
+function rmMap(a){
+  if (!a) return '';
+  if (a.lat == null) return ' <span class="badge" style="background:rgba(245,166,35,.15);color:var(--amber)">немає координат</span>';
+  return ' <a class="text-xs" target="_blank" rel="noopener" href="https://www.openstreetmap.org/?mlat=' + a.lat + '&mlon=' + a.lon + '#map=15/' + a.lat + '/' + a.lon + '">📍 на карті</a>' +
+    (a.approx ? ' <span class="text-xs" style="color:var(--amber)">≈ центр міста — уточніть</span>' : '');
+}
+async function rmGeo(id, btn){
+  const r = rmpdAdm.find(x => x.id === id); if (!r) return;
+  btn.disabled = true; btn.textContent = 'Шукаємо…';
+  try{
+    const [a, b] = await Promise.all([Rmpd.geocode(rmStart(r)), Rmpd.geocode(rmEnd(r))]);
+    await adminUpdateRmpd(id, { start_addr: a, end_addr: b });
+    Object.assign(r, { start_addr: a, end_addr: b }); renderRmpdAdm();
+    showToast(rmNoGeo(a) || rmNoGeo(b) ? 'Частину координат не знайдено — впишіть їх у PUESC через значок карти' : 'Координати визначено');
+  }catch(e){ showToast(e.message, 'error'); btn.disabled = false; btn.textContent = '📍 Визначити координати'; }
+}
 function rmPlain(r){
   const tmp = document.createElement('div'); tmp.innerHTML = rmSections(r);
+  tmp.querySelectorAll('.card-title a, .card-title span').forEach(e => e.remove());
   return [...tmp.querySelectorAll('.card-title, .svc-line')].map(e => e.classList.contains('card-title') ? '\n' + e.textContent : e.querySelector('.text-xs').textContent + ': ' + e.dataset.v).join('\n').trim();
 }
 async function rmCopyAll(id){ const r = rmpdAdm.find(x => x.id === id); try{ await navigator.clipboard.writeText(rmPlain(r)); showToast('Усі дані заявки скопійовано'); }catch(e){} }
@@ -664,7 +687,8 @@ function renderRmpdAdm(){
         : '<p class="hint" style="margin:10px 0 0">Документів не додано — за сумнівів у даних поверніть заявку на уточнення й попросіть фото техпаспорта / CMR.</p>') +
       '<div class="card-title" style="margin:10px 0 6px">8. Oświadczenie</div><p class="hint" style="margin:0 0 8px">Позначте повноваження діяти від імені перевізника й впишіть імʼя оператора. Клієнт дав доручення у формі заявки.</p>' +
       (r.client_note ? '<div class="rv-reply text-sm" style="margin-top:8px;white-space:pre-line">💬 ' + esc(r.client_note) + '</div>' : '') +
-      '<div style="margin:10px 0"><button class="btn btn-ghost btn-sm" onclick="rmCopyAll(\'' + r.id + '\')"><i class="ti ti-clipboard-text"></i> Скопіювати все текстом</button></div>' +
+      '<div style="margin:10px 0;display:flex;gap:6px;flex-wrap:wrap"><button class="btn btn-ghost btn-sm" onclick="rmCopyAll(\'' + r.id + '\')"><i class="ti ti-clipboard-text"></i> Скопіювати все текстом</button>' +
+        (rmNoGeo(rmStart(r)) || rmNoGeo(rmEnd(r)) ? '<button class="btn btn-ghost btn-sm" onclick="rmGeo(\'' + r.id + '\', this)">📍 Визначити координати</button>' : '') + '</div>' +
       '<div class="field-row">' +
         '<div class="field"><label class="label">Статус</label><select class="input" id="rm-st-' + r.id + '">' +
           Object.entries(RMPD_STATUS).map(([v, s]) => '<option value="' + v + '"' + (r.status === v ? ' selected' : '') + '>' + s.label + '</option>').join('') + '</select></div>' +
