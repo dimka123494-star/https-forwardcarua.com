@@ -38,6 +38,18 @@ const PuescFill = (() => {
     const m = t.match(/^(.*?)[\s,]+(\d+[A-Za-z]?)(?:\s*[\/-]\s*(\d+[A-Za-z]?))?$/);
     return m && m[1] ? { street: m[1].replace(/,$/, '').trim(), bld: m[2], apt: m[3] || '' } : { street: t || 'NONE', bld: 'NONE', apt: '' };
   }
+  /* Правова підстава «без дозволу» за Угодою ЄС–Україна (довідник notObligedLegalBaseHelp форми PUESC):
+     182 — з вантажем між територіями двох різних Сторін; 183 — з України в Україну транзитом через ЄС;
+     184 — з/до третьої країни транзитом через ЄС; 185 — порожній пробіг, повʼязаний з цими рейсами */
+  const EU = ['AT','BE','BG','CY','CZ','DE','DK','EE','GR','ES','FI','FR','HR','HU','IE','IT','LT','LU','LV','MT','NL','PL','PT','RO','SE','SI','SK'];
+  function legalBase(r){
+    if (!r.with_goods) return '185';
+    const L = r.load_country, U = r.unload_country;
+    if (L === 'UA' && U === 'UA') return '183';
+    if ((L === 'UA' && EU.includes(U)) || (U === 'UA' && EU.includes(L))) return '182';
+    if (L === 'UA' || U === 'UA') return '184';
+    return '182';
+  }
   const coord = n => n === null || n === undefined || n === '' ? '' : Number(n).toFixed(6);
 
   /* Пари [поле, значення] у порядку заповнення; '@wait' — пауза, поки форма перебудовує розділи */
@@ -64,6 +76,7 @@ const PuescFill = (() => {
     // 3.4–3.5 Дозвіл
     const perm = PERMIT[r.permit_type] || '';
     if (perm && r.trip_type !== 'cabotage'){ add('typeOfRoadPermission', perm); wait();
+      if (perm === 'NOT_OBLIGED') add('notObligedLegalBaseHelp', legalBase(r));
       if (perm !== 'NOT_OBLIGED'){ add('permissionCountry', r.permit_country || 'PL'); add('permissionNumber', r.permit_number || ''); if (r.permit_valid_from) add('validFrom', r.permit_valid_from); if (r.permit_valid_to) add('validTo', r.permit_valid_to); }
     }
     // 3.6
