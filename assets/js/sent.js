@@ -236,7 +236,9 @@ const Sent = (() => {
       (done ? '' : '<ol class="text-sm" style="margin:12px 0 4px 18px;line-height:1.6"><li>Увійдіть на <a href="' + PUESC + '" target="_blank" rel="noopener">puesc.gov.pl</a> зі свого акаунта.</li>' +
         '<li>Відкрийте форму <strong>' + dir.f + '</strong> («Uzupełnienie zgłoszenia przez przewoźnika»).</li><li>Натисніть на рядок нижче — значення скопіюється, вставте його в однойменне поле.</li>' +
         '<li>Після відправки PUESC підтвердить прийняття — натисніть «Я подав» нижче.</li></ol>') +
-      '<div style="margin:10px 0"><button class="btn btn-ghost btn-sm" onclick="Sent.copyAll(\'' + r.id + '\')"><i class="ti ti-clipboard-text"></i> Скопіювати все текстом</button></div>' +
+      '<div style="margin:10px 0;display:flex;gap:6px;flex-wrap:wrap">' + (typeof PuescFill !== 'undefined' ? '<button class="btn btn-primary btn-sm" onclick="Sent.fill(\'' + r.id + '\')">⚡ Автозаповнення PUESC</button>' : '') +
+        '<button class="btn btn-ghost btn-sm" onclick="Sent.copyAll(\'' + r.id + '\')"><i class="ti ti-clipboard-text"></i> Скопіювати все текстом</button></div>' +
+      (typeof PuescFill !== 'undefined' ? PuescFill.howto() : '') +
       sections(r).map(([t, rows]) => '<div class="card-title" style="margin:10px 0 6px">' + t + '</div>' + rows.map(x => '<div class="svc-line" style="padding:6px 12px;margin-bottom:4px;cursor:pointer" onclick="Sent.copy(this.dataset.v)" data-v="' + esc(x[1]) + '">' +
         '<span class="text-xs text-muted">' + x[0] + '</span><span class="text-sm" style="text-align:right;word-break:break-word">' + esc(x[1]) + ' <i class="ti ti-copy" style="opacity:.5"></i></span></div>').join('')).join('') +
       (done ? '<div class="msg msg-ok show" style="margin-top:14px">✓ Подано ' + (r.done_at ? new Date(r.done_at).toLocaleString('uk-UA') : '') + '</div>'
@@ -245,6 +247,8 @@ const Sent = (() => {
   }
   function closeSheet(){ st.sheet = null; renderForm(); }
   async function copy(t){ try{ await navigator.clipboard.writeText(t); showToast('Скопійовано: ' + String(t).slice(0, 40)); }catch(e){ showToast(t); } }
+  async function fill(id){ const r = find(id); if (!r || typeof PuescFill === 'undefined') return;
+    showToast(await PuescFill.copySent(r) ? 'Скопійовано — у формі SENT_EDIT на PUESC натисніть закладку «MB → PUESC»' : 'Не вдалося скопіювати', 'info'); }
   async function copyAll(id){ const r = find(id); if (!r) return; try{ await navigator.clipboard.writeText(plain(r)); showToast('Усі дані скопійовано'); }catch(e){} }
   async function markDone(id){
     if (!confirm('Підтверджуєте, що PUESC прийняв доповнення заявки?')) return;
@@ -289,6 +293,6 @@ const Sent = (() => {
     try{ const s = await setSentStatus(id, 'cancelled'); const i = st.list.findIndex(x => x.id === id); if (i >= 0) st.list[i] = s; renderList(); badge(); refreshAcc(); showToast('Заявку скасовано'); }catch(e){ showToast(e.message, 'error'); }
   }
 
-  return { mount, setMode, submit, dirChanged, pickRmpd, fromRmpd, openSheet, closeSheet, copy, copyAll, markDone, setFilter, edit, repeat, reset, cancel, sections, plain, DIRS, STATUS };
+  return { mount, setMode, submit, dirChanged, pickRmpd, fromRmpd, openSheet, closeSheet, copy, copyAll, fill, markDone, setFilter, edit, repeat, reset, cancel, sections, plain, DIRS, STATUS };
 })();
 window.Sent = Sent;

@@ -112,6 +112,26 @@ const PuescFill = (() => {
     const cc = r.contact_email || r.carrier_email; if (cc) add('emailAddress2', cc);
     return out;
   }
+  /* SENT_EDIT (доповнення перевізником): крок 1 — номер SENT і ключ; крок 2 — поля перевізника.
+     Назви полів кроку 2 взято за аналогією з RMPD100 (спільна основа форм SENT); ті, яких на сторінці немає, закладка пропускає й показує список порожніх полів */
+  function sentPairs(r){
+    const out = [], add = (k, v) => { if (v !== undefined && v !== null && v !== '') out.push([k, v]); };
+    add('sentNumber', r.sent_number); add('sentKey', r.carrier_key); out.push(['@step2', 0]);
+    const cb = splitAddr([r.carrier_street, r.carrier_building].filter(Boolean).join(' '));
+    add('carrierIdentityType', r.carrier_id_type === 'NIP' ? 'NIP' : r.carrier_id_type === 'VAT' ? 'VAT UE' : 'INNY'); add('carrierIdentityNumber', r.carrier_id);
+    add('carrierName', r.carrier_name); add('carrierCountry', r.carrier_country); add('carrierCity', r.carrier_city); add('carrierPostalCode', r.carrier_postcode);
+    add('carrierStreet', r.carrier_street || cb.street); add('carrierHouseNumber', r.carrier_building || cb.bld);
+    add('truckCountry', r.plate_country || 'UA'); add('truckNumber', r.plate); add('trailerNumber', r.trailer_plate);
+    add('geoLocatorNumber', r.gps_id); add('failoverGeoLocatorNumber', r.gps_backup); add('failoverCarrierEmail', r.carrier_email);
+    add('startTransportDate', r.start_date); add('endTransportDate', r.end_date);
+    add('permissionNumber', r.permit_number);
+    if (r.entry_point){ const rt = route(r.entry_point); if (rt){ add('entranceRouteSelect', rt); out.push(['@wait', 700]); } }
+    if (r.exit_point){ const rt = route(r.exit_point); if (rt){ add('exitRouteSelect', rt); out.push(['@wait', 700]); } }
+    add('emailCheckbox', true); if (r.carrier_email){ out.push(['@wait', 700]); add('emailAddress2', r.carrier_email); }
+    if (r.signer_first) add('statementsFirstName', r.signer_first); if (r.signer_last) add('statementsLastName', r.signer_last);
+    return out;
+  }
+  async function copySent(r){ try{ await navigator.clipboard.writeText('MBPUESC:' + JSON.stringify(sentPairs(r))); return true; }catch(e){ return false; } }
   const text = r => 'MBPUESC:' + JSON.stringify(pairs(r));
   async function copy(r){
     try{ await navigator.clipboard.writeText(text(r)); return true; }catch(e){ return false; }
@@ -123,12 +143,12 @@ const PuescFill = (() => {
 
   /* Блок з інструкцією й закладкою для перетягування */
   function howto(){
-    return '<details class="text-sm" style="margin:8px 0"><summary style="cursor:pointer">Як працює ⚡ автозаповнення PUESC (налаштування 1 раз)</summary><ol style="margin:8px 0 0 18px;line-height:1.6">' +
+    return '<details class="text-sm" style="margin:8px 0"><summary style="cursor:pointer">Як працює ⚡ автозаповнення PUESC — RMPD і SENT (налаштування 1 раз)</summary><ol style="margin:8px 0 0 18px;line-height:1.6">' +
       '<li>Перетягніть цю кнопку на панель закладок браузера: <a href="' + BOOKMARKLET.replace(/"/g, '&quot;') + '" onclick="alert(\'Не натискайте тут — перетягніть кнопку на панель закладок (Cmd/Ctrl+Shift+B показує панель).\');return false" ' +
         'style="display:inline-block;padding:3px 10px;border-radius:7px;background:var(--blue);color:var(--on-accent);font-weight:600;text-decoration:none">MB → PUESC</a></li>' +
       '<li>У заявці натисніть «⚡ Автозаповнення PUESC» — дані скопіюються.</li>' +
-      '<li>Відкрийте форму RMPD100 на puesc.gov.pl (увійшовши в акаунт) і натисніть закладку «MB → PUESC». Якщо браузер попросить — вставте дані у віконце (Cmd/Ctrl+V) і натисніть OK.</li>' +
+      '<li>Відкрийте форму на puesc.gov.pl (RMPD100 або для SENT — «SENT_EDIT Uzupełnienie») (увійшовши в акаунт) і натисніть закладку «MB → PUESC». Якщо браузер попросить — вставте дані у віконце (Cmd/Ctrl+V) і натисніть OK.</li>' +
       '<li>Перевірте поля, позначте декларацію (розділ 8) і надішліть.</li></ol></details>';
   }
-  return { pairs, text, copy, route, howto, BOOKMARKLET, ROUTES };
+  return { pairs, sentPairs, text, copy, copySent, route, howto, BOOKMARKLET, ROUTES };
 })();

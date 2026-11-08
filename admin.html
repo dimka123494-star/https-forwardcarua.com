@@ -779,7 +779,7 @@ function renderSentAdm(){
         Sent.sections(r).filter(s => s[0] !== 'Oświadczenie').map(([t, rows]) => '<div><div class="card-title" style="margin:10px 0 6px">' + t + '</div>' + rows.map(x => rmRow(x[0], x[1])).join('') + '</div>').join('') + '</div>' +
       '<div class="card-title" style="margin:10px 0 6px">Oświadczenie</div><p class="hint" style="margin:0 0 8px">Позначте повноваження діяти від імені перевізника й впишіть імʼя оператора. Клієнт дав доручення у формі заявки.</p>' +
       (r.client_note ? '<div class="rv-reply text-sm" style="margin-top:8px;white-space:pre-line">💬 ' + esc(r.client_note) + '</div>' : '') +
-      '<div style="margin:10px 0"><button class="btn btn-ghost btn-sm" onclick="snCopyAll(\'' + r.id + '\')"><i class="ti ti-clipboard-text"></i> Скопіювати все текстом</button></div>' +
+      '<div style="margin:10px 0;display:flex;gap:6px;flex-wrap:wrap"><button class="btn btn-primary btn-sm" onclick="snFill(\'' + r.id + '\')">⚡ Автозаповнення PUESC</button><button class="btn btn-ghost btn-sm" onclick="snCopyAll(\'' + r.id + '\')"><i class="ti ti-clipboard-text"></i> Скопіювати все текстом</button></div>' +
       '<div class="field"><label class="label">Статус</label><select class="input" id="sn-st-' + r.id + '">' +
         Object.entries(Sent.STATUS).map(([k, s]) => '<option value="' + k + '"' + (r.status === k ? ' selected' : '') + '>' + s.label + '</option>').join('') + '</select></div>' +
       '<div class="field"><label class="label">Коментар клієнту (що уточнити / примітка)</label><textarea class="input" id="sn-note-' + r.id + '" style="min-height:60px">' + esc(r.admin_note || '') + '</textarea></div>' +
@@ -787,6 +787,8 @@ function renderSentAdm(){
       '<button class="btn btn-primary btn-sm" onclick="saveSentAdm(\'' + r.id + '\')">Зберегти</button></div>';
   }).join('') : '<div class="empty"><strong>Немає заявок</strong>Тут зʼявляться заявки SENT від перевізників.</div>';
 }
+async function snFill(id){ const r = sentAdm.find(x => x.id === id); if (!r) return;
+  showToast(await PuescFill.copySent(r) ? 'Скопійовано — відкрийте SENT_EDIT на PUESC і натисніть закладку «MB → PUESC» (двічі: номер+ключ, потім дані)' : 'Не вдалося скопіювати', 'info'); }
 async function snCopyAll(id){ const r = sentAdm.find(x => x.id === id); try{ await navigator.clipboard.writeText(Sent.plain(r)); showToast('Усі дані заявки скопійовано'); }catch(e){} }
 async function saveSentAdm(id){
   const status = document.getElementById('sn-st-' + id).value, note = document.getElementById('sn-note-' + id).value.trim();
