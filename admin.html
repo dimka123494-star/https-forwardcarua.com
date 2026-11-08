@@ -268,6 +268,7 @@
           <option value="open">До опрацювання</option><option value="">Всі</option><option value="done">Зареєстровані</option><option value="cancelled">Скасовані</option>
         </select>
       </div>
+      <div id="rmFillHow"></div>
       <p class="hint" style="margin-bottom:1rem">Порядок: «В роботі» → внести дані на <a href="https://puesc.gov.pl/" target="_blank" rel="noopener">puesc.gov.pl</a> (форма RMPD100, для оновлень — «RMPD – Aktualizacja») → вписати номер RMPD → «Зареєстровано». Номер діє 10 днів, «Діє до» підставиться автоматично. Якщо дані неповні — «Потрібне уточнення» з коментарем: клієнт отримає його в кабінеті та Telegram. Кожне поле можна скопіювати кліком.</p>
       <details class="card card-tight" style="margin-bottom:1rem"><summary style="cursor:pointer;font-weight:600">💳 Ціни й баланси клієнтів</summary>
         <div style="margin-top:12px">
@@ -469,6 +470,7 @@
 
 <script src="/assets/js/config.js"></script>
 <script src="/assets/js/db.js"></script>
+<script src="/assets/js/puesc-fill.js"></script>
 <script src="/assets/js/rmpd.js"></script>
 <script src="/assets/js/sent.js"></script>
 <script src="/assets/js/deleg.js"></script>
@@ -637,6 +639,7 @@ function rmMap(a){
   return ' <a class="text-xs" target="_blank" rel="noopener" href="https://www.openstreetmap.org/?mlat=' + a.lat + '&mlon=' + a.lon + '#map=15/' + a.lat + '/' + a.lon + '">📍 на карті</a>' +
     (a.approx ? ' <span class="text-xs" style="color:var(--amber)">≈ центр міста — уточніть</span>' : '');
 }
+document.addEventListener('DOMContentLoaded', () => { const h = document.getElementById('rmFillHow'); if (h && window.PuescFill) h.innerHTML = PuescFill.howto(); });
 async function rmGeo(id, btn){
   const r = rmpdAdm.find(x => x.id === id); if (!r) return;
   btn.disabled = true; btn.textContent = 'Шукаємо…';
@@ -652,6 +655,8 @@ function rmPlain(r){
   tmp.querySelectorAll('.card-title a, .card-title span').forEach(e => e.remove());
   return [...tmp.querySelectorAll('.card-title, .svc-line')].map(e => e.classList.contains('card-title') ? '\n' + e.textContent : e.querySelector('.text-xs').textContent + ': ' + e.dataset.v).join('\n').trim();
 }
+async function rmFill(id){ const r = rmpdAdm.find(x => x.id === id); if (!r) return;
+  showToast(await PuescFill.copy(r) ? 'Скопійовано — у формі RMPD100 на PUESC натисніть закладку «MB → PUESC»' : 'Не вдалося скопіювати', 'info'); }
 async function rmCopyAll(id){ const r = rmpdAdm.find(x => x.id === id); try{ await navigator.clipboard.writeText(rmPlain(r)); showToast('Усі дані заявки скопійовано'); }catch(e){} }
 function renderRmpdAdm(){
   const fs = document.getElementById('rmFStatus').value;
@@ -687,7 +692,7 @@ function renderRmpdAdm(){
         : '<p class="hint" style="margin:10px 0 0">Документів не додано — за сумнівів у даних поверніть заявку на уточнення й попросіть фото техпаспорта / CMR.</p>') +
       '<div class="card-title" style="margin:10px 0 6px">8. Oświadczenie</div><p class="hint" style="margin:0 0 8px">Позначте повноваження діяти від імені перевізника й впишіть імʼя оператора. Клієнт дав доручення у формі заявки.</p>' +
       (r.client_note ? '<div class="rv-reply text-sm" style="margin-top:8px;white-space:pre-line">💬 ' + esc(r.client_note) + '</div>' : '') +
-      '<div style="margin:10px 0;display:flex;gap:6px;flex-wrap:wrap"><button class="btn btn-ghost btn-sm" onclick="rmCopyAll(\'' + r.id + '\')"><i class="ti ti-clipboard-text"></i> Скопіювати все текстом</button>' +
+      '<div style="margin:10px 0;display:flex;gap:6px;flex-wrap:wrap">' + (r.kind !== 'update' ? '<button class="btn btn-primary btn-sm" onclick="rmFill(\'' + r.id + '\')">⚡ Автозаповнення PUESC</button>' : '') + '<button class="btn btn-ghost btn-sm" onclick="rmCopyAll(\'' + r.id + '\')"><i class="ti ti-clipboard-text"></i> Скопіювати все текстом</button>' +
         (rmNoGeo(rmStart(r)) || rmNoGeo(rmEnd(r)) ? '<button class="btn btn-ghost btn-sm" onclick="rmGeo(\'' + r.id + '\', this)">📍 Визначити координати</button>' : '') + '</div>' +
       '<div class="field-row">' +
         '<div class="field"><label class="label">Статус</label><select class="input" id="rm-st-' + r.id + '">' +

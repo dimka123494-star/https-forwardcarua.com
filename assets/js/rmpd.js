@@ -711,7 +711,9 @@ const Rmpd = (() => {
         '<li>Заповнюйте зверху вниз: натисніть на рядок нижче — значення скопіюється, вставте його в однойменне поле.</li>' +
         '<li>У розділі 8 поставте позначку про повноваження й впишіть своє імʼя.</li>' +
         '<li>Після відправки PUESC покаже номер RMPD — перевірте його у формі <strong>RMPD406</strong> і впишіть нижче.</li></ol>') +
-      '<div style="margin:10px 0"><button class="btn btn-ghost btn-sm" onclick="Rmpd.copyAll(\'' + r.id + '\')"><i class="ti ti-clipboard-text"></i> Скопіювати все текстом</button></div>' +
+      '<div style="margin:10px 0;display:flex;gap:6px;flex-wrap:wrap">' + (window.PuescFill && r.kind !== 'update' ? '<button class="btn btn-primary btn-sm" onclick="Rmpd.fill(\'' + r.id + '\')">⚡ Автозаповнення PUESC</button>' : '') +
+        '<button class="btn btn-ghost btn-sm" onclick="Rmpd.copyAll(\'' + r.id + '\')"><i class="ti ti-clipboard-text"></i> Скопіювати все текстом</button></div>' +
+      (window.PuescFill && r.kind !== 'update' ? PuescFill.howto() : '') +
       puescSections(r) +
       (done ? '<div class="msg msg-ok show" style="margin-top:14px">✓ Зареєстровано: <strong>' + esc(r.ref_number) + '</strong>' + (r.valid_until ? ' · діє до ' + fmtD(r.valid_until) : '') + '</div>'
         : '<div class="card-title" style="margin:16px 0 6px">Номер після реєстрації</div>' +
@@ -725,6 +727,8 @@ const Rmpd = (() => {
   }
   function closeSheet(){ st.sheet = null; renderForm(); }
   async function copyEl(el){ try{ await navigator.clipboard.writeText(el.dataset.v); showToast('Скопійовано: ' + el.dataset.v.slice(0, 60)); el.style.borderColor = 'var(--green)'; }catch(e){ showToast(el.dataset.v); } }
+  async function fill(id){ const r = find(id); if (!r || !window.PuescFill) return;
+    showToast(await PuescFill.copy(r) ? 'Скопійовано — відкрийте форму RMPD100 на PUESC і натисніть закладку «MB → PUESC»' : 'Не вдалося скопіювати', 'info'); }
   async function copyAll(id){
     const r = find(id); if (!r) return;
     const tmp = document.createElement('div'); tmp.innerHTML = puescSections(r);
@@ -929,7 +933,7 @@ const Rmpd = (() => {
     }catch(e){ if (win) win.close(); msg.className = 'msg msg-err show'; msg.textContent = e.message; btn.disabled = false; }
   }
 
-  return { mount, submit, invoice, cmr, cmrAddGoods, cmrSave, topup, history, setMode, openSheet, closeSheet, copyEl, copyAll, saveSelfRef, routeChanged, dateChanged, etaChanged, docsChanged, goodsToggle, idHint, lookupParty, lookupCarrier, pickCarrier, editCarrier, pickParty, pickVehicle,
+  return { mount, submit, invoice, cmr, cmrAddGoods, cmrSave, topup, history, setMode, openSheet, closeSheet, copyEl, copyAll, fill, saveSelfRef, routeChanged, dateChanged, etaChanged, docsChanged, goodsToggle, idHint, lookupParty, lookupCarrier, pickCarrier, editCarrier, pickParty, pickVehicle,
     setFilter, edit, update, repeat, back, reset, cancel, copy, share, translit, normPlate, derive, sent: id => window.Sent && Sent.fromRmpd(find(id)), deleg: id => window.Deleg && Deleg.fromRmpd(find(id)),
     normGps, gpsOk: g => GPS_RE.test(g) && gpsCheck(g), normCross, placeOf, placeRows, geocode, crossings: () => UA_CROSS.map(c => c[0]).concat(OTHER_CROSS), COUNTRIES };
 })();
