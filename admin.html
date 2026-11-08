@@ -16,10 +16,27 @@
 .info-box{background:var(--surface2);border-radius:var(--r-sm);padding:1.15rem;font-size:13px;color:var(--muted);line-height:1.7}
 .info-box code{background:rgba(0,0,0,.35);padding:2px 6px;border-radius:5px;font-size:12px;color:var(--text)}
 .row-actions{display:flex;gap:6px;flex-wrap:wrap}
-/* адмінка без бургер-меню: вкладки завжди видно, на вузьких екранах — прокрутка */
-#panel .nav-links{display:flex!important;overflow-x:auto;max-width:calc(100vw - 260px)}
-#panel .nav-burger{display:none!important}
-@media(max-width:768px){#panel .nav{flex-wrap:wrap;height:auto;padding:8px 1rem;gap:8px}#panel .nav-links{order:3;max-width:100%;width:100%}#panel .page{padding-top:120px}}
+/* адмінка: бокове меню з усіма розділами; на вузьких екранах — висувна панель */
+#panel .nav-links,#panel .nav-burger{display:none!important}
+.adm-side{position:fixed;top:var(--nav-h);left:0;bottom:0;width:232px;z-index:150;overflow-y:auto;background:var(--bg);border-right:.5px solid var(--border);padding:14px 10px 24px}
+.adm-group{font-size:10.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);opacity:.7;padding:14px 12px 6px}
+.adm-group:first-child{padding-top:2px}
+.adm-link{display:flex;align-items:center;gap:10px;width:100%;padding:9px 12px;border:0;border-radius:9px;background:none;color:var(--muted);font:500 14px var(--body);cursor:pointer;text-align:left}
+.adm-link i{font-size:18px;width:20px;text-align:center}
+.adm-link .cab-badge{margin-left:auto}
+.adm-link:hover:not(.active){color:var(--text);background:var(--surface)}
+.adm-link.active{background:var(--blue);color:var(--on-accent)}
+#panel .page{padding-left:232px}
+.adm-toggle{display:none;background:var(--surface);border:.5px solid var(--border);color:var(--text);width:38px;height:38px;border-radius:9px;font-size:20px;cursor:pointer;align-items:center;justify-content:center}
+.adm-shade{display:none}
+@media(max-width:900px){
+  #panel .page{padding-left:0}
+  .adm-toggle{display:inline-flex}
+  .adm-side{transform:translateX(-100%);transition:transform .2s;width:260px;box-shadow:4px 0 24px rgba(0,0,0,.4)}
+  body.adm-open .adm-side{transform:none}
+  body.adm-open .adm-shade{display:block;position:fixed;inset:var(--nav-h) 0 0 0;z-index:140;background:rgba(0,0,0,.45)}
+  #panel .nav-actions #who{display:none}
+}
 .o-grid{display:grid;grid-template-columns:1fr 300px;gap:16px;align-items:start}
 @media(max-width:1000px){.o-grid{grid-template-columns:1fr}}
 #cmpText{min-height:300px;font-size:14px;line-height:1.55}
@@ -53,26 +70,33 @@
 <!-- ПАНЕЛЬ -->
 <div id="panel" style="display:none">
 <nav class="nav">
-  <a class="nav-brand" href="/">Митний<span>Брокер</span></a>
-  <div class="nav-links">
-    <button class="nav-link active" data-p="dash"     onclick="pane('dash',this)">Дашборд</button>
-    <button class="nav-link"        data-p="brokers"  onclick="pane('brokers',this)">Брокери</button>
-    <button class="nav-link"        data-p="outreach" onclick="pane('outreach',this)">Залучення</button>
-    <button class="nav-link"        data-p="requests" onclick="pane('requests',this)">Заявки</button>
-    <button class="nav-link"        data-p="cargo"    onclick="pane('cargo',this)">Вантажі <span class="cab-badge" id="cgAdmBadge" style="display:none">0</span></button>
-    <button class="nav-link"        data-p="consult"  onclick="pane('consult',this)">Консультації <span class="cab-badge" id="csBadge" style="display:none">0</span></button>
-    <button class="nav-link"        data-p="rmpd"     onclick="pane('rmpd',this)">RMPD <span class="cab-badge" id="rmAdmBadge" style="display:none">0</span></button>
-    <button class="nav-link"        data-p="sent"     onclick="pane('sent',this)">SENT <span class="cab-badge" id="snAdmBadge" style="display:none">0</span></button>
-    <button class="nav-link"        data-p="deleg"    onclick="pane('deleg',this)">Відрядження <span class="cab-badge" id="dlAdmBadge" style="display:none">0</span></button>
-    <button class="nav-link"        data-p="reviews"  onclick="pane('reviews',this)">Відгуки <span class="cab-badge" id="modBadge" style="display:none">0</span></button>
-    <button class="nav-link"        data-p="billing"  onclick="pane('billing',this)">Платежі</button>
-  </div>
+  <div style="display:flex;align-items:center;gap:10px"><button class="adm-toggle" onclick="document.body.classList.toggle('adm-open')" aria-label="Меню">☰</button>
+  <a class="nav-brand" href="/">Митний<span>Брокер</span></a></div>
   <div class="nav-actions">
     <span class="text-xs text-muted" id="who"></span>
     <a class="btn btn-ghost btn-sm" href="/kabinet"><i class="ti ti-user"></i> Мій кабінет</a>
     <button class="btn btn-ghost btn-sm" onclick="doLogout()">Вийти</button>
   </div>
 </nav>
+<aside class="adm-side" id="admSide">
+  <div class="adm-group">Огляд</div>
+  <button class="adm-link active" data-p="dash" onclick="pane('dash',this)"><i class="ti ti-layout-dashboard"></i>Дашборд</button>
+  <div class="adm-group">Каталог брокерів</div>
+  <button class="adm-link" data-p="brokers" onclick="pane('brokers',this)"><i class="ti ti-building-store"></i>Брокери</button>
+  <button class="adm-link" data-p="outreach" onclick="pane('outreach',this)"><i class="ti ti-speakerphone"></i>Залучення</button>
+  <button class="adm-link" data-p="reviews" onclick="pane('reviews',this)"><i class="ti ti-star"></i>Відгуки <span class="cab-badge" id="modBadge" style="display:none">0</span></button>
+  <div class="adm-group">Клієнти</div>
+  <button class="adm-link" data-p="requests" onclick="pane('requests',this)"><i class="ti ti-inbox"></i>Заявки</button>
+  <button class="adm-link" data-p="cargo" onclick="pane('cargo',this)"><i class="ti ti-truck-delivery"></i>Вантажі <span class="cab-badge" id="cgAdmBadge" style="display:none">0</span></button>
+  <button class="adm-link" data-p="consult" onclick="pane('consult',this)"><i class="ti ti-message-question"></i>Консультації <span class="cab-badge" id="csBadge" style="display:none">0</span></button>
+  <div class="adm-group">Документи перевізника</div>
+  <button class="adm-link" data-p="rmpd" onclick="pane('rmpd',this)"><i class="ti ti-file-certificate"></i>RMPD <span class="cab-badge" id="rmAdmBadge" style="display:none">0</span></button>
+  <button class="adm-link" data-p="sent" onclick="pane('sent',this)"><i class="ti ti-map-pin"></i>SENT <span class="cab-badge" id="snAdmBadge" style="display:none">0</span></button>
+  <button class="adm-link" data-p="deleg" onclick="pane('deleg',this)"><i class="ti ti-user-check"></i>Відрядження <span class="cab-badge" id="dlAdmBadge" style="display:none">0</span></button>
+  <div class="adm-group">Фінанси</div>
+  <button class="adm-link" data-p="billing" onclick="pane('billing',this)"><i class="ti ti-credit-card"></i>Платежі</button>
+</aside>
+<div class="adm-shade" onclick="document.body.classList.remove('adm-open')"></div>
 
 <div class="page">
   <div class="container" style="padding-top:1.5rem;padding-bottom:3rem">
@@ -454,9 +478,12 @@ let brokers = [], requests = [], payments = [], reviews = [], rvFilter = 'pendin
 
 function pane(name, btn){
   document.querySelectorAll('.cab-pane').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.nav-link').forEach(b => b.classList.remove('active'));
-  document.getElementById('pane-' + name).classList.add('active');
-  if (btn) btn.classList.add('active');
+  document.querySelectorAll('.adm-link').forEach(b => b.classList.toggle('active', b.dataset.p === name));
+  const el = document.getElementById('pane-' + name); if (!el) return;
+  el.classList.add('active');
+  document.body.classList.remove('adm-open');
+  if (location.hash !== '#' + name) history.replaceState(null, '', '#' + name);
+  window.scrollTo(0, 0);
 }
 
 /* ---------- Вхід ---------- */
@@ -491,6 +518,7 @@ async function enter(user){
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('panel').style.display = 'block';
   document.getElementById('who').textContent = u.email;
+  const h = location.hash.slice(1); if (h && document.getElementById('pane-' + h)) pane(h);
   loadAll();
   Outreach.init();
 }
