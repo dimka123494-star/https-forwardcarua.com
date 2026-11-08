@@ -639,7 +639,7 @@ function rmMap(a){
   return ' <a class="text-xs" target="_blank" rel="noopener" href="https://www.openstreetmap.org/?mlat=' + a.lat + '&mlon=' + a.lon + '#map=15/' + a.lat + '/' + a.lon + '">📍 на карті</a>' +
     (a.approx ? ' <span class="text-xs" style="color:var(--amber)">≈ центр міста — уточніть</span>' : '');
 }
-document.addEventListener('DOMContentLoaded', () => { const h = document.getElementById('rmFillHow'); if (h && window.PuescFill) h.innerHTML = PuescFill.howto(); });
+document.addEventListener('DOMContentLoaded', () => { const h = document.getElementById('rmFillHow'); if (h && (typeof PuescFill !== "undefined")) h.innerHTML = PuescFill.howto(); });
 async function rmGeo(id, btn){
   const r = rmpdAdm.find(x => x.id === id); if (!r) return;
   btn.disabled = true; btn.textContent = 'Шукаємо…';
