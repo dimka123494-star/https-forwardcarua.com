@@ -445,7 +445,7 @@
     const box = $('oClaims'); if (!box) return;
     // компанія вже зареєстрована як брокер — заявку закриваємо автоматично
     const reg = {}; list.forEach(p => { if (p.edrpou && p.status === 'registered') reg[p.edrpou] = p; });
-    const stale = claims.filter(c => (c.status === 'new' || c.status === 'verified') && reg[c.edrpou]);
+    const stale = claims.filter(c => c.kind !== 'carrier' && (c.status === 'new' || c.status === 'verified') && reg[c.edrpou]);
     if (stale.length){
       await sb.from('registry_claims').update({ status: 'invited' }).in('id', stale.map(c => c.id));
       stale.forEach(c => c.status = 'invited');
@@ -454,13 +454,15 @@
     const open = claims.filter(c => (c.status === 'new' || c.status === 'verified') && !seen[c.edrpou] && (seen[c.edrpou] = 1));
     box.style.display = open.length ? '' : 'none';
     $('oClaimsList').innerHTML = open.map(c =>
-      '<tr><td><div style="font-weight:500">' + esc(c.company) + '</div><div class="text-xs text-muted">ЄДРПОУ ' + esc(c.edrpou) + ' · <a href="/kompaniya/' + esc(c.edrpou) + '" target="_blank">профіль</a></div></td>' +
+      '<tr><td><div style="font-weight:500">' + (c.kind === 'carrier' ? '<span class="badge" style="font-size:10px;margin-right:6px">🚚 перевізник</span>' : '') + esc(c.company || 'ФОП') + '</div><div class="text-xs text-muted">ЄДРПОУ ' + esc(c.edrpou) + ' · <a href="/' + (c.kind === 'carrier' ? 'perevizhnyk' : 'kompaniya') + '/' + esc(c.edrpou) + '" target="_blank">профіль</a></div></td>' +
       '<td class="text-sm">' + esc(c.contact_name) + (c.position ? '<div class="text-xs text-muted">' + esc(c.position) + '</div>' : '') + '</td>' +
       '<td class="text-sm"><a href="tel:' + esc(c.phone) + '">' + esc(c.phone) + '</a><div class="text-xs"><a href="mailto:' + esc(c.email) + '">' + esc(c.email) + '</a></div></td>' +
       '<td class="text-xs text-muted">' + timeAgo(c.created_at) + (c.comment ? '<div>' + esc(c.comment) + '</div>' : '') + '</td>' +
       '<td><div class="row-actions">' +
         (c.status === 'new' ? '<button class="btn-quiet" onclick="Outreach.claimVerify(\'' + c.id + '\')">1. Підтвердив по телефону</button>' : '<span class="text-xs" style="color:var(--green)"><i class="ti ti-check"></i> Телефон підтверджено</span>') +
-        '<button class="btn btn-primary btn-sm" onclick="Outreach.claimInvite(\'' + c.id + '\')">' + (c.status === 'new' ? '' : '2. ') + 'Опублікувати й запросити</button>' +
+        (c.kind === 'carrier'
+          ? '<button class="btn btn-primary btn-sm" onclick="Outreach.claimDone(\'' + c.id + '\')">' + (c.status === 'new' ? '' : '2. ') + 'Опрацьовано</button>'
+          : '<button class="btn btn-primary btn-sm" onclick="Outreach.claimInvite(\'' + c.id + '\')">' + (c.status === 'new' ? '' : '2. ') + 'Опублікувати й запросити</button>') +
         '<button class="btn-quiet" onclick="Outreach.claimReject(\'' + c.id + '\')">Відхилити</button></div></td></tr>').join('');
   }
   async function claimSet(id, status){
@@ -513,7 +515,7 @@
     importOpen(){ $('impModal').classList.add('open'); importPreview(); }, importPreview, doImport,
     tplOpen, tplSave, tplDel, tplAdd,
     afterInvite(){ afterClaimInvite(); const id = window.__outreachInvite; if (!id) return; window.__outreachInvite = null; setStatus(id, 'invited'); },
-    importRegistry, claimInvite, claimVerify: id => claimSet(id, 'verified'),
+    importRegistry, claimInvite, claimVerify: id => claimSet(id, 'verified'), claimDone: id => claimSet(id, 'invited'),
     claimReject: id => { if (confirm('Відхилити заявку на підтвердження?')) claimSet(id, 'rejected'); },
     _render: render
   };
