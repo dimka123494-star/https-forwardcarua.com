@@ -1,0 +1,17 @@
+name: Джерела — розвідка
+on:
+  push:
+    branches: [main]
+    paths: ['tools/src_probe.py', '.github/workflows/src-probe.yml']
+permissions:
+  contents: write
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 tools/src_probe.py
+      - run: |
+          git config user.name "edr-bot"; git config user.email "noreply@forwardcarua.com"
+          git add data/src-probe.txt; git commit -qm "Джерела: розвідка [skip netlify]"; git pull --rebase -q origin main; git push -q origin main
