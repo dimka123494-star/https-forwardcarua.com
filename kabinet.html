@@ -94,14 +94,14 @@
         <button class="cab-item"        data-pane="deleg"    onclick="pane('deleg',this)"><i class="ti ti-id"></i>Відрядження водія <span class="cab-badge" id="dlBadge" style="display:none">0</span></button>
         <button class="cab-item"        data-pane="requests" onclick="pane('requests',this)"><i class="ti ti-inbox"></i>Заявки <span class="cab-badge" id="reqBadge" style="display:none">0</span></button>
         <button class="cab-item"        data-pane="reviews"  onclick="pane('reviews',this)"><i class="ti ti-star"></i>Відгуки <span class="cab-badge" id="rvBadge" style="display:none">0</span></button>
-        <button class="cab-item"        data-pane="calc"     onclick="pane('calc',this)"><i class="ti ti-calculator"></i>Калькулятор</button>
-        <button class="cab-item"        data-pane="vin"      onclick="pane('vin',this)"><i class="ti ti-car"></i>Довідка VIN</button>
+        <button class="cab-item br-only" data-pane="calc"     onclick="pane('calc',this)"><i class="ti ti-calculator"></i>Калькулятор</button>
+        <button class="cab-item br-only" data-pane="vin"      onclick="pane('vin',this)"><i class="ti ti-car"></i>Довідка VIN</button>
         <button class="cab-item"        data-pane="card"     onclick="pane('card',this)"><i class="ti ti-id-badge-2"></i>Візитівка</button>
         <button class="cab-item"        data-pane="consult"  onclick="pane('consult',this)"><i class="ti ti-headset"></i>Консультації <span class="cab-badge" id="csBadge" style="display:none">0</span></button>
-        <button class="cab-item"        data-pane="services" onclick="pane('services',this)"><i class="ti ti-list-check"></i>Послуги</button>
+        <button class="cab-item br-only" data-pane="services" onclick="pane('services',this)"><i class="ti ti-list-check"></i>Послуги</button>
         <button class="cab-item"        data-pane="billing"  onclick="pane('billing',this)"><i class="ti ti-credit-card"></i>Підписка</button>
         <button class="cab-item"        data-pane="profile"  onclick="pane('profile',this)"><i class="ti ti-user"></i>Профіль</button>
-        <a class="cab-item" href="/instruktsiya" target="_blank" rel="noopener"><i class="ti ti-help-circle"></i>Інструкція</a>
+        <a class="cab-item" id="navHelp" href="/instruktsiya" target="_blank" rel="noopener"><i class="ti ti-help-circle"></i>Інструкція</a>
       </div>
     </aside>
 
@@ -262,11 +262,12 @@
         <p class="text-sm text-muted" style="margin-bottom:1rem">Додайте машини — після перевірки адміністратором вони отримають позначку «авто перевірено» у профілі та пропозиціях транспорту. Зміна даних авто повертає його на перевірку.</p>
         <div class="card" style="margin-bottom:16px">
           <div class="card-title" id="vhTitle">Додати авто</div>
+          <div id="vhSuggest" style="display:none;margin-bottom:12px"></div>
           <input type="hidden" id="vh-id">
           <div class="field-row"><div class="field"><label class="label" for="vh-plate">Держномер *</label><input class="input" id="vh-plate" maxlength="12" placeholder="AC1234BH" style="text-transform:uppercase"></div>
             <div class="field"><label class="label" for="vh-trailer">Номер причепа</label><input class="input" id="vh-trailer" maxlength="12" style="text-transform:uppercase"></div></div>
           <div class="field-row"><div class="field"><label class="label" for="vh-kind">Тип кузова</label><select class="input" id="vh-kind"></select></div>
-            <div class="field"><label class="label" for="vh-make">Марка, модель</label><input class="input" id="vh-make" maxlength="60" placeholder="DAF XF"></div></div>
+            <div class="field"><label class="label" for="vh-make">Марка, модель</label><input class="input" id="vh-make" maxlength="60" placeholder="DAF XF" list="vhMakes" autocomplete="off"><datalist id="vhMakes"></datalist></div></div>
           <div class="field-row"><div class="field"><label class="label" for="vh-year">Рік</label><input class="input" type="text" inputmode="numeric" id="vh-year" placeholder="2018" maxlength="4"></div>
             <div class="field"><label class="label" for="vh-cap">Вантажопідйомність, т</label><input class="input" type="text" inputmode="decimal" id="vh-cap" placeholder="Напр.: 3.5 або 20"></div></div>
           <div class="field" style="max-width:260px"><label class="label" for="vh-vol">Обʼєм кузова, м³</label><input class="input" type="text" inputmode="decimal" id="vh-vol" placeholder="Напр.: 18 або 86"></div>
@@ -537,7 +538,9 @@ async function renderDash(){
   document.getElementById('upsell').innerHTML = broker.plan === 'free'
     ? '<div class="card" style="margin-bottom:1.25rem;background:linear-gradient(135deg,rgba(245,166,35,.1),rgba(241,101,75,.06));border-color:rgba(245,166,35,.3)">' +
       '<div class="spread"><div><div style="font-weight:600;margin-bottom:3px">Розширити тариф</div>' +
-      '<div class="text-sm text-muted">Показ по всій Україні, більший ліміт заявок і вища позиція в списку</div></div>' +
+      '<div class="text-sm text-muted">' + (broker.kind === 'carrier'
+        ? 'Безкоштовно — 5 відгуків на вантажі на місяць. Платний тариф: без ліміту й вища позиція у ставках'
+        : 'Показ по всій Україні, більший ліміт заявок і вища позиція в списку') + '</div></div>' +
       '<button class="btn btn-primary btn-sm" onclick="pane(\'billing\',document.querySelector(\'[data-pane=billing]\'))">Переглянути тарифи</button></div></div>'
     : '';
 }
@@ -656,6 +659,8 @@ function renderBilling(){
       '<div style="font-weight:600;font-size:14px">' + p.label + '</div>' +
       '<div class="text-sm text-muted" style="margin-top:4px">' + fmtMoney(price) +
         (period === 'year' ? ' / рік' : ' / міс') + '</div>' +
+      '<ul class="text-xs text-muted" style="margin:8px 0 0;padding-left:16px;text-align:left">' +
+        PLAN_PERKS[broker.kind === 'carrier' ? 'carrier' : 'broker'][k].map(t => '<li>' + esc(t) + '</li>').join('') + '</ul>' +
       '<div class="text-xs" style="margin-top:8px;color:' + (cur ? 'var(--green)' : 'var(--blue)') + '">' +
         (cur ? 'Поточний тариф' : 'Обрати') + '</div></div>';
   }).join('');
@@ -843,9 +848,47 @@ let vehs = [];
 const VST = { pending: ['на перевірці', 'var(--amber)'], verified: ['перевірено', 'var(--green)'], rejected: ['відхилено', 'var(--red)'] };
 async function initFleet(){
   document.getElementById('vh-kind').innerHTML = '<option value="">—</option>' + TRANSPORT_TYPES.map(t => '<option>' + t + '</option>').join('');
-  vehs = await myVehicles(); renderFleet(); fillVehSelect();
+  vehs = await myVehicles(); renderFleet(); fillVehSelect(); loadFleetSuggest();
+}
+// Машини, які перевізник уже вводив у заявках RMPD / SENT, — підставляємо одним кліком
+let vhFromDocs = [];
+const VH_MAKES = ['DAF XF','DAF CF','DAF LF','Volvo FH','Volvo FM','Volvo FL','Scania R','Scania S','Scania G','Scania P','MAN TGX','MAN TGS','MAN TGL','MAN TGM',
+  'Mercedes-Benz Actros','Mercedes-Benz Arocs','Mercedes-Benz Atego','Mercedes-Benz Sprinter','Iveco S-Way','Iveco Stralis','Iveco Eurocargo','Iveco Daily',
+  'Renault T','Renault D','Renault Master','Volkswagen Crafter','Ford Transit','Fiat Ducato','Peugeot Boxer','Citroen Jumper','Opel Movano','Isuzu NQR','Hyundai HD','МАЗ','КрАЗ','КамАЗ'];
+async function loadFleetSuggest(){
+  document.getElementById('vhMakes').innerHTML = VH_MAKES.map(m => '<option value="' + esc(m) + '">').join('');
+  const norm = x => String(x || '').toUpperCase().replace(/[\s-]/g, '');
+  const seen = new Map();
+  const add = (plate, trailer, src) => { const p = norm(plate); if (p.length < 4 || seen.has(p)) return; seen.set(p, { plate: p, trailer: norm(trailer), src }); };
+  try{ (await rmpdContacts(broker.id)).filter(c => c.kind === 'vehicle' && c.data).forEach(c => add(c.data.plate, c.data.trailer_plate, 'RMPD')); }catch(e){}
+  try{
+    const sb = await sbReady();
+    const [r1, r2] = await Promise.all([
+      sb.from('rmpd_requests').select('plate, trailer_plate').eq('owner_id', broker.id).order('created_at', { ascending:false }).limit(50),
+      sb.from('sent_requests').select('plate, trailer_plate').eq('owner_id', broker.id).order('created_at', { ascending:false }).limit(50)]);
+    (r1.data || []).forEach(x => add(x.plate, x.trailer_plate, 'RMPD'));
+    (r2.data || []).forEach(x => add(x.plate, x.trailer_plate, 'SENT'));
+  }catch(e){}
+  vhFromDocs = [...seen.values()];
+  renderFleetSuggest();
+}
+function renderFleetSuggest(){
+  const have = new Set(vehs.map(v => String(v.plate).toUpperCase().replace(/[\s-]/g, '')));
+  const list = vhFromDocs.filter(x => !have.has(x.plate));
+  const box = document.getElementById('vhSuggest');
+  box.style.display = list.length ? '' : 'none';
+  box.innerHTML = '<div class="text-xs text-muted" style="margin-bottom:6px"><i class="ti ti-sparkles"></i> З ваших заявок RMPD / SENT — натисніть, щоб підставити:</div><div class="chips">' +
+    list.slice(0, 12).map((x, i) => '<button type="button" class="chip" onclick="vhPick(' + vhFromDocs.indexOf(x) + ')"><i class="ti ti-truck"></i> ' + esc(x.plate) + (x.trailer ? ' / ' + esc(x.trailer) : '') + '</button>').join('') + '</div>';
+}
+function vhPick(i){
+  const x = vhFromDocs[i]; if (!x) return;
+  vhReset();
+  document.getElementById('vh-plate').value = x.plate;
+  document.getElementById('vh-trailer').value = x.trailer || '';
+  document.getElementById('vh-make').focus();
 }
 function renderFleet(){
+  if (vhFromDocs.length) renderFleetSuggest();
   document.getElementById('vhList').innerHTML = vehs.length ? vehs.map(v =>
     '<div class="cargo-item"><div class="spread" style="gap:10px;flex-wrap:wrap"><div><b>' + esc(v.plate) + '</b>' + (v.trailer_plate ? ' / ' + esc(v.trailer_plate) : '') +
       ' · ' + esc([v.kind, v.make, v.year, v.capacity_t ? v.capacity_t + ' т' : '', v.volume_m3 ? v.volume_m3 + ' м³' : ''].filter(Boolean).join(' · ')) +
@@ -1026,20 +1069,25 @@ window.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('p-region').innerHTML =
     '<option value="">Оберіть область</option>' + REGIONS.map(r => '<option>' + r + '</option>').join('');
 
+  if (broker.kind === 'carrier'){
+    // кабінет перевізника: без брокерських інструментів (митний калькулятор, довідка VIN, прайс послуг)
+    document.querySelectorAll('.br-only').forEach(el => el.remove());
+    document.getElementById('navHelp').href = '/instruktsiya-perevizhnyka';
+  }
   renderHeader();
   fillProfile();
   const paidPlan = broker.plan && broker.plan !== 'free' &&
     (!broker.plan_expires_at || new Date(broker.plan_expires_at) > new Date());
-  CustomsCalc.mount(document.getElementById('calcMount'), { broker, paid: paidPlan });
+  if (broker.kind !== 'carrier') CustomsCalc.mount(document.getElementById('calcMount'), { broker, paid: paidPlan });
   renderCard();
   if (broker.kind === 'carrier') initCargo();
-  VinCert.mount(document.getElementById('vinMount'), { broker });
+  if (broker.kind !== 'carrier') VinCert.mount(document.getElementById('vinMount'), { broker });
   Rmpd.mount(document.getElementById('rmpdMount'), { broker });
   Sent.mount(document.getElementById('sentMount'), { broker });
   Deleg.mount(document.getElementById('delegMount'), { broker });
   csHowChange(); myConsultations().then(l => { myCons = l; renderConsult(); });
   renderConsult();
-  renderServices();
+  if (broker.kind !== 'carrier') renderServices();
   renderBilling();
   renderPayments();
 
