@@ -146,3 +146,5 @@ create table if not exists public.check_orders (
   token text not null unique, code text not null check (code ~ '^\d{8}$'), email text not null, amount numeric not null,
   status text not null default 'pending', order_reference text unique, paid_at timestamptz, report jsonb, raw jsonb);
 alter table public.check_orders enable row level security;
+
+create policy "check orders admin read" on public.check_orders for select using (is_admin());
