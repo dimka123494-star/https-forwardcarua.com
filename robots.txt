@@ -9,3 +9,5 @@ Disallow: /moi-zayavky
 Disallow: /vhid
 
 Sitemap: https://forwardcarua.com/sitemap.xml
+
+Sitemap: https://forwardcarua.com/sitemap-perevizhnyky.xml

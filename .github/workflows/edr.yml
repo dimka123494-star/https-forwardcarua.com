@@ -1,0 +1,28 @@
+name: ЄДР — дані перевізників
+on:
+  schedule:
+    - cron: '17 3 * * 3'   # щосереди 03:17 UTC (набір на data.gov.ua оновлюється щотижня)
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['tools/edr_import.py', '.github/workflows/edr.yml']
+permissions:
+  contents: write
+concurrency: edr
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - name: Import
+        run: python3 tools/edr_import.py --probe
+      - name: Commit
+        run: |
+          git config user.name "edr-bot"
+          git config user.email "noreply@forwardcarua.com"
+          git add data/
+          git diff --cached --quiet && exit 0
+          git commit -m "ЄДР: оновлення даних перевізників [skip netlify]"
+          git pull --rebase -q origin main
+          git push -q origin main
