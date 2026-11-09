@@ -96,6 +96,13 @@ const CompanyCheck = (() => {
     try{ await startTopup(Number(String(x).replace(/\s/g, '').replace(',', '.'))); }catch(e){ alert(e.message); }
   }
 
+  // дата з розкладу засідань ДСА: «10.11.2026 15:00» — майбутнє засідання чи вже минуле
+  function hearing(d){
+    const m = String(d || '').match(/(\d{2})\.(\d{2})\.(\d{4})(?:\s+(\d{2}:\d{2}))?/);
+    if (!m) return esc(d);
+    const t = new Date(+m[3], +m[2] - 1, +m[1]);
+    return (t >= new Date(new Date().toDateString()) ? 'засідання призначено на ' : 'засідання ') + m[1] + '.' + m[2] + '.' + m[3] + (m[4] ? ' о ' + m[4] : '');
+  }
   function report(r){
     const e = r.erb, b = r.bankrupt || [], dec = r.decisions || {};
     const docs = cs => (dec[cs] || []).length ? '<div class="text-xs" style="margin-top:6px">Рішення: ' + dec[cs].map(d =>
@@ -116,7 +123,7 @@ const CompanyCheck = (() => {
     const c = r.courts;
     const crBlock = c && c.n
       ? (Object.keys(c.roles || {}).some(k => /відповідач|боржник/.test(k)) ? bad : ok)('<b>Судових справ: ' + c.n + '</b> — ' + Object.entries(c.roles || {}).map(([k, v]) => esc(k) + ' — ' + v).join(', ')) +
-        (c.items || []).slice(0, 10).map(i => '<div class="card" style="padding:10px 12px;margin-top:8px;font-size:13px"><b>Справа № ' + esc(i.case) + '</b> · ' + esc(i.date) + (i.role ? ' · <span style="color:var(--amber)">' + esc(i.role) + '</span>' : '') +
+        (c.items || []).slice(0, 10).map(i => '<div class="card" style="padding:10px 12px;margin-top:8px;font-size:13px"><b>Справа № ' + esc(i.case) + '</b> · ' + hearing(i.date) + (i.role ? ' · <span style="color:var(--amber)">' + esc(i.role) + '</span>' : '') +
           '<div class="text-xs text-muted">' + esc(i.what || '') + '<br>' + esc(i.court) + '</div>' + docs(i.case) + '</div>').join('') +
         (c.n > 10 ? '<p class="text-xs text-muted">Показано 10 найсвіжіших з ' + c.n + '. Повний текст рішень — у Єдиному державному реєстрі судових рішень за номером справи.</p>' : '')
       : ok('<b>Судових справ не знайдено</b>');
