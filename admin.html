@@ -81,8 +81,9 @@
 <aside class="adm-side" id="admSide">
   <div class="adm-group">Огляд</div>
   <button class="adm-link active" data-p="dash" onclick="pane('dash',this)"><i class="ti ti-layout-dashboard"></i>Дашборд</button>
-  <div class="adm-group">Каталог брокерів</div>
+  <div class="adm-group">Каталог</div>
   <button class="adm-link" data-p="brokers" onclick="pane('brokers',this)"><i class="ti ti-building-store"></i>Брокери</button>
+  <button class="adm-link" data-p="carriers" onclick="pane('carriers',this)"><i class="ti ti-truck"></i>Перевізники <span class="cab-badge" id="crClaimBadge" style="display:none">0</span></button>
   <button class="adm-link" data-p="outreach" onclick="pane('outreach',this)"><i class="ti ti-speakerphone"></i>Залучення</button>
   <button class="adm-link" data-p="reviews" onclick="pane('reviews',this)"><i class="ti ti-star"></i>Відгуки <span class="cab-badge" id="modBadge" style="display:none">0</span></button>
   <div class="adm-group">Клієнти</div>
@@ -109,6 +110,7 @@
       </div>
       <div class="stat-grid" style="margin-bottom:1.5rem">
         <div class="stat"><div class="stat-val" style="color:var(--blue)"   id="kBrokers">—</div><div class="stat-label">Брокерів у каталозі</div><div class="text-xs text-muted" id="kBrokersSub"></div></div>
+        <div class="stat" style="cursor:pointer" onclick="pane('carriers')"><div class="stat-val" style="color:var(--green)" id="kCarriers">—</div><div class="stat-label">Перевізників на платформі</div><div class="text-xs text-muted" id="kCarriersSub"></div></div>
         <div class="stat"><div class="stat-val" style="color:var(--green)"  id="kReqs">—</div><div class="stat-label">Заявок усього</div><div class="text-xs text-muted" id="kReqsSub"></div></div>
         <div class="stat"><div class="stat-val" style="color:var(--amber)"  id="kPaid">—</div><div class="stat-label">Активних платних тарифів</div><div class="text-xs text-muted" id="kPaidSub"></div></div>
         <div class="stat"><div class="stat-val" style="color:var(--purple)" id="kRev">—</div><div class="stat-label">Надійшло за 30 днів</div><div class="text-xs text-muted">За підтвердженими платежами</div></div>
@@ -147,6 +149,31 @@
           <tbody id="bTable"></tbody>
         </table>
       </div>
+    </section>
+
+    <!-- ПЕРЕВІЗНИКИ -->
+    <section class="cab-pane" id="pane-carriers">
+      <div class="spread" style="margin-bottom:1rem">
+        <h1 class="h-md">Перевізники <span class="text-sm text-muted" id="crTotal"></span></h1>
+        <div class="row" style="gap:8px">
+          <input class="input" style="max-width:240px" placeholder="Пошук: назва, email, ЄДРПОУ" oninput="filterCarriers(this.value)">
+          <a class="btn btn-ghost btn-sm" href="/perevirka-perevizhnyka" target="_blank"><i class="ti ti-search"></i> Перевірка перевізника</a>
+        </div>
+      </div>
+      <div id="cClaims" style="display:none;margin-bottom:1.5rem">
+        <div class="card-title" style="color:var(--amber)">Заявки «Це моя компанія» з /perevizhnyk</div>
+        <div class="table-wrap table-scroll"><table>
+          <thead><tr><th>Компанія</th><th>Контактна особа</th><th>Контакти</th><th>Коли</th><th></th></tr></thead>
+          <tbody id="cClaimsList"></tbody></table></div>
+        <p class="hint"><b>Два кроки:</b> 1) зателефонуйте на номер компанії й переконайтеся, що людина справді її представляє; 2) «Опублікувати й запросити» — сторінка перевізника покаже «Профіль підтверджено» й контакти, а компанія отримає доступ до кабінету перевізника.</p>
+      </div>
+      <div class="table-wrap table-scroll">
+        <table>
+          <thead><tr><th>Перевізник</th><th>Місто</th><th>Тариф</th><th>Рейтинг</th><th>Заявки</th><th>Статус</th><th>Дії</th></tr></thead>
+          <tbody id="crTable"></tbody>
+        </table>
+      </div>
+      <p class="hint">Автопарк і авто перевізників на модерації — у розділі «Вантажі».</p>
     </section>
 
     <!-- ЗАЛУЧЕННЯ -->
@@ -535,7 +562,7 @@ async function loadAll(){
       adminBrokers(), adminRequests(), adminPayments(), adminReviews()
     ]);
   }catch(e){ showToast(e.message, 'error'); return; }
-  renderDash(); renderBrokers(brokers); renderPending(); renderRequests(requests); renderPayments(); renderReviews();
+  renderDash(); renderAllBrokers(); renderPending(); renderRequests(requests); renderPayments(); renderReviews();
   try { consults = await adminConsultations(); renderConsults(); } catch(e){ console.error(e); }
   try { rmpdAdm = await adminRmpd(); renderRmpdAdm(); } catch(e){ console.error(e); }
   rmLoadPrices();
@@ -882,9 +909,12 @@ async function saveConsult(id){
 
 function renderDash(){
   const now = Date.now();
-  const active = brokers.filter(b => b.is_active !== false);
-  document.getElementById('kBrokers').textContent = brokers.length;
-  document.getElementById('kBrokersSub').textContent = active.length + ' активних, ' + (brokers.length - active.length) + ' прихованих';
+  const br = brokers.filter(b => b.kind !== 'carrier'), cr = brokers.filter(b => b.kind === 'carrier');
+  const active = br.filter(b => b.is_active !== false);
+  document.getElementById('kBrokers').textContent = br.length;
+  document.getElementById('kBrokersSub').textContent = active.length + ' активних, ' + (br.length - active.length) + ' прихованих';
+  document.getElementById('kCarriers').textContent = cr.length;
+  document.getElementById('kCarriersSub').textContent = cr.filter(b => b.edrpou && b.claimed_at).length + ' з підтвердженим профілем ЄДРПОУ';
 
   document.getElementById('kReqs').textContent = requests.length;
   document.getElementById('kReqsSub').textContent = 'За 7 днів: ' +
@@ -917,20 +947,22 @@ function statusPill(s){
 /* ---------- Брокери ---------- */
 function reqCount(id){ return requests.filter(r => r.broker_id === id).length; }
 
-function renderBrokers(list){
-  document.getElementById('bTotal').textContent = '(' + list.length + ')';
-  document.getElementById('bTable').innerHTML = list.length ? list.map(b =>
+function renderBrokers(list, carriers){
+  list = list.filter(b => carriers ? b.kind === 'carrier' : b.kind !== 'carrier');
+  document.getElementById(carriers ? 'crTotal' : 'bTotal').textContent = '(' + list.length + ')';
+  document.getElementById(carriers ? 'crTable' : 'bTable').innerHTML = list.length ? list.map(b =>
     '<tr>' +
     '<td><div class="row" style="gap:10px;flex-wrap:nowrap"><div class="avatar avatar-sm av-' + esc(b.plan || 'free') + '">' +
       esc(initials(b.name)) + '</div><div><div style="font-weight:500">' +
       '<a href="/broker/' + esc(b.id) + '" target="_blank">' + esc(b.name) + '</a></div>' +
-      '<div class="text-xs text-muted">' + esc(b.email || '') + '</div></div></div></td>' +
+      '<div class="text-xs text-muted">' + esc(b.email || '') + '</div>' +
+      (b.edrpou ? '<div class="text-xs"><a href="/perevizhnyk/' + esc(b.edrpou) + '" target="_blank">ЄДРПОУ ' + esc(b.edrpou) + '</a></div>' : '') + '</div></div></td>' +
     '<td class="text-sm text-muted">' + esc([b.city, b.region].filter(Boolean).join(', ') || '—') + '</td>' +
     '<td><span class="badge badge-' + esc(b.plan || 'free') + '">' + planLabel(b.plan) + '</span>' +
       (b.plan_expires_at ? '<div class="text-xs text-muted">до ' + fmtDate(b.plan_expires_at) + '</div>' : '') + '</td>' +
     '<td>' + (b.rating_avg ? '★ ' + Number(b.rating_avg).toFixed(1) + ' <span class="text-xs text-muted">(' + (b.rating_count||0) + ')</span>' : '<span class="text-muted">—</span>') + '</td>' +
     '<td class="text-muted">' + reqCount(b.id) + '</td>' +
-    '<td>' + (b.is_active === false ? '<span style="color:var(--red)">Прихований</span>' :
+    '<td>' + (!b.claimed_at ? '<span style="color:var(--amber)">Очікує підтвердження</span>' : b.is_active === false ? '<span style="color:var(--red)">Прихований</span>' :
       b.is_verified ? '<span style="color:var(--green)">Перевірений</span>' : '<span class="text-muted">У каталозі</span>') + '</td>' +
     '<td><div class="row-actions">' +
       '<button class="btn-quiet" onclick="toggleVerified(\'' + esc(b.id) + '\',' + !b.is_verified + ')">' +
@@ -942,7 +974,12 @@ function renderBrokers(list){
           '<option value="' + p + '"' + (b.plan === p ? ' selected' : '') + '>' + PLANS[p].label + '</option>').join('') +
       '</select>' +
     '</div></td></tr>').join('')
-    : '<tr><td colspan="7"><div class="empty">Брокерів немає</div></td></tr>';
+    : '<tr><td colspan="7"><div class="empty">' + (carriers ? 'Перевізників ще немає' : 'Брокерів немає') + '</div></td></tr>';
+}
+function renderAllBrokers(){ renderBrokers(brokers); renderBrokers(brokers, true); }
+function filterCarriers(q){
+  const s = q.toLowerCase();
+  renderBrokers(brokers.filter(b => [b.name, b.email, b.city, b.edrpou].some(x => (x || '').toLowerCase().includes(s))), true);
 }
 
 function filterBrokers(q){
@@ -968,7 +1005,7 @@ async function changePlan(id, plan, name){
   try{ await adminSetPlan(id, plan); showToast('Тариф змінено вручну'); await refreshBrokers(); }
   catch(e){ showToast(e.message, 'error'); }
 }
-async function refreshBrokers(){ brokers = await adminBrokers(); renderBrokers(brokers); renderDash(); renderPending(); }
+async function refreshBrokers(){ brokers = await adminBrokers(); renderAllBrokers(); renderDash(); renderPending(); }
 
 /* ---------- Запрошення ---------- */
 function openInvite(){
@@ -1018,7 +1055,7 @@ async function sendInvite(){
 }
 
 function renderPending(){
-  const list = brokers.filter(b => !b.claimed_at);
+  const list = brokers.filter(b => !b.claimed_at && b.kind !== 'carrier');
   document.getElementById('pendingBox').style.display = list.length ? 'block' : 'none';
   if (!list.length) return;
   document.getElementById('pendingTable').innerHTML = list.map(b =>
