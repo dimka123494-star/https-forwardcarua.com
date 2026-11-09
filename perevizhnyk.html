@@ -131,6 +131,7 @@
 </footer>
 <script src="/assets/js/config.js"></script>
 <script src="/assets/js/db.js"></script>
+<script src="/assets/js/company-check.js"></script>
 <script type="module">
 import { renderCarrier, prettyName, esc } from '/assets/js/carrier-render.mjs';
 const $ = id => document.getElementById(id);
@@ -177,7 +178,14 @@ function claimBox(){
 
 async function search(){
   const q = $('cpQ').value.trim(), out = $('cpRes'); if (!q) return;
-  if (/^\d{8,10}$/.test(q)){ location.href = '/perevizhnyk/' + q; return; }
+  if (/^\d{8,10}$/.test(q)){
+    const r = await rpc('carrier_search', { q }).catch(() => []);
+    if (r && r.length){ location.href = '/perevizhnyk/' + q; return; }
+    out.innerHTML = '<div class="card"><b>' + esc(q) + '</b> — немає в ліцензійному реєстрі перевізників.' +
+      (q.length === 8 ? '<p class="text-sm text-muted" style="margin:.5rem 0">Перевірте будь-яку компанію (відправника, клієнта) за Реєстром боржників і справами про банкрутство:</p>' +
+        '<button class="btn btn-primary btn-sm" onclick="CompanyCheck.open(\'' + q + '\')"><i class="ti ti-shield-search"></i>Перевірити компанію · 50 грн</button>' : '') + '</div>';
+    return;
+  }
   if (q.length < 3){ out.innerHTML = '<p class="text-sm text-muted">Введіть щонайменше 3 літери назви або код ЄДРПОУ.</p>'; return; }
   out.innerHTML = '<p class="text-sm text-muted">Шукаємо…</p>';
   try{
