@@ -43,3 +43,5 @@ revoke all on function public.edr_fetch_start(), public.edr_fetch_finish() from 
 
 select cron.schedule('edr-fetch-start', '20 6 * * 3', 'select public.edr_fetch_start()');
 select cron.schedule('edr-fetch-finish', '30 6 * * 3', 'select public.edr_fetch_finish()');
+
+-- carrier_public тепер повертає ще edr (дані ЄДР) і edr_at — див. міграцію carrier_public_edr у Supabase
