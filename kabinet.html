@@ -267,9 +267,9 @@
             <div class="field"><label class="label" for="vh-trailer">Номер причепа</label><input class="input" id="vh-trailer" maxlength="12" style="text-transform:uppercase"></div></div>
           <div class="field-row"><div class="field"><label class="label" for="vh-kind">Тип кузова</label><select class="input" id="vh-kind"></select></div>
             <div class="field"><label class="label" for="vh-make">Марка, модель</label><input class="input" id="vh-make" maxlength="60" placeholder="DAF XF"></div></div>
-          <div class="field-row"><div class="field"><label class="label" for="vh-year">Рік</label><input class="input" type="number" id="vh-year" min="1970" max="2100"></div>
-            <div class="field"><label class="label" for="vh-cap">Вантажопідйомність, т</label><input class="input" type="number" id="vh-cap" min="0" step="0.1"></div></div>
-          <div class="field" style="max-width:260px"><label class="label" for="vh-vol">Обʼєм кузова, м³</label><input class="input" type="number" id="vh-vol" min="0" step="0.1"></div>
+          <div class="field-row"><div class="field"><label class="label" for="vh-year">Рік</label><input class="input" type="text" inputmode="numeric" id="vh-year" placeholder="2018" maxlength="4"></div>
+            <div class="field"><label class="label" for="vh-cap">Вантажопідйомність, т</label><input class="input" type="text" inputmode="decimal" id="vh-cap" placeholder="Напр.: 3.5 або 20"></div></div>
+          <div class="field" style="max-width:260px"><label class="label" for="vh-vol">Обʼєм кузова, м³</label><input class="input" type="text" inputmode="decimal" id="vh-vol" placeholder="Напр.: 18 або 86"></div>
           <div class="msg" id="vhMsg"></div>
           <button class="btn btn-primary" onclick="vhSave()" id="vhBtn">Додати авто</button>
           <button class="btn btn-ghost" onclick="vhReset()" id="vhCancel" style="display:none">Скасувати</button>
@@ -863,10 +863,15 @@ function vhEdit(id){ const v = vehs.find(x => x.id === id); if (!v) return;
   window.scrollTo({ top: 0, behavior: 'smooth' }); }
 async function vhSave(){
   const g = i => document.getElementById(i).value.trim(), m = document.getElementById('vhMsg');
+  // «5.5 метрів», «3,5 т», «3500 кг» → число
+  const num = i => { const t = g(i).replace(/\s/g, '').replace(',', '.').match(/\d+(\.\d+)?/); return t ? Number(t[0]) : null; };
   try{
-    await saveVehicle({ id: g('vh-id') || null, plate: g('vh-plate').toUpperCase(), trailer_plate: g('vh-trailer').toUpperCase(), kind: g('vh-kind'), make: g('vh-make'),
-      year: Number(g('vh-year')) || null, capacity_t: Number(g('vh-cap')) || null, volume_m3: Number(g('vh-vol')) || null });
-    m.className = 'msg msg-ok show'; m.textContent = 'Збережено. Авто передано на перевірку.';
+    let cap = num('vh-cap'), note = '';
+    // 3500 у полі «тонни» — це кілограми: переводимо в тонни
+    if (cap > 200 && cap <= 200000){ cap = Math.round(cap / 10) / 100; note = ' Вантажопідйомність переведено з кг у тонни: ' + cap + ' т.'; }
+    await saveVehicle({ id: g('vh-id') || null, plate: g('vh-plate').toUpperCase().replace(/\s+/g, ''), trailer_plate: g('vh-trailer').toUpperCase().replace(/\s+/g, ''), kind: g('vh-kind'), make: g('vh-make'),
+      year: num('vh-year'), capacity_t: cap, volume_m3: num('vh-vol') });
+    m.className = 'msg msg-ok show'; m.textContent = 'Збережено. Авто передано на перевірку.' + note;
     vhReset(); vehs = await myVehicles(); renderFleet(); fillVehSelect();
   }catch(e){ m.className = 'msg msg-err show'; m.textContent = e.message; }
 }

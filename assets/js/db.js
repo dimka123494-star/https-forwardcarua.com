@@ -395,7 +395,15 @@ async function saveVehicle(v){
   const q = v.id ? sb.from('vehicles').update(row).eq('id', v.id).select().single()
                  : sb.from('vehicles').insert({ ...row, carrier_id: await myBrokerId() }).select().single();
   const { data, error } = await q;
-  if (error){ console.error('saveVehicle:', error); throw new Error('Не вдалося зберегти авто'); }
+  if (error){
+    console.error('saveVehicle:', error);
+    const m = error.message || '';
+    if (/capacity_t/.test(m)) throw new Error('Вантажопідйомність — у тоннах, від 0 до 200 (напр. 3.5)');
+    if (/volume_m3/.test(m)) throw new Error('Обʼєм кузова — у м³, від 0 до 400');
+    if (/year/.test(m)) throw new Error('Рік випуску — від 1970');
+    if (/plate/.test(m)) throw new Error('Держномер — 4–12 символів');
+    throw new Error('Не вдалося зберегти авто');
+  }
   return data;
 }
 async function deleteVehicle(id){
