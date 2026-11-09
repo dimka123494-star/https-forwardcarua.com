@@ -33,9 +33,9 @@ def erb():
         code = r[2].strip()
         a = agg.setdefault(code, {'name': clean(r[0]), 'n': 0, 'cats': collections.Counter(), 'items': []})
         a['n'] += 1
-        a['cats'][clean(r[10]) or 'інше'] += 1
-        if len(a['items']) < 5:   # компактно: БД обмежена, повний список — за номером ВП в АСВП
-            a['items'].append({'vp': clean(r[9]), 'cat': clean(r[10])[:60], 'issuer': clean(r[3])[:100], 'executor': clean(r[4])[:120]})
+        a['cats'][clean(r[10])[:50] or 'інше'] += 1
+        if len(a['items']) < 3:   # компактно: БД обмежена; решта — за номером ВП в АСВП
+            a['items'].append({'vp': clean(r[9]), 'cat': clean(r[10])[:50], 'issuer': clean(r[3])[:80], 'executor': clean(r[4])[:90]})
     if p.wait() != 0:
         raise SystemExit('unzip failed')
     for a in agg.values():
@@ -64,7 +64,7 @@ def bankrupt():
                            'court': clean(r.get('court_name'))})
     for a in agg.values():  # найновіші вгорі, не більше 20
         a['items'].sort(key=lambda x: x['date'][6:] + x['date'][3:5] + x['date'][:2], reverse=True)
-        a['items'] = a['items'][:5]
+        a['items'] = a['items'][:3]
     print('bankrupt firms', len(agg), flush=True)
     if len(agg) < 1000:
         raise SystemExit('Банкрутство: підозріло мало даних — не оновлюємо')
