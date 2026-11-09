@@ -127,13 +127,25 @@ const CompanyCheck = (() => {
           '<div class="text-xs text-muted">' + esc(i.what || '') + '<br>' + esc(i.court) + '</div>' + docs(i.case) + '</div>').join('') +
         (c.n > 10 ? '<p class="text-xs text-muted">Показано 10 найсвіжіших з ' + c.n + '. Повний текст рішень — у Єдиному державному реєстрі судових рішень за номером справи.</p>' : '')
       : ok('<b>Судових справ не знайдено</b>');
+    // Санкції РНБО (якщо реєстр підключено) і AEO
+    const sn = r.sanctions;
+    const snBlock = !sn ? '' : '<h3 style="font-size:16px;margin:1.25rem 0 .5rem">Санкції РНБО</h3>' + (sn.items && sn.items.length
+      ? sn.items.map(i => (i.status === 'active' ? bad : ok)('<b>' + (i.status === 'active' ? 'Під чинними санкціями' : 'Санкції припинено / виключено') + '</b> — ' + esc(i.name || '') + (i.status && i.status !== 'active' ? ' (' + esc(i.status) + ')' : ''))).join('')
+      : ok('<b>У Державному реєстрі санкцій не значиться</b>'));
+    const aeo = r.aeo;
+    const AEO_T = { 'АЕО-С': 'спрощення митних формальностей', 'АЕО-В': 'безпека та надійність', 'AEO-C': 'спрощення митних формальностей', 'AEO-S': 'безпека та надійність' };
+    const aeoBlock = aeo && aeo.length ? '<h3 style="font-size:16px;margin:1.25rem 0 .5rem">Авторизований економічний оператор (AEO)</h3>' +
+      aeo.map(a => (a.status === 'Чинна' ? ok : bad)('<b>' + esc(a.type || 'AEO') + (AEO_T[a.type] ? ' — ' + AEO_T[a.type] : '') + '</b>: авторизація ' + esc((a.status || '').toLowerCase()) +
+        '<div class="text-xs" style="margin-top:4px">№ ' + esc(a.number || '—') + (a.authorizationDate ? ' · з ' + date(a.authorizationDate) : '') +
+        (a.cancellationDate ? ' · скасовано ' + date(a.cancellationDate) : '') + (a.annulmentDate ? ' · анульовано ' + date(a.annulmentDate) : '') + '</div>')).join('') : '';
     const edr = r.edr ? '<div class="text-sm" style="margin-top:.5rem">Стан за ЄДР: <b>' + esc(r.edr.state || '—') + '</b>' + (r.edr.reg_date ? ' · зареєстровано ' + date(r.edr.reg_date) : '') + '</div>' : '';
     const lic = r.license ? '<div class="text-sm">Ліцензія Укртрансбезпеки: <b>' + esc(r.license.status) + '</b>' + (r.license.intl_cargo ? ', міжнародні перевезення' : '') + '</div>' : '';
     return '<div class="modal-title">Звіт перевірки</div>' +
       '<div class="modal-sub" style="margin-bottom:.75rem">' + esc(r.name || '') + ' · ЄДРПОУ ' + esc(r.code) + '</div>' + edr + lic +
+      snBlock +
       '<h3 style="font-size:16px;margin:1.25rem 0 .5rem">Виконавчі провадження</h3>' + erbBlock +
       '<h3 style="font-size:16px;margin:1.25rem 0 .5rem">Банкрутство</h3>' + bkBlock +
-      '<h3 style="font-size:16px;margin:1.25rem 0 .5rem">Судові справи</h3>' + crBlock +
+      '<h3 style="font-size:16px;margin:1.25rem 0 .5rem">Судові справи</h3>' + crBlock + aeoBlock +
       '<p class="text-xs text-muted" style="margin:1.25rem 0 0">Перевірено ' + date(r.checked_at) + '. Дані — відкриті дані Мін’юсту (Єдиний реєстр боржників) і ДСА (справи про банкрутство, справи, призначені до розгляду, Єдиний державний реєстр судових рішень) станом на ' + date(r.data_at) + '. Судові справи привʼязані за точним збігом назви з ЄДР; справи компаній з неоднозначними назвами не показуються. ' +
         (r.token ? 'Оплачено карткою ' + r.price + ' грн.' : r.price > 0 ? 'Списано ' + r.price + ' грн з балансу.' : 'Без оплати (повторний перегляд).') + (r.token ? ' Збережіть посилання на цю сторінку — звіт доступний за ним.' : ' Звіт збережено в кабінеті → «Перевірка компаній».') + '</p>' +
       '<div class="row" style="gap:8px;margin-top:1rem"><button class="btn btn-ghost" onclick="window.print()"><i class="ti ti-printer"></i>Друк / PDF</button>' + (r.token ? '' : '<button class="btn btn-ghost" onclick="CompanyCheck.close()">Закрити</button>') + '</div>';

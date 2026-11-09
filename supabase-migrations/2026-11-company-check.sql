@@ -148,3 +148,7 @@ create table if not exists public.check_orders (
 alter table public.check_orders enable row level security;
 
 create policy "check orders admin read" on public.check_orders for select using (is_admin());
+
+-- ===== Санкції РНБО (міграції sanctions_legal, cron_secret_sanctions; edge-функція sanctions-sync) =====
+-- Ключ API реєстру санкцій — секрет edge-функцій NSDC_API_KEY. Щодня о 05:17 UTC pg_cron викликає sanctions_sync_call()
+-- із заголовком x-cron-secret (секрет cron_secret у Vault, перевірка — cron_secret_ok()). AEO — aeo.json у гілці opendata.

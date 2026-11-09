@@ -32,15 +32,30 @@ async function shard(kind: string, code: string, optional = false): Promise<any>
 async function buildReport(db: any, code: string) {
   const [meta, erb, bankrupt, courts, decisions] = await Promise.all([
     fetch(RAW + "meta.json").then((r) => r.json()), shard("erb", code), shard("bankrupt", code), shard("courts", code), shard("decisions", code, true)]);
-  const [{ data: lic }, { data: edr }] = await Promise.all([
+  const [{ data: lic }, { data: edr }, sanctions, aeo] = await Promise.all([
     db.from("carrier_registry").select("name, status, intl_cargo, dangerous").eq("edrpou", code).maybeSingle(),
-    db.from("carrier_edr").select("data").eq("edrpou", code).maybeSingle()]);
+    db.from("carrier_edr").select("data").eq("edrpou", code).maybeSingle(),
+    sanctionsFor(db, code).catch(() => null), aeoFor(code).catch(() => null)]);
   return {
     code, checked_at: new Date().toISOString(), data_at: meta?.generated ?? null,
     name: edr?.data?.name || lic?.name || erb?.name || bankrupt?.name || courts?.name || null,
     erb, bankrupt: bankrupt?.items ?? null, courts, decisions: decisions ?? null, edr: edr?.data ?? null,
     license: lic ? { status: lic.status, intl_cargo: lic.intl_cargo, dangerous: lic.dangerous } : null,
+      sanctions, aeo,
   };
+}
+
+// Санкції РНБО (таблиця sanctions_legal, наповнює sanctions-sync) — лише якщо реєстр уже синхронізовано
+async function sanctionsFor(db: any, code: string) {
+  const { data: run } = await db.from("sanctions_runs").select("at").eq("ok", true).gt("subjects", 0).order("id", { ascending: false }).limit(1).maybeSingle();
+  if (!run) return null;
+  const { data } = await db.from("sanctions_legal").select("name, status, data").contains("codes", [code]);
+  return { at: run.at, items: (data ?? []).map((x: any) => ({ name: x.name, status: x.status })) };
+}
+async function aeoFor(code: string) {
+  const r = await fetch(RAW + "aeo.json");
+  if (!r.ok) return null;
+  return (await r.json())[code] ?? null;
 }
 
 async function readBody(req: Request) {
