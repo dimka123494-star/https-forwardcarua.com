@@ -3,7 +3,8 @@
    CompanyCheck.open(code, name) — вікно з кнопкою оплати і звітом; CompanyCheck.mountHistory(el) — історія в кабінеті. */
 const CompanyCheck = (() => {
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
-  const date = d => d ? new Date(d).toLocaleDateString('uk-UA') : '—';
+  // «2021-03-18» — календарна дата без часу: не пропускаємо через часовий пояс браузера
+  const date = d => !d ? '—' : /^\d{4}-\d{2}-\d{2}$/.test(String(d)) ? String(d).split('-').reverse().join('.') : new Date(d).toLocaleDateString('uk-UA');
   let price = 50;
 
   function shell(){
