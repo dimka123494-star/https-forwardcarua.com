@@ -193,7 +193,7 @@ def courts(idx):
     for code, a in agg.items():
         items = sorted(a['cases'].values(), key=key, reverse=True)
         roles = collections.Counter((i['role'] or 'інше') for i in items)
-        out[code] = {'name': a['name'], 'n': len(items), 'roles': dict(roles.most_common()), 'items': items[:20]}
+        out[code] = {'name': a['name'], 'n': len(items), 'roles': dict(roles.most_common()), 'items': items}  # обрізаємо в merge_prev
     print('sched rows', rows, 'links', linked, 'ambiguous names skipped', ambiguous, 'firms', len(out), flush=True)
     if rows < 100_000 or len(out) < 1000:
         raise SystemExit('Суди: підозріло мало даних — не оновлюємо')
@@ -219,9 +219,9 @@ def merge_prev(new):
                 cur['items'].append(it); have.add(it['case']); merged += 1
     for v in new.values():
         v['items'].sort(key=key, reverse=True)
-        v['items'] = v['items'][:40]
-        v['n'] = max(v['n'], len(v['items']))
+        v['n'] = max(v['n'], len(v['items']))   # повна кількість і ролі — до обрізання списку
         v['roles'] = dict(collections.Counter((i.get('role') or 'інше') for i in v['items']).most_common())
+        v['items'] = v['items'][:40]
     print('courts merged from history', merged, 'firms', len(new), flush=True)
     return new
 
