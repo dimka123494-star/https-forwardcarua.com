@@ -993,7 +993,7 @@ async function sendInvite(){
   const btn = document.getElementById('i-btn');
   btn.disabled = true; btn.textContent = 'Надсилаємо…';
   try{
-    await inviteBroker({
+    const res = await inviteBroker({
       name: v('i-name'), email: v('i-email'), city: v('i-city'),
       region: document.getElementById('i-region').value,
       phone: v('i-phone'), telegram: v('i-tg'), about: v('i-about'),
@@ -1003,7 +1003,9 @@ async function sendInvite(){
       kind: window.__claimInvite && window.__claimInvite.kind === 'carrier' ? 'carrier' : 'broker'
     });
     m.className = 'msg show msg-ok';
-    m.textContent = (window.__claimInvite ? 'Профіль опубліковано в каталозі. ' : '') + 'Лист для входу надіслано на ' + v('i-email');
+    m.textContent = (window.__claimInvite ? 'Профіль опубліковано. ' : '') + (res && (res.existing_account || res.existed)
+      ? 'У ' + v('i-email') + ' уже був акаунт — його перетворено на кабінет. Вхід зі старим паролем на /vhid.'
+      : 'Лист для входу надіслано на ' + v('i-email'));
     if (window.Outreach) Outreach.afterInvite();
     ['i-name','i-email','i-city','i-phone','i-tg','i-about'].forEach(id => document.getElementById(id).value = '');
     document.querySelectorAll('#iSvc .on').forEach(el => el.classList.remove('on'));

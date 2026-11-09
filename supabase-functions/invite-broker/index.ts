@@ -74,7 +74,8 @@ Deno.serve(async (req) => {
       return json({ error: "already_exists", claimed: !!existing.claimed_at }, 409);
     }
 
-    // 4. Створюємо акаунт і надсилаємо лист-запрошення
+    // 4. Акаунт: новий — через лист-запрошення; уже існуючий (напр. клієнтський) при publish — використовуємо його
+    let userId = "", newUser = false;
     const { data: invited, error: inviteErr } = await admin.auth.admin
       .inviteUserByEmail(email, {
         redirectTo: `${SITE}/zaproshennya`,
@@ -83,16 +84,22 @@ Deno.serve(async (req) => {
 
     if (inviteErr) {
       const msg = String(inviteErr.message || "");
-      if (/already been registered|already exists/i.test(msg)) {
-        return json({ error: "email_registered" }, 409);
+      if (!/already been registered|already exists/i.test(msg)) {
+        console.error("invite:", inviteErr);
+        return json({ error: "invite_failed", detail: msg }, 500);
       }
-      console.error("invite:", inviteErr);
-      return json({ error: "invite_failed", detail: msg }, 500);
+      if (!publish) return json({ error: "email_registered" }, 409);
+      const { data: uid } = await admin.rpc("auth_user_id_by_email", { p_email: email });
+      if (!uid) return json({ error: "email_registered" }, 409);
+      userId = String(uid);
+      await admin.auth.admin.updateUserById(userId, { user_metadata: { user_role: kind } }).catch(() => {});
+    } else {
+      userId = invited.user.id; newUser = true;
     }
 
     // 5. Профіль
     const { data: broker, error: bErr } = await admin.from("brokers").insert({
-      user_id:    invited.user.id,
+      user_id:    userId,
       email,
       name,
       kind,
@@ -111,7 +118,7 @@ Deno.serve(async (req) => {
     }).select().single();
 
     if (bErr) {
-      await admin.auth.admin.deleteUser(invited.user.id).catch(() => {});
+      if (newUser) await admin.auth.admin.deleteUser(userId).catch(() => {});
       console.error("insert broker:", bErr);
       return json({ error: "profile_failed", detail: bErr.message }, 500);
     }
@@ -130,7 +137,7 @@ Deno.serve(async (req) => {
     // 7. Закриваємо заявки «Це моя компанія» / картку залучення за ЄДРПОУ
     await closeClaims(broker.id);
 
-    return json({ ok: true, broker_id: broker.id, email, published: publish });
+    return json({ ok: true, broker_id: broker.id, email, published: publish, existing_account: !newUser });
   } catch (e) {
     console.error(e);
     return json({ error: "server_error" }, 500);
