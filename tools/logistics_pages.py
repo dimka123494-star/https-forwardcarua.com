@@ -107,7 +107,8 @@ def offers_page():
 def carriers_catalog_page():
     body = ('<section class="container page-hero" style="padding-bottom:1rem"><div class="crumbs"><a href="/perevezennya">' + BRAND + '</a> › Перевізники</div>'
             '<h1 class="h-lg" style="font-size:clamp(28px,5vw,40px)">Перевізники та експедитори</h1>'
-            '<p class="lead">Компанії з автопарком, напрямками й відгуками. Позначка «авто перевірено» — машини перевірені адміністратором біржі.</p></section>'
+            '<p class="lead">Компанії з автопарком, напрямками й відгуками. Позначка «авто перевірено» — машини перевірені адміністратором біржі.</p>'
+            '<div class="card" style="margin-top:1rem;border-color:rgba(245,166,35,.35)"><div class="spread" style="gap:12px;flex-wrap:wrap"><div style="flex:1;min-width:220px"><b><i class="ti ti-shield-search"></i> Перевірте перевізника перед рейсом</b><div class="text-sm text-muted">Ліцензія Укртрансбезпеки й дані ЄДР — безкоштовно; боржник, банкрутство й суди — 50 грн.</div></div><a class="btn btn-primary btn-sm" href="/perevirka-perevizhnyka"><i class="ti ti-search"></i>Перевірка за ЄДРПОУ</a></div></div>' '</section>'
             '<section class="container" style="padding-bottom:2rem"><div class="row" style="gap:8px;margin-bottom:1rem">'
             '<select class="input" id="fTransport" style="width:auto"></select><select class="input" id="fRoute" style="width:auto"></select></div>'
             '<div id="carrierList" class="lg-carriers"><div class="text-sm text-muted">Завантаження…</div></div></section>')
@@ -255,7 +256,8 @@ def shipper_page():
     feats = [('ti-currency-hryvnia', 'Ставки перевізників', 'Розмістіть вантаж зі своєю ціною або як запит ставок — перевізники пропонують ціну, ви порівнюєте.'),
              ('ti-shield-check', 'Перевірені авто й рейтинг', 'Бачите, скільки машин перевізника перевірено, його відгуки й машину, яку він подає.'),
              ('ti-star', 'Обрані перевізники', 'Свій список надійних партнерів з контактами в один клік.'),
-             ('ti-building-bank', 'Митниця поруч', 'Брокери в пунктах пропуску й калькулятор платежів — на тій самій платформі.')]
+             ('ti-building-bank', 'Митниця поруч', 'Брокери в пунктах пропуску й калькулятор платежів — на тій самій платформі.'),
+             ('ti-shield-search', 'Перевірка перевізника', 'Ліцензія й ЄДР безкоштовно, а боржник, банкрутство й судові справи — за 50 грн. <a href="/perevirka-perevizhnyka">Перевірити за ЄДРПОУ</a>')]
     cards = ''.join('<div class="card"><i class="ti %s"></i><h3>%s</h3><p>%s</p></div>' % f for f in feats)
     body = ('<article class="container-narrow page-hero"><div class="crumbs"><a href="/perevezennya">' + BRAND + '</a> › Вантажовласникам</div>'
             '<h1 class="h-lg" style="font-size:clamp(28px,5vw,40px)">Вантажовласникам: кабінет, ставки, перевірені перевізники</h1>'
