@@ -15,6 +15,7 @@ ERB = 'https://data.gov.ua/dataset/783b9b50-faba-4cc9-a393-60485e395b1d/resource
 BANKRUPT = 'https://data.gov.ua/dataset/544d4dad-0b6d-4972-b0b8-fb266829770f/resource/deb76481-a6c8-4a45-ae6c-f02aa87e9f4a/download/vidomosti-pro-spravi-pro-bankrutstvo.csv'
 SCHED = 'https://data.gov.ua/dataset/3a321301-a06f-487b-9d19-e6b917250aee/resource/98d6ba0d-1c18-4835-ae68-bfc0af724bfa/download/spisok-sprav-priznachenih-do-rozglyadu.csv'
 PREV = 'prev'  # попередній вміст гілки opendata (workflow клонує її сюди) — для накопичення історії справ
+AEO = 'https://data.gov.ua/dataset/ddfb4a77-fee4-45b2-a683-c0595052964f/resource/17aa3773-9072-4c65-89ad-8ae56147e3e1/download/authorizedoperators.csv'
 UO = 'https://data.gov.ua/dataset/03cc1239-3988-4451-aa0d-aadb77448714/resource/d40cc921-39bb-44fd-be06-dc02589f45c6/download/uo.zip'
 SHARDS = 128
 OUT = 'out'
@@ -200,6 +201,23 @@ def courts(idx):
     return out
 
 
+def aeo():
+    """Єдиний державний реєстр авторизованих економічних операторів (Держмитслужба): ЄДРПОУ → рядки авторизацій як є"""
+    fetch(AEO, 'aeo.csv')
+    with text_stream('aeo.csv') as f:
+        head = f.readline(); f.seek(0)
+        delim = max([',', ';', '\t'], key=head.count)
+        rows = list(csv.DictReader(f, delimiter=delim))
+    out = {}
+    for r in rows:
+        r = {clean(k): clean(v) for k, v in r.items() if k}
+        code = next((v for v in r.values() if is_firm(v)), None)
+        if code:
+            out.setdefault(code, []).append(r)
+    print('aeo rows', len(rows), 'firms', len(out), 'columns', list(rows[0].keys()) if rows else None, flush=True)
+    return out
+
+
 def merge_prev(new):
     """Справи накопичуються: додаємо до збереженої історії нові, зберігаючи найсвіжіший запис кожної справи"""
     old = {}
@@ -291,8 +309,13 @@ def main():
             if i['case'] in d:
                 dec.setdefault(code, {})[i['case']] = d[i['case']]
     write('courts', c); write('decisions', dec)
+    try:
+        a = aeo()
+        json.dump(a, open(f'{OUT}/aeo.json', 'w', encoding='utf-8'), ensure_ascii=False)
+    except Exception as e:   # AEO — додаткове джерело: його збій не зупиняє оновлення решти
+        print('AEO failed', e, flush=True); a = {}
     meta = {'generated': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()), 'erb_firms': len(e), 'bankrupt_firms': len(b),
-            'court_firms': len(c), 'decision_firms': len(dec), 'shards': SHARDS}
+            'court_firms': len(c), 'decision_firms': len(dec), 'aeo_firms': len(a), 'shards': SHARDS}
     json.dump(meta, open(f'{OUT}/meta.json', 'w'))
     print(meta)
 
