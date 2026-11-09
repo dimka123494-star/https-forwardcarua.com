@@ -105,7 +105,7 @@ async function search(){
     const r = await rpc('carrier_search', { q }).catch(() => []);
     if (r && r.length){ location.href = '/perevizhnyk/' + q; return; }
     out.innerHTML = '<div class="card"><b>' + esc(q) + '</b> — немає в ліцензійному реєстрі перевізників.' +
-      (q.length === 8 ? '<p class="text-sm text-muted" style="margin:.5rem 0">Перевірте будь-яку компанію (відправника, клієнта) за Реєстром боржників і справами про банкрутство:</p>' +
+      (q.length === 8 ? '<p class="text-sm text-muted" style="margin:.5rem 0">Перевірте будь-яку компанію (відправника, клієнта): виконавчі провадження, банкрутство, судові справи:</p>' +
         '<button class="btn btn-primary btn-sm" onclick="CompanyCheck.open(\'' + q + '\')"><i class="ti ti-shield-search"></i>Перевірити компанію · 50 грн</button>' : '') + '</div>';
     return;
   }

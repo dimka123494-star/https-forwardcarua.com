@@ -1,4 +1,4 @@
-/* company-check.js — платна «Перевірка компанії» за ЄДРПОУ (Реєстр боржників + справи про банкрутство).
+/* company-check.js — платна «Перевірка компанії» за ЄДРПОУ (Реєстр боржників, банкрутство, судові справи).
    Оплата — з балансу кабінету (RPC company_check, ціна в service_prices.company_check).
    CompanyCheck.open(code, name) — вікно з кнопкою оплати і звітом; CompanyCheck.mountHistory(el) — історія в кабінеті. */
 const CompanyCheck = (() => {
@@ -35,6 +35,7 @@ const CompanyCheck = (() => {
       '<ul class="text-sm" style="margin:0 0 1rem;padding-left:18px;line-height:1.7">' +
         '<li><b>Виконавчі провадження</b> — чи є компанія в Єдиному реєстрі боржників: кількість, категорії стягнень, хто стягувач і виконавець</li>' +
         '<li><b>Банкрутство</b> — справи про банкрутство та їхні етапи</li>' +
+        '<li><b>Судові справи</b> — призначені до розгляду, де компанія позивач, відповідач чи інша сторона</li>' +
         '<li>Дані ЄДР і ліцензії перевізника, якщо є</li></ul>' +
       '<p class="text-xs text-muted" style="margin:0 0 1rem">Джерела — відкриті дані Мін’юсту та Державної судової адміністрації, оновлюються двічі на тиждень. Повторний перегляд цієї компанії протягом 30 днів — безкоштовно.</p>' +
       '<div class="msg" id="ccMsg"></div>' +
@@ -48,9 +49,12 @@ const CompanyCheck = (() => {
     let user = null; try{ user = await currentUser(); }catch(e){}
     if (!user) return fail('Перевірка оплачується з балансу кабінету. <a href="/vhid?next=' + encodeURIComponent(location.pathname + location.search) + '">Увійдіть або зареєструйтесь</a> — новим кабінетам нараховуємо вітальний бонус на баланс.');
     try{
-      const sb = await sbReady();
-      const { data, error } = await sb.rpc('company_check', { p_code: code });
-      if (error) throw error;
+      const session = await currentSession();
+      const res = await fetch(SUPABASE_URL + '/functions/v1/company-check', { method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + session.access_token, apikey: SUPABASE_ANON },
+        body: JSON.stringify({ code }) });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'error');
       try{ track('company_check', { value: data.price, currency: 'UAH', repeat: data.repeat }); }catch(e){}
       document.getElementById('ccBody').innerHTML = report(data);
     }catch(e){
@@ -81,13 +85,21 @@ const CompanyCheck = (() => {
       ? bad('<b>Є справи про банкрутство: ' + b.length + '</b>') + b.map(i => '<div class="card" style="padding:10px 12px;margin-top:8px;font-size:13px"><b>Справа № ' + esc(i.case) + '</b> · ' + esc(i.date) +
           '<div class="text-xs text-muted">' + esc(i.type) + '<br>' + esc(i.court) + '</div></div>').join('')
       : ok('<b>Справ про банкрутство не знайдено</b>');
+    const c = r.courts;
+    const crBlock = c && c.n
+      ? (Object.keys(c.roles || {}).some(k => /відповідач|боржник/.test(k)) ? bad : ok)('<b>Судових справ, призначених до розгляду: ' + c.n + '</b> — ' + Object.entries(c.roles || {}).map(([k, v]) => esc(k) + ' — ' + v).join(', ')) +
+        (c.items || []).slice(0, 10).map(i => '<div class="card" style="padding:10px 12px;margin-top:8px;font-size:13px"><b>Справа № ' + esc(i.case) + '</b> · ' + esc(i.date) + (i.role ? ' · <span style="color:var(--amber)">' + esc(i.role) + '</span>' : '') +
+          '<div class="text-xs text-muted">' + esc(i.what || '') + '<br>' + esc(i.court) + '</div></div>').join('') +
+        (c.n > 10 ? '<p class="text-xs text-muted">Показано 10 найсвіжіших з ' + c.n + '. Повний текст рішень — у Єдиному державному реєстрі судових рішень за номером справи.</p>' : '')
+      : ok('<b>Судових справ, призначених до розгляду, не знайдено</b>');
     const edr = r.edr ? '<div class="text-sm" style="margin-top:.5rem">Стан за ЄДР: <b>' + esc(r.edr.state || '—') + '</b>' + (r.edr.reg_date ? ' · зареєстровано ' + date(r.edr.reg_date) : '') + '</div>' : '';
     const lic = r.license ? '<div class="text-sm">Ліцензія Укртрансбезпеки: <b>' + esc(r.license.status) + '</b>' + (r.license.intl_cargo ? ', міжнародні перевезення' : '') + '</div>' : '';
     return '<div class="modal-title">Звіт перевірки</div>' +
       '<div class="modal-sub" style="margin-bottom:.75rem">' + esc(r.name || '') + ' · ЄДРПОУ ' + esc(r.code) + '</div>' + edr + lic +
       '<h3 style="font-size:16px;margin:1.25rem 0 .5rem">Виконавчі провадження</h3>' + erbBlock +
       '<h3 style="font-size:16px;margin:1.25rem 0 .5rem">Банкрутство</h3>' + bkBlock +
-      '<p class="text-xs text-muted" style="margin:1.25rem 0 0">Перевірено ' + date(r.checked_at) + '. Дані — відкриті дані Мін’юсту (Єдиний реєстр боржників) і ДСА (справи про банкрутство) станом на ' + date(r.data_at) + '. ' +
+      '<h3 style="font-size:16px;margin:1.25rem 0 .5rem">Судові справи</h3>' + crBlock +
+      '<p class="text-xs text-muted" style="margin:1.25rem 0 0">Перевірено ' + date(r.checked_at) + '. Дані — відкриті дані Мін’юсту (Єдиний реєстр боржників) і ДСА (справи про банкрутство, справи, призначені до розгляду) станом на ' + date(r.data_at) + '. Судові справи привʼязані за точним збігом назви з ЄДР; справи компаній з неоднозначними назвами не показуються. ' +
         (r.price > 0 ? 'Списано ' + r.price + ' грн з балансу.' : 'Без оплати (повторний перегляд).') + ' Звіт збережено в кабінеті → «Перевірка компаній».</p>' +
       '<div class="row" style="gap:8px;margin-top:1rem"><button class="btn btn-ghost" onclick="window.print()"><i class="ti ti-printer"></i>Друк / PDF</button><button class="btn btn-ghost" onclick="CompanyCheck.close()">Закрити</button></div>';
   }
@@ -97,14 +109,14 @@ const CompanyCheck = (() => {
     await loadPrice();
     el.innerHTML = '<div class="card" style="margin-bottom:1rem"><div class="field-row" style="align-items:flex-end"><div class="field" style="flex:1"><label class="label" for="ccCode">Код ЄДРПОУ компанії</label><input class="input" id="ccCode" inputmode="numeric" maxlength="8" placeholder="8 цифр"></div>' +
       '<div class="field" style="flex:0"><button class="btn btn-primary" onclick="CompanyCheck.open(document.getElementById(\'ccCode\').value)"><i class="ti ti-shield-search"></i>Перевірити · ' + price + ' грн</button></div></div>' +
-      '<p class="hint" style="margin:0">Виконавчі провадження (Єдиний реєстр боржників) і справи про банкрутство — перед угодою з відправником, перевізником чи клієнтом.</p></div><div id="ccHist" class="text-sm text-muted">Завантаження…</div>';
+      '<p class="hint" style="margin:0">Виконавчі провадження (Єдиний реєстр боржників), банкрутство й судові справи — перед угодою з відправником, перевізником чи клієнтом.</p></div><div id="ccHist" class="text-sm text-muted">Завантаження…</div>';
     try{
       const sb = await sbReady();
       const { data } = await sb.from('company_checks').select('id, created_at, code, price, report').order('created_at', { ascending: false }).limit(50);
       const list = data || [];
       window.__ccHist = list;
       document.getElementById('ccHist').innerHTML = list.length ? list.map((c, i) => {
-        const r = c.report || {}, flags = [r.erb ? '⚠️ боржник (' + r.erb.n + ' ВП)' : '✓ не боржник', (r.bankrupt || []).length ? '⚠️ банкрутство' : '✓ без банкрутства'];
+        const r = c.report || {}, flags = [r.erb ? '⚠️ боржник (' + r.erb.n + ' ВП)' : '✓ не боржник', (r.bankrupt || []).length ? '⚠️ банкрутство' : '✓ без банкрутства', r.courts && r.courts.n ? '⚖️ судових справ: ' + r.courts.n : '✓ без судових справ'];
         return '<div class="cargo-item" style="cursor:pointer" onclick="CompanyCheck.show(' + i + ')"><div class="spread" style="gap:10px;flex-wrap:wrap"><div><b>' + esc(r.name || c.code) + '</b> <span class="text-xs text-muted">ЄДРПОУ ' + esc(c.code) + '</span>' +
           '<div class="text-xs" style="margin-top:3px">' + flags.join(' · ') + '</div></div><div class="text-xs text-muted">' + date(c.created_at) + (Number(c.price) ? ' · ' + c.price + ' грн' : '') + '</div></div></div>';
       }).join('') : 'Перевірок ще не було.';

@@ -118,8 +118,8 @@ export function renderCarrier(d){
       '</table></div>' +
       edr +
       (d.is_fop ? '' : '<div class="card" style="margin-top:1rem;border-color:rgba(245,166,35,.35)"><div class="spread" style="gap:12px;flex-wrap:wrap"><div style="flex:1;min-width:220px">' +
-        '<h2 style="font-size:18px;margin:0 0 .35rem"><i class="ti ti-shield-search"></i> Боржник чи ні? Банкрутство?</h2>' +
-        '<p class="text-sm text-muted" style="margin:0">Перевірка за Єдиним реєстром боржників (відкриті виконавчі провадження) і справами про банкрутство — перед тим, як віддати вантаж.</p></div>' +
+        '<h2 style="font-size:18px;margin:0 0 .35rem"><i class="ti ti-shield-search"></i> Боржник? Банкрутство? Суди?</h2>' +
+        '<p class="text-sm text-muted" style="margin:0">Виконавчі провадження (Єдиний реєстр боржників), справи про банкрутство й судові справи — перед тим, як віддати вантаж.</p></div>' +
         '<button class="btn btn-primary" type="button" data-code="' + code + '" data-name="' + esc(name) + '" onclick="CompanyCheck.open(this.dataset.code, this.dataset.name)"><i class="ti ti-shield-search"></i>Перевірити · 50 грн</button></div></div>') +
       '<div class="card" style="margin-top:1rem"><h2 style="font-size:18px;margin:0 0 .75rem">Активність на МитнийБрокер</h2>' + activity + '</div>' +
     '</section>' +

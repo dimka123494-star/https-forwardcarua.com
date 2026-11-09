@@ -104,3 +104,38 @@ grant execute on function public.company_check(text) to authenticated;
 
 select cron.schedule('opendata-fetch-start', '40 4 * * 1,4', 'select public.opendata_fetch_start()');
 select cron.schedule('opendata-fetch-finish', '55 4 * * 1,4', 'select public.opendata_fetch_finish()');
+
+-- ===== Оновлення (міграція company_check_charge) =====
+-- Дані більше НЕ завантажуються в БД (company_erb/company_bankrupt не використовуються, cron opendata-* знято):
+-- edge-функція company-check (supabase-functions/company-check) бере один шард з гілки opendata
+-- (erb/, bankrupt/, courts/ — int(код) % 128) і викликає company_check_charge, яка списує ціну й зберігає звіт.
+create or replace function public.company_check_charge(p_user uuid, p_code text, p_report jsonb)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare b brokers; pr numeric := 0; w jsonb; rep boolean; cid uuid := gen_random_uuid(); adm boolean;
+begin
+  if p_code !~ '^\d{8}$' then raise exception 'bad_code'; end if;
+  select * into b from brokers where user_id = p_user order by created_at limit 1;
+  if b.id is null then raise exception 'no_cabinet'; end if;
+  select exists(select 1 from admins where user_id = p_user) into adm;
+  select exists(select 1 from company_checks where broker_id = b.id and code = p_code and created_at > now() - interval '30 days') into rep;
+  if not rep and not adm then
+    select sp.price into pr from service_prices sp where sp.code = 'company_check' and sp.active;
+    if pr is null then raise exception 'unavailable'; end if;
+    w := (select jsonb_build_object('available', coalesce(sum(amount) filter (where status = 'done'), 0) + coalesce(sum(amount) filter (where status = 'hold'), 0))
+          from wallet_tx where broker_id = b.id);
+    if (w->>'available')::numeric < pr then raise exception 'balance'; end if;
+    if pr > 0 then
+      insert into wallet_tx (broker_id, amount, kind, status, service, ref_id, note)
+      values (b.id, -pr, 'charge', 'done', 'company_check', cid, 'Перевірка компанії ' || p_code);
+    end if;
+  end if;
+  pr := case when rep or adm then 0 else pr end;
+  insert into company_checks(id, broker_id, user_id, code, price, report)
+  values (cid, b.id, p_user, p_code, pr, p_report || jsonb_build_object('price', pr, 'repeat', rep));
+  return jsonb_build_object('id', cid, 'price', pr, 'repeat', rep);
+end $$;
+revoke all on function public.company_check_charge(uuid, text, jsonb) from public, anon, authenticated;
+grant execute on function public.company_check_charge(uuid, text, jsonb) to service_role;
+revoke all on function public.company_check(text) from authenticated;
+select cron.unschedule('opendata-fetch-start');
+select cron.unschedule('opendata-fetch-finish');
