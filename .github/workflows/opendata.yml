@@ -1,0 +1,26 @@
+name: Відкриті дані — боржники й банкрутство
+on:
+  schedule:
+    - cron: '23 1 * * 1,4'   # пн і чт 01:23 UTC; Supabase забирає о 04:40/04:55 UTC
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['tools/opendata_import.py', '.github/workflows/opendata.yml']
+permissions:
+  contents: write
+concurrency: opendata
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - name: Import
+        run: python3 tools/opendata_import.py
+      - name: Publish to branch opendata (без історії)
+        run: |
+          cd out
+          git init -q -b opendata
+          git config user.name "edr-bot"; git config user.email "noreply@forwardcarua.com"
+          git add . && git commit -qm "Відкриті дані $(date -u +%F)"
+          git push -qf "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" opendata
