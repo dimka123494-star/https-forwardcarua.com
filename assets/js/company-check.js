@@ -35,7 +35,7 @@ const CompanyCheck = (() => {
       '<ul class="text-sm" style="margin:0 0 1rem;padding-left:18px;line-height:1.7">' +
         '<li><b>Виконавчі провадження</b> — чи є компанія в Єдиному реєстрі боржників: кількість, категорії стягнень, хто стягувач і виконавець</li>' +
         '<li><b>Банкрутство</b> — справи про банкрутство та їхні етапи</li>' +
-        '<li><b>Судові справи</b> — призначені до розгляду, де компанія позивач, відповідач чи інша сторона</li>' +
+        '<li><b>Судові справи</b> — де компанія позивач, відповідач чи інша сторона, з рішеннями в цих справах (посилання на тексти в реєстрі судових рішень)</li>' +
         '<li>Дані ЄДР і ліцензії перевізника, якщо є</li></ul>' +
       '<p class="text-xs text-muted" style="margin:0 0 1rem">Джерела — відкриті дані Мін’юсту та Державної судової адміністрації, оновлюються двічі на тиждень. Повторний перегляд цієї компанії протягом 30 днів — безкоштовно.</p>' +
       '<div class="msg" id="ccMsg"></div>' +
@@ -71,7 +71,9 @@ const CompanyCheck = (() => {
   }
 
   function report(r){
-    const e = r.erb, b = r.bankrupt || [];
+    const e = r.erb, b = r.bankrupt || [], dec = r.decisions || {};
+    const docs = cs => (dec[cs] || []).length ? '<div class="text-xs" style="margin-top:6px">Рішення: ' + dec[cs].map(d =>
+      '<a href="' + esc(d.url) + '" target="_blank" rel="noopener nofollow">' + esc(d.form || 'документ') + ' ' + date(d.date) + '</a>').join(' · ') + '</div>' : '';
     const ok = (t) => '<div class="msg show msg-ok" style="margin:0">' + t + '</div>';
     const bad = (t) => '<div class="msg show msg-err" style="margin:0">' + t + '</div>';
     const erbBlock = e
@@ -83,15 +85,15 @@ const CompanyCheck = (() => {
       : ok('<b>У Єдиному реєстрі боржників не значиться</b> — відкритих виконавчих проваджень, де компанія боржник, немає');
     const bkBlock = b.length
       ? bad('<b>Є справи про банкрутство: ' + b.length + '</b>') + b.map(i => '<div class="card" style="padding:10px 12px;margin-top:8px;font-size:13px"><b>Справа № ' + esc(i.case) + '</b> · ' + esc(i.date) +
-          '<div class="text-xs text-muted">' + esc(i.type) + '<br>' + esc(i.court) + '</div></div>').join('')
+          '<div class="text-xs text-muted">' + esc(i.type) + '<br>' + esc(i.court) + '</div>' + docs(i.case) + '</div>').join('')
       : ok('<b>Справ про банкрутство не знайдено</b>');
     const c = r.courts;
     const crBlock = c && c.n
-      ? (Object.keys(c.roles || {}).some(k => /відповідач|боржник/.test(k)) ? bad : ok)('<b>Судових справ, призначених до розгляду: ' + c.n + '</b> — ' + Object.entries(c.roles || {}).map(([k, v]) => esc(k) + ' — ' + v).join(', ')) +
+      ? (Object.keys(c.roles || {}).some(k => /відповідач|боржник/.test(k)) ? bad : ok)('<b>Судових справ: ' + c.n + '</b> — ' + Object.entries(c.roles || {}).map(([k, v]) => esc(k) + ' — ' + v).join(', ')) +
         (c.items || []).slice(0, 10).map(i => '<div class="card" style="padding:10px 12px;margin-top:8px;font-size:13px"><b>Справа № ' + esc(i.case) + '</b> · ' + esc(i.date) + (i.role ? ' · <span style="color:var(--amber)">' + esc(i.role) + '</span>' : '') +
-          '<div class="text-xs text-muted">' + esc(i.what || '') + '<br>' + esc(i.court) + '</div></div>').join('') +
+          '<div class="text-xs text-muted">' + esc(i.what || '') + '<br>' + esc(i.court) + '</div>' + docs(i.case) + '</div>').join('') +
         (c.n > 10 ? '<p class="text-xs text-muted">Показано 10 найсвіжіших з ' + c.n + '. Повний текст рішень — у Єдиному державному реєстрі судових рішень за номером справи.</p>' : '')
-      : ok('<b>Судових справ, призначених до розгляду, не знайдено</b>');
+      : ok('<b>Судових справ не знайдено</b>');
     const edr = r.edr ? '<div class="text-sm" style="margin-top:.5rem">Стан за ЄДР: <b>' + esc(r.edr.state || '—') + '</b>' + (r.edr.reg_date ? ' · зареєстровано ' + date(r.edr.reg_date) : '') + '</div>' : '';
     const lic = r.license ? '<div class="text-sm">Ліцензія Укртрансбезпеки: <b>' + esc(r.license.status) + '</b>' + (r.license.intl_cargo ? ', міжнародні перевезення' : '') + '</div>' : '';
     return '<div class="modal-title">Звіт перевірки</div>' +
@@ -99,7 +101,7 @@ const CompanyCheck = (() => {
       '<h3 style="font-size:16px;margin:1.25rem 0 .5rem">Виконавчі провадження</h3>' + erbBlock +
       '<h3 style="font-size:16px;margin:1.25rem 0 .5rem">Банкрутство</h3>' + bkBlock +
       '<h3 style="font-size:16px;margin:1.25rem 0 .5rem">Судові справи</h3>' + crBlock +
-      '<p class="text-xs text-muted" style="margin:1.25rem 0 0">Перевірено ' + date(r.checked_at) + '. Дані — відкриті дані Мін’юсту (Єдиний реєстр боржників) і ДСА (справи про банкрутство, справи, призначені до розгляду) станом на ' + date(r.data_at) + '. Судові справи привʼязані за точним збігом назви з ЄДР; справи компаній з неоднозначними назвами не показуються. ' +
+      '<p class="text-xs text-muted" style="margin:1.25rem 0 0">Перевірено ' + date(r.checked_at) + '. Дані — відкриті дані Мін’юсту (Єдиний реєстр боржників) і ДСА (справи про банкрутство, справи, призначені до розгляду, Єдиний державний реєстр судових рішень) станом на ' + date(r.data_at) + '. Судові справи привʼязані за точним збігом назви з ЄДР; справи компаній з неоднозначними назвами не показуються. ' +
         (r.price > 0 ? 'Списано ' + r.price + ' грн з балансу.' : 'Без оплати (повторний перегляд).') + ' Звіт збережено в кабінеті → «Перевірка компаній».</p>' +
       '<div class="row" style="gap:8px;margin-top:1rem"><button class="btn btn-ghost" onclick="window.print()"><i class="ti ti-printer"></i>Друк / PDF</button><button class="btn btn-ghost" onclick="CompanyCheck.close()">Закрити</button></div>';
   }

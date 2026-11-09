@@ -4,14 +4,17 @@
   • Відомості про справи про банкрутство (ДСА)
   • Список справ, призначених до розгляду (ДСА) → судові справи. Сторони там лише назвами, тож назву звіряємо
     з ЄДР (форма власності + назва в лапках) і привʼязуємо справу до коду, лише якщо збіг однозначний.
-Результат — out/{erb,bankrupt,courts}/NNN.json (шарди: int(код) % 128) і out/meta.json; workflow кладе їх у гілку opendata,
+  • Єдиний державний реєстр судових рішень (ДСА, 2025–2026) → рішення в цих справах (дата, форма, суд, посилання на текст).
+Судові справи накопичуються між запусками (історія з гілки opendata).
+Результат — out/{erb,bankrupt,courts,decisions}/NNN.json (шарди: int(код) % 128) і out/meta.json; workflow кладе їх у гілку opendata,
 звідки edge-функція company-check бере один невеликий файл на запит. Запуск: python3 tools/opendata_import.py"""
-import collections, csv, io, json, os, re, subprocess, time, urllib.request, xml.etree.ElementTree as ET
+import collections, csv, io, json, os, re, subprocess, time, urllib.parse, urllib.request, xml.etree.ElementTree as ET
 
 UA = 'Mozilla/5.0 (forwardcarua.com open-data import)'
 ERB = 'https://data.gov.ua/dataset/783b9b50-faba-4cc9-a393-60485e395b1d/resource/e6ea76c1-01f4-4bd0-a282-7d92d6ecc2a1/download/29-ex_csv_erb.zip'
 BANKRUPT = 'https://data.gov.ua/dataset/544d4dad-0b6d-4972-b0b8-fb266829770f/resource/deb76481-a6c8-4a45-ae6c-f02aa87e9f4a/download/vidomosti-pro-spravi-pro-bankrutstvo.csv'
 SCHED = 'https://data.gov.ua/dataset/3a321301-a06f-487b-9d19-e6b917250aee/resource/98d6ba0d-1c18-4835-ae68-bfc0af724bfa/download/spisok-sprav-priznachenih-do-rozglyadu.csv'
+PREV = 'prev'  # попередній вміст гілки opendata (workflow клонує її сюди) — для накопичення історії справ
 UO = 'https://data.gov.ua/dataset/03cc1239-3988-4451-aa0d-aadb77448714/resource/d40cc921-39bb-44fd-be06-dc02589f45c6/download/uo.zip'
 SHARDS = 128
 OUT = 'out'
@@ -197,6 +200,75 @@ def courts(idx):
     return out
 
 
+def merge_prev(new):
+    """Справи накопичуються: додаємо до збереженої історії нові, зберігаючи найсвіжіший запис кожної справи"""
+    old = {}
+    if os.path.isdir(f'{PREV}/courts'):
+        for n in os.listdir(f'{PREV}/courts'):
+            try:
+                old.update(json.load(open(f'{PREV}/courts/{n}', encoding='utf-8')))
+            except Exception:
+                pass
+    key = lambda x: x['date'][6:10] + x['date'][3:5] + x['date'][:2] + x['date'][11:16]
+    merged = 0
+    for code, o in old.items():
+        cur = new.setdefault(code, {'n': 0, 'roles': {}, 'items': []})
+        have = {i['case'] for i in cur['items']}
+        for it in o.get('items', []):
+            if it['case'] not in have:
+                cur['items'].append(it); have.add(it['case']); merged += 1
+    for v in new.values():
+        v['items'].sort(key=key, reverse=True)
+        v['items'] = v['items'][:40]
+        v['n'] = max(v['n'], len(v['items']))
+        v['roles'] = dict(collections.Counter((i.get('role') or 'інше') for i in v['items']).most_common())
+    print('courts merged from history', merged, 'firms', len(new), flush=True)
+    return new
+
+
+def edrsr_url(year):
+    q = urllib.parse.quote(f'Єдиний державний реєстр судових рішень за {year} рік')
+    j = json.loads(urllib.request.urlopen(urllib.request.Request('https://data.gov.ua/api/3/action/package_search?rows=5&q=' + q, headers={'User-Agent': UA}), timeout=120).read())
+    for p in j['result']['results']:
+        if str(year) in p['title'] and 'судових рішень' in p['title']:
+            for r in p['resources']:
+                if r['url'].endswith('.zip'):
+                    return r['url']
+    return None
+
+
+def decisions(cases):
+    """Номер справи → рішення в ЄДРСР за 2025–2026 рр.: дата, форма, суд, вид судочинства, посилання на текст"""
+    found = collections.defaultdict(list)
+    for year in (2025, 2026):
+        url = edrsr_url(year)
+        if not url:
+            print('ЄДРСР', year, 'не знайдено', flush=True); continue
+        path = f'edrsr{year}.zip'
+        fetch(url, path)
+        import zipfile
+        with zipfile.ZipFile(path) as z:
+            def table(n):
+                with z.open(n) as f:
+                    rd = csv.reader(io.TextIOWrapper(f, encoding='utf-8-sig', errors='replace'), delimiter='\t')
+                    next(rd); return {r[0]: r[1] for r in rd if len(r) > 1}
+            courts_, forms, kinds = table('courts.csv'), table('judgment_forms.csv'), table('justice_kinds.csv')
+        p = subprocess.Popen(['unzip', '-p', path, 'documents.csv'], stdout=subprocess.PIPE)
+        rd = csv.reader(io.TextIOWrapper(p.stdout, encoding='utf-8-sig', errors='replace', newline=''), delimiter='\t')
+        next(rd); rows = 0
+        for r in rd:
+            rows += 1
+            if len(r) < 11 or r[5] not in cases or r[10] != '1':
+                continue
+            found[r[5]].append({'date': r[6][:10], 'form': forms.get(r[2], ''), 'court': courts_.get(r[1], ''), 'kind': kinds.get(r[3], ''), 'url': r[9]})
+        p.wait()
+        print('ЄДРСР', year, 'rows', rows, 'cases with decisions', len(found), flush=True)
+    for v in found.values():
+        v.sort(key=lambda x: x['date'], reverse=True)
+        del v[8:]
+    return found
+
+
 def write(name, data):
     os.makedirs(f'{OUT}/{name}', exist_ok=True)
     shards = [dict() for _ in range(SHARDS)]
@@ -210,9 +282,17 @@ def write(name, data):
 def main():
     e = erb(); write('erb', e)
     b = bankrupt(); write('bankrupt', b)
-    c = courts(edr_index()); write('courts', c)
+    c = merge_prev(courts(edr_index()))
+    cases = {i['case'] for v in c.values() for i in v['items']} | {i['case'] for v in b.values() for i in v['items']}
+    d = decisions(cases)
+    dec = {}
+    for code, v in list(c.items()) + [(k, {'items': x['items']}) for k, x in b.items()]:
+        for i in v['items']:
+            if i['case'] in d:
+                dec.setdefault(code, {})[i['case']] = d[i['case']]
+    write('courts', c); write('decisions', dec)
     meta = {'generated': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()), 'erb_firms': len(e), 'bankrupt_firms': len(b),
-            'court_firms': len(c), 'shards': SHARDS}
+            'court_firms': len(c), 'decision_firms': len(dec), 'shards': SHARDS}
     json.dump(meta, open(f'{OUT}/meta.json', 'w'))
     print(meta)
 

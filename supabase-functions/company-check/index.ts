@@ -1,6 +1,7 @@
 // Supabase Edge Function «company-check»: платна перевірка компанії за ЄДРПОУ.
 // POST {code} з JWT користувача → бере зі свіжих відкритих даних (гілка opendata репозиторію, шарди по коду):
-//   erb/NNN.json — Єдиний реєстр боржників, bankrupt/NNN.json — справи про банкрутство, courts/NNN.json — судові справи;
+//   erb/NNN.json — Єдиний реєстр боржників, bankrupt/NNN.json — справи про банкрутство, courts/NNN.json — судові справи,
+//   decisions/NNN.json — рішення в цих справах з ЄДРСР;
 // додає ЄДР і ліцензію (якщо перевізник), списує ціну з балансу (company_check_charge) і зберігає звіт.
 // Повторний перегляд тієї ж компанії протягом 30 днів — без оплати.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -14,9 +15,10 @@ const CORS = {
 };
 const json = (b: unknown, s = 200) => new Response(JSON.stringify(b), { status: s, headers: { ...CORS, "Content-Type": "application/json" } });
 
-async function shard(kind: string, code: string): Promise<any> {
+async function shard(kind: string, code: string, optional = false): Promise<any> {
   const n = String(Number(code) % SHARDS).padStart(3, "0");
   const r = await fetch(`${RAW}${kind}/${n}.json`);
+  if (optional && r.status === 404) return null;
   if (!r.ok) throw new Error(`source ${kind} ${r.status}`);
   return (await r.json())[code] ?? null;
 }
@@ -33,10 +35,11 @@ Deno.serve(async (req) => {
     if (!/^\d{8}$/.test(code)) return json({ error: "bad_code" }, 400);
 
     // спершу дані — гроші списуємо, лише якщо звіт зібрано
-    let meta: any, erb: any, bankrupt: any, courts: any;
+    let meta: any, erb: any, bankrupt: any, courts: any, decisions: any;
     try {
-      [meta, erb, bankrupt, courts] = await Promise.all([
-        fetch(RAW + "meta.json").then((r) => r.json()), shard("erb", code), shard("bankrupt", code), shard("courts", code)]);
+      [meta, erb, bankrupt, courts, decisions] = await Promise.all([
+        fetch(RAW + "meta.json").then((r) => r.json()), shard("erb", code), shard("bankrupt", code), shard("courts", code),
+        shard("decisions", code, true)]);
     } catch (e) {
       console.error("sources:", e);
       return json({ error: "unavailable" }, 503);
@@ -47,7 +50,7 @@ Deno.serve(async (req) => {
     const report = {
       code, checked_at: new Date().toISOString(), data_at: meta?.generated ?? null,
       name: edr?.data?.name || lic?.name || erb?.name || bankrupt?.name || null,
-      erb, bankrupt: bankrupt?.items ?? null, courts,
+      erb, bankrupt: bankrupt?.items ?? null, courts, decisions: decisions ?? null,
       edr: edr?.data ?? null,
       license: lic ? { status: lic.status, intl_cargo: lic.intl_cargo, dangerous: lic.dangerous } : null,
     };
