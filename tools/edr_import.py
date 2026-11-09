@@ -69,39 +69,60 @@ def as_list(v):
     return v if isinstance(v, list) else ([] if v in (None, '') else [v])
 
 
+def iso(t):
+    m = re.search(r'(\d{2})\.(\d{2})\.(\d{4})', t or '')
+    return f'{m.group(3)}-{m.group(2)}-{m.group(1)}' if m else None
+
+
+def kids(d, outer, inner):
+    v = d.get(outer)
+    return as_list(v.get(inner)) if isinstance(v, dict) else []
+
+
+def money(t):
+    try:
+        return float(str(t).replace(' ', '').replace(',', '.'))
+    except (TypeError, ValueError):
+        return None
+
+
 def pick(d):
-    head = find(d, 'BOSS', 'HEAD', 'KERIVNYK')
+    """Поля відкритого ЄДР (UO.xml, елемент SUBJECT). Імена засновників-фізосіб і бенефіціарів не зберігаємо."""
     heads = []
-    for h in as_list(find(d, 'HEADS', 'SIGNERS') or head):
-        if isinstance(h, dict):
-            nm = find(h, 'NAME', 'FIO', 'PIB')
-            role = find(h, 'ROLE', 'ROLE_TEXT', 'POSITION')
-            if nm:
-                heads.append({'name': nm, 'role': role})
-        elif isinstance(h, str) and h:
-            heads.append({'name': h, 'role': None})
-    founders = as_list(find(d, 'FOUNDERS'))
-    if len(founders) == 1 and isinstance(founders[0], dict) and len(founders[0]) == 1:
-        founders = as_list(list(founders[0].values())[0])
+    for s in kids(d, 'SIGNERS', 'SIGNER'):
+        if not isinstance(s, str):
+            continue
+        name, _, role = s.partition(' - ')
+        name = name.split(';')[0].strip()
+        if name and not any(h['name'] == name for h in heads):
+            heads.append({'name': name, 'role': role.strip(' ;') or None})
+    founders = kids(d, 'FOUNDERS', 'FOUNDER')
     f_orgs = []
     for f in founders:
-        if isinstance(f, dict):
-            code = find(f, 'CODE', 'EDRPOU', 'IDENT')
-            nm = find(f, 'NAME', 'FOUNDER_NAME')
-            if code and re.fullmatch(r'\d{8}', str(code)) and nm:
-                f_orgs.append({'name': nm, 'code': code})
-        elif isinstance(f, str) and re.search(r'\b\d{8}\b', f) and re.search(r'ТОВАРИСТВО|\bТОВ\b|\bПП\b|ПІДПРИЄМСТВО|КОМПАНІ|LIMITED|LTD|GMBH|SP\. Z O\.O', f, re.I):
-            f_orgs.append({'name': f, 'code': re.search(r'\b\d{8}\b', f).group(0)})
+        parts = [x.strip() for x in str(f).split(';')]
+        code = next((x for x in parts[1:] if re.fullmatch(r'\d{8}', x)), None)
+        if code:
+            f_orgs.append({'name': parts[0], 'code': code})
+    taxes = []
+    for e in kids(d, 'EXCHANGE_DATA', 'EXCHANGE_ANSWER'):
+        if isinstance(e, dict) and e.get('TAX_PAYER_TYPE'):
+            taxes.append({'type': e['TAX_PAYER_TYPE'], 'date': iso(e.get('START_DATE')), 'end': iso(e.get('END_DATE')) if e.get('END_DATE') else None})
+    reg = str(d.get('REGISTRATION') or '')
     return {
-        'name': find(d, 'NAME'),
-        'short_name': find(d, 'SHORT_NAME'),
-        'opf': find(d, 'OPF'),
-        'state': find(d, 'STAN', 'STATE', 'STATUS'),
-        'reg_date': find(d, 'REGISTRATION_DATE', 'REG_DATE', 'RECORD_DATE'),
-        'capital': find(d, 'AUTHORIZED_CAPITAL', 'CAPITAL', 'STATUTORY_CAPITAL'),
+        'name': d.get('NAME') or None,
+        'short_name': d.get('SHORT_NAME') or None,
+        'opf': d.get('OPF') or None,
+        'state': d.get('STAN') or None,
+        'reg_date': iso(reg.split(';')[0]),
+        'capital': money(d.get('AUTHORIZED_CAPITAL')) if d.get('AUTHORIZED_CAPITAL') else None,
+        'management': d.get('SUPERIOR_MANAGEMENT') or None,
         'heads': heads[:5],
         'founders_total': len(founders),
         'founder_orgs': f_orgs[:10],
+        'branches': len(kids(d, 'BRANCHES', 'BRANCH')),
+        'termination': (d.get('TERMINATION_STARTED_INFO') or d.get('TERMINATED_INFO') or None) if isinstance(d.get('TERMINATION_STARTED_INFO') or d.get('TERMINATED_INFO') or '', str) else None,
+        'bankruptcy': d.get('BANKRUPTCY_READJUSTMENT_INFO') if isinstance(d.get('BANKRUPTCY_READJUSTMENT_INFO'), str) and d.get('BANKRUPTCY_READJUSTMENT_INFO') else None,
+        'taxes': taxes,
     }
 
 

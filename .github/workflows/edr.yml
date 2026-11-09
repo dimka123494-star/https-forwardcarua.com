@@ -16,7 +16,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Import
-        run: python3 tools/edr_import.py --probe
+        run: python3 tools/edr_import.py
       - name: Commit
         run: |
           git config user.name "edr-bot"
