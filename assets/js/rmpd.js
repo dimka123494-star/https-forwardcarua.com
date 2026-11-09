@@ -439,10 +439,11 @@ const Rmpd = (() => {
   }
   function idHint(side){
     const c = v(side + '_country'), h = $('rm-' + side + '_id-hint'); if (!h) return;
-    $('rm-' + side + '_id').placeholder = c === 'PL' ? 'NIP, 10 цифр' : EU.includes(c) ? 'VAT, напр. ' + (c === 'GR' ? 'EL' : c) + '123456789' : c === 'UA' ? 'ЄДРПОУ' : 'Код компанії';
+    $('rm-' + side + '_id').placeholder = c === 'PL' ? 'NIP або номер KRS' : EU.includes(c) ? 'VAT, напр. ' + (c === 'GR' ? 'EL' : c) + '123456789' : c === 'UA' ? 'ЄДРПОУ' : 'Код компанії';
     if (h.dataset.busy || h.dataset.result === c) return;
     delete h.dataset.result;
-    h.textContent = c === 'PL' || EU.includes(c) ? 'Введіть код і натисніть «Знайти» — назву й адресу заповнимо з держреєстру.'
+    h.textContent = c === 'PL' ? 'NIP або номер KRS (0000…) → «Знайти»: назву й адресу заповнимо з держреєстру.'
+      : EU.includes(c) ? 'Введіть код і натисніть «Знайти» — назву й адресу заповнимо з держреєстру.'
       : c === 'UA' ? 'Для українських компаній автоматично знаходимо лише ліцензованих перевізників; інші — заповніть вручну.' : '';
   }
 
@@ -455,9 +456,14 @@ const Rmpd = (() => {
     delete h.dataset.busy; h.dataset.result = c;
     if (r.found){
       setVals({ [side + '_name']: translit(r.name), [side + '_city']: r.city || v(side + '_city'), [side + '_postcode']: r.postcode || v(side + '_postcode'), [side + '_address']: r.street || v(side + '_address') });
-      h.innerHTML = '<span style="color:var(--green)">✓ Знайдено в реєстрі' + (r.vat && r.vat !== 'Czynny' ? ' · статус VAT: ' + esc(r.vat) : '') + '</span>';
+      if (r.source === 'krs' && r.nip) setVals({ [side + '_id']: r.nip, [side + '_id_type']: 'NIP' });
+      const W = { likwidacja: 'фірма в ліквідації', no_address: 'у KRS немає адреси — впишіть фактичну вручну', deleted: 'фірму викреслено з KRS' };
+      const warn = (r.warn || []).map(x => W[x]).filter(Boolean);
+      h.innerHTML = '<span style="color:var(--green)">✓ Знайдено в ' + (r.source === 'krs' ? 'KRS' + (r.nip ? ' (NIP ' + esc(r.nip) + ')' : '') : 'реєстрі') + (r.vat && r.vat !== 'Czynny' ? ' · статус VAT: ' + esc(r.vat) : '') + '</span>' +
+        (warn.length ? ' <span style="color:var(--amber)">⚠ ' + esc(warn.join('; ')) + '</span>' : '');
     } else h.innerHTML = '<span style="color:var(--amber)">' + (r.note === 'unavailable' ? 'Реєстр зараз не відповідає — спробуйте ще раз або заповніть вручну.'
       : r.note === 'invalid' ? 'Код недійсний або не знайдений — перевірте цифри' + (type === 'vat' ? ' (EU VAT — з префіксом країни, напр. DE123456789)' : '') + '.'
+      : c === 'PL' && !/^00/.test(code) ? 'За NIP не знайшли — фірма може не бути платником VAT. Спробуйте її номер KRS (0000…) або заповніть вручну.'
       : type === 'ua' ? 'Серед ліцензованих перевізників не знайшли — для звичайних компаній заповніть назву й адресу вручну.' : 'Не знайшли в реєстрі — заповніть вручну.') + '</span>';
   }
 

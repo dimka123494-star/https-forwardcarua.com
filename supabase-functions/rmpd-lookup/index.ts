@@ -1,6 +1,7 @@
 // Supabase Edge Function «rmpd-lookup»: автозаповнення реквізитів для заявки RMPD.
 //  POST {type:'ua', code}        — ЄДРПОУ → назва й статус ліцензії (реєстр перевізників у базі)
-//  POST {type:'pl', code}        — NIP → назва й адреса (Biała lista podatników VAT, wl-api.mf.gov.pl)
+//  POST {type:'pl', code}        — NIP → назва й адреса (Biała lista podatników VAT, wl-api.mf.gov.pl);
+//                                  номер KRS (10 цифр, починається з «00») → відкритий API KRS (api-krs.ms.gov.pl)
 //  POST {type:'vat', cc, code}   — EU VAT → назва й адреса (VIES, ec.europa.eu)
 // Викликається лише з кабінету (verify_jwt = true).
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -40,6 +41,31 @@ async function pl(nip: string) {
   return { found: true, name: String(s.name).trim(), country: "PL", vat: s.statusVat, ...splitAddress(title(s.workingAddress || s.residenceAddress || "")) };
 }
 
+/** Відкритий API KRS: актуальний odpis за номером KRS (реєстр підприємців P, потім об'єднань S) */
+async function krs(num: string) {
+  let j: any = null;
+  for (const rej of ["P", "S"]) {
+    const r = await fetch(`https://api-krs.ms.gov.pl/api/krs/OdpisAktualny/${num}?rejestr=${rej}&format=json`, { headers: { Accept: "application/json" } });
+    if (r.status === 404) continue;
+    if (!r.ok) return { found: false, note: "unavailable" };
+    j = await r.json().catch(() => null);
+    if (j) break;
+  }
+  const d = j?.odpis?.dane;
+  if (!d) return { found: false };
+  const pod = d.dzial1?.danePodmiotu || {}, adr = d.dzial1?.siedzibaIAdres?.adres || {};
+  const val = (x: unknown) => { const t = String(x ?? "").trim(); return t && !/^-+$/.test(t) ? t : ""; };
+  const street = [val(adr.ulica), [val(adr.nrDomu), val(adr.nrLokalu)].filter(Boolean).join("/")].filter(Boolean).join(" ");
+  const nip = pod.identyfikatory?.nip || "";
+  const warn: string[] = [];
+  const liq = d.dzial6?.likwidacja, roz = d.dzial6?.rozwiazanieUniewaznienie;
+  if ((Array.isArray(liq) ? liq.length : liq) || val(roz?.okreslenieOkolicznosci)) warn.push("likwidacja");
+  if (!val(adr.miejscowosc) || (!val(adr.ulica) && !val(adr.kodPocztowy))) warn.push("no_address");
+  if (j?.odpis?.naglowekA?.dataWykreslenia || j?.odpis?.naglowekP?.dataWykreslenia) warn.push("deleted");
+  return { found: true, name: String(pod.nazwa || "").trim(), country: "PL", nip, krs: num, source: "krs",
+    street: street ? title(street) : "", postcode: val(adr.kodPocztowy), city: val(adr.miejscowosc) ? title(val(adr.miejscowosc)) : "", warn };
+}
+
 async function vat(cc: string, num: string) {
   if (cc === "GR") cc = "EL";
   if (!EU.includes(cc)) return { found: false, note: "not_eu" };
@@ -60,8 +86,9 @@ Deno.serve(async (req) => {
   try {
     if (b.type === "ua" && /^\d{8,10}$/.test(code)) return json(await ua(code));
     if (b.type === "pl") {
-      const nip = code.replace(/^PL/, "");
+      const nip = code.replace(/^(PL|KRS)/, "");
       if (!/^\d{10}$/.test(nip)) return json({ found: false, note: "invalid" });
+      if (/^00/.test(nip)) return json(await krs(nip));            // номери KRS: 0000123456
       return json(await pl(nip));
     }
     if (b.type === "vat") {
