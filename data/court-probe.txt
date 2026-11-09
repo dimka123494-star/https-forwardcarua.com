@@ -1,0 +1,52 @@
+RES edrsr_data_2026.zip ZIP https://data.gov.ua/dataset/16ab7f06-7414-405f-8354-0a492475272d/resource/b1a4ac1c-b17a-4988-8e6d-dedae8b2dd63/download/edrsr_data_2026.zip 342251478
+RES readme_2026.pdf PDF https://data.gov.ua/dataset/16ab7f06-7414-405f-8354-0a492475272d/resource/ca6f9257-3c84-46d7-9043-e9b4b7da484a/download/readme_2026.pdf 177669
+zip MB 326
+Archive:  edrsr.zip
+  Length      Date    Time    Name
+---------  ---------- -----   ----
+       76  2026-11-09 05:01   instances.csv
+     1292  2026-11-09 05:01   regions.csv
+    81413  2026-11-09 05:01   courts.csv
+      163  2026-11-09 05:01   justice_kinds.csv
+      212  2026-11-09 05:01   judgment_forms.csv
+   557070  2026-11-09 05:01   cause_categories.csv
+1788037868  2026-11-09 05:04   documents.csv
+---------                     -------
+1788678094                     7 files
+
+FILE instances.csv
+  | instance_code	name
+  | 1	Касаційна
+  | 2	Апеляційна
+  | 3	Перша
+FILE regions.csv
+  | region_code	name
+  | 01	"Автономна Республіка Крим"
+  | 02	"Вінницька область"
+  | 03	"Волинська область"
+FILE courts.csv
+  | court_code	name	instance_code	region_code
+  | 1807	"Конотопський міськрайонний суд Сумської області"	3	18
+  | 1808	"Краснопільський районний суд Сумської області"	3	18
+  | 1809	"Кролевецький районний суд Сумської області"	3	18
+FILE justice_kinds.csv
+  | justice_kind	name
+  | 1	Цивільне
+  | 2	Кримінальне
+  | 3	Господарське
+FILE judgment_forms.csv
+  | judgment_code	name
+  | 1	Вирок
+  | 2	Постанова
+  | 3	Рішення
+FILE cause_categories.csv
+  | category_code	name
+  | 2036	"Захоплення заручників"
+  | 3017	"звільнення з публічної служби"
+  | 4095	Землекористування
+FILE documents.csv
+  | doc_id	court_code	judgment_code	justice_kind	category_code	cause_num	adjudication_date	receipt_date	judge	doc_url	status	date_publ
+  | 133055529	4855	5	4	40148	320/8023/24	"2025-12-30 00:00:00+02"	"2026-01-01 00:00:00+02"	"Безименна Наталія Вікторівна"	https://od.reyestr.court.gov.ua/files/66/de32551c5a27258c9fddfbe447395850.rtf	1	"2026-01-01 00:00:00+02"
+  | 133055535	4855	2	4	40149	320/22023/24	"2025-12-30 00:00:00+02"	"2026-01-01 00:00:00+02"	"Вівдиченко Тетяна Романівна"	https://od.reyestr.court.gov.ua/files/66/144c610905cb52fd9a821aaf37b4f9a8.rtf	1	"2026-01-01 00:00:00+02"
+  | 133055536	4855	2	4	40148	620/5363/25	"2025-12-30 00:00:00+02"	"2026-01-01 00:00:00+02"	"Вівдиченко Тетяна Романівна"	https://od.reyestr.court.gov.ua/files/66/77d6f8c2309e464eeb866d80ff103f9e.rtf	1	"2026-01-01 00:00:00+02"
+SCHED rows 581058 from 20260513 to 20280827
