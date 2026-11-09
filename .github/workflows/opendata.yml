@@ -1,7 +1,7 @@
-name: Відкриті дані — боржники й банкрутство
+name: Відкриті дані — боржники, банкрутство, суди
 on:
   schedule:
-    - cron: '23 1 * * 1,4'   # пн і чт 01:23 UTC; Supabase забирає о 04:40/04:55 UTC
+    - cron: '23 1 * * 1,4'   # пн і чт 01:23 UTC
   workflow_dispatch:
   push:
     branches: [main]
@@ -12,7 +12,7 @@ concurrency: opendata
 jobs:
   import:
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 180
     steps:
       - uses: actions/checkout@v4
       - name: Import
