@@ -181,7 +181,7 @@ def courts(idx):
                 for m in ROLE_RE.finditer(inv[:pos + 1]):
                     role = m.group(1).strip().lower()
                 case = clean(r.get('case'))
-                a = agg.setdefault(code, {'cases': {}})
+                a = agg.setdefault(code, {'cases': {}, 'name': f'{o} «{q}»'})
                 c = a['cases'].get(case)
                 d = clean(r.get('date'))
                 item = {'date': d, 'case': case, 'court': clean(r.get('court_name')), 'role': role, 'what': clean(r.get('case_description'))[:160]}
@@ -193,7 +193,7 @@ def courts(idx):
     for code, a in agg.items():
         items = sorted(a['cases'].values(), key=key, reverse=True)
         roles = collections.Counter((i['role'] or 'інше') for i in items)
-        out[code] = {'n': len(items), 'roles': dict(roles.most_common()), 'items': items[:20]}
+        out[code] = {'name': a['name'], 'n': len(items), 'roles': dict(roles.most_common()), 'items': items[:20]}
     print('sched rows', rows, 'links', linked, 'ambiguous names skipped', ambiguous, 'firms', len(out), flush=True)
     if rows < 100_000 or len(out) < 1000:
         raise SystemExit('Суди: підозріло мало даних — не оновлюємо')
@@ -212,7 +212,7 @@ def merge_prev(new):
     key = lambda x: x['date'][6:10] + x['date'][3:5] + x['date'][:2] + x['date'][11:16]
     merged = 0
     for code, o in old.items():
-        cur = new.setdefault(code, {'n': 0, 'roles': {}, 'items': []})
+        cur = new.setdefault(code, {'name': o.get('name'), 'n': 0, 'roles': {}, 'items': []})
         have = {i['case'] for i in cur['items']}
         for it in o.get('items', []):
             if it['case'] not in have:

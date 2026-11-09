@@ -49,7 +49,7 @@ Deno.serve(async (req) => {
       sb.from("carrier_edr").select("data").eq("edrpou", code).maybeSingle()]);
     const report = {
       code, checked_at: new Date().toISOString(), data_at: meta?.generated ?? null,
-      name: edr?.data?.name || lic?.name || erb?.name || bankrupt?.name || null,
+      name: edr?.data?.name || lic?.name || erb?.name || bankrupt?.name || courts?.name || null,
       erb, bankrupt: bankrupt?.items ?? null, courts, decisions: decisions ?? null,
       edr: edr?.data ?? null,
       license: lic ? { status: lic.status, intl_cargo: lic.intl_cargo, dangerous: lic.dangerous } : null,
