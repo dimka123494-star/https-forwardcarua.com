@@ -322,3 +322,6 @@ tr:hover td{background:rgba(255,255,255,.02)}
 .vc-m-row{display:grid;grid-template-columns:110px 80px 120px 1fr auto;gap:6px;margin-bottom:6px;align-items:center}
 .vc-m-row .input{padding:7px 10px;font-size:13px}
 @media(max-width:640px){.vc-m-row{grid-template-columns:1fr 1fr 1fr auto}.vc-m-row [data-k=url]{grid-column:1/-1;grid-row:2}}
+
+/* картки-кнопки (вибір режиму тощо): кнопки не успадковують колір і шрифт — у Safari текст ставав чорним */
+button.card{color:var(--text);font:inherit;-webkit-appearance:none;appearance:none}
