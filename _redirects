@@ -23,6 +23,7 @@
 /broker/*        /broker.html        200
 /perevizhnyk/*   /perevizhnyk.html   200
 /perevirka-perevizhnyka   /perevizhnyk.html   200
+/zvit            /zvit.html          200
 /v/*             /vizytka.html       200
 /d/*             /dovidka.html       200
 /terms           /terms.html         200

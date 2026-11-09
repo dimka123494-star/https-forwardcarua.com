@@ -39,7 +39,33 @@ const CompanyCheck = (() => {
         '<li>Дані ЄДР і ліцензії перевізника, якщо є</li></ul>' +
       '<p class="text-xs text-muted" style="margin:0 0 1rem">Джерела — відкриті дані Мін’юсту та Державної судової адміністрації, оновлюються двічі на тиждень. Повторний перегляд цієї компанії протягом 30 днів — безкоштовно.</p>' +
       '<div class="msg" id="ccMsg"></div>' +
-      '<button class="btn btn-primary btn-block" id="ccBtn" onclick="CompanyCheck.run(\'' + code + '\')"><i class="ti ti-shield-search"></i>Перевірити за ' + price + ' грн</button>';
+      '<div id="ccCab" style="display:none;margin-bottom:12px"><button class="btn btn-primary btn-block" id="ccBtn" onclick="CompanyCheck.run(\'' + code + '\')"><i class="ti ti-wallet"></i>Списати ' + price + ' грн з балансу кабінету</button></div>' +
+      '<div id="ccCard"><div class="field"><label class="label" for="ccEmail">Email для чека й посилання на звіт</label><input class="input" id="ccEmail" type="email" autocomplete="email" placeholder="you@example.com"></div>' +
+        '<button class="btn btn-block" id="ccPay" style="background:var(--green);color:#06120c;font-weight:600" onclick="CompanyCheck.payCard(\'' + code + '\')"><i class="ti ti-credit-card"></i>Оплатити карткою ' + price + ' грн</button>' +
+        '<p class="text-xs text-muted" style="margin:.5rem 0 0">Оплата через WayForPay (Visa, Mastercard, Apple Pay, Google Pay). Після оплати одразу відкриється звіт; посилання на нього збережеться в цьому браузері.</p></div>';
+    // є кабінет — пропонуємо списати з балансу
+    try{ const u = await currentUser(); if (u){ const b = await getMyBroker(); if (b){ document.getElementById('ccCab').style.display = ''; const e = document.getElementById('ccEmail'); if (e) e.value = u.email || ''; } else { const e = document.getElementById('ccEmail'); if (e) e.value = u.email || ''; } } }catch(e){}
+  }
+
+  async function payCard(code){
+    const btn = document.getElementById('ccPay'), m = document.getElementById('ccMsg');
+    const email = (document.getElementById('ccEmail').value || '').trim();
+    const fail = t => { m.className = 'msg show msg-err'; m.textContent = t; btn.disabled = false; btn.innerHTML = '<i class="ti ti-credit-card"></i>Оплатити карткою ' + price + ' грн'; };
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return fail('Вкажіть email — на нього прийде чек, а звіт буде за посиланням');
+    btn.disabled = true; btn.textContent = 'Переходимо до оплати…';
+    try{
+      const res = await fetch(SUPABASE_URL + '/functions/v1/check-pay', { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: SUPABASE_ANON },
+        body: JSON.stringify({ action: 'checkout', code, email }) });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok) return fail(d.error === 'too_many' ? 'Забагато замовлень з цього email — спробуйте за годину' : d.error === 'bad_email' ? 'Перевірте email' : 'Оплата тимчасово недоступна. Напишіть на custom@forwardcarua.com');
+      try{ const l = JSON.parse(localStorage.getItem('ccOrders') || '[]'); l.unshift({ t: d.token, code, at: Date.now() }); localStorage.setItem('ccOrders', JSON.stringify(l.slice(0, 30))); }catch(e){}
+      try{ track('begin_checkout', { value: price, currency: 'UAH', items: [{ item_name: 'company_check' }] }); }catch(e){}
+      const form = document.createElement('form');
+      form.method = 'POST'; form.action = 'https://secure.wayforpay.com/pay'; form.acceptCharset = 'utf-8';
+      Object.entries(d.form).forEach(([k, v]) => (Array.isArray(v) ? v : [v]).forEach(val => {
+        const i = document.createElement('input'); i.type = 'hidden'; i.name = Array.isArray(v) ? k + '[]' : k; i.value = val; form.appendChild(i); }));
+      document.body.appendChild(form); form.submit();
+    }catch(e){ fail('Не вдалося перейти до оплати. Спробуйте ще раз.'); }
   }
 
   async function run(code){
@@ -47,7 +73,7 @@ const CompanyCheck = (() => {
     const fail = html => { m.className = 'msg show msg-err'; m.innerHTML = html; btn.disabled = false; btn.innerHTML = '<i class="ti ti-shield-search"></i>Перевірити за ' + price + ' грн'; };
     btn.disabled = true; btn.textContent = 'Перевіряємо…';
     let user = null; try{ user = await currentUser(); }catch(e){}
-    if (!user) return fail('Перевірка оплачується з балансу кабінету. <a href="/vhid?next=' + encodeURIComponent(location.pathname + location.search) + '">Увійдіть або зареєструйтесь</a> — новим кабінетам нараховуємо вітальний бонус на баланс.');
+    if (!user) return fail('Увійдіть у кабінет або оплатіть карткою нижче.');
     try{
       const session = await currentSession();
       const res = await fetch(SUPABASE_URL + '/functions/v1/company-check', { method: 'POST',
@@ -59,8 +85,8 @@ const CompanyCheck = (() => {
       document.getElementById('ccBody').innerHTML = report(data);
     }catch(e){
       const t = String(e.message || '');
-      if (/no_cabinet/.test(t)) return fail('Перевірка оплачується з балансу кабінету брокера або перевізника. <a href="/vhid?role=carrier">Створіть кабінет</a> — це безкоштовно.');
-      if (/balance/.test(t)) return fail('На балансі недостатньо коштів (потрібно ' + price + ' грн). <a href="#" onclick="CompanyCheck.topup();return false">Поповнити баланс</a> або <a href="/kabinet#rmpd">перейти в кабінет</a>.');
+      if (/no_cabinet/.test(t)) return fail('Баланс є лише в кабінеті брокера чи перевізника — оплатіть карткою нижче.');
+      if (/balance/.test(t)) return fail('На балансі недостатньо коштів (потрібно ' + price + ' грн). Оплатіть карткою нижче або <a href="#" onclick="CompanyCheck.topup();return false">поповніть баланс</a>.');
       if (/unavailable/.test(t)) return fail('Перевірка тимчасово недоступна — дані оновлюються. Спробуйте за кілька хвилин.');
       fail('Не вдалося виконати перевірку. Спробуйте ще раз.');
     }
@@ -102,8 +128,8 @@ const CompanyCheck = (() => {
       '<h3 style="font-size:16px;margin:1.25rem 0 .5rem">Банкрутство</h3>' + bkBlock +
       '<h3 style="font-size:16px;margin:1.25rem 0 .5rem">Судові справи</h3>' + crBlock +
       '<p class="text-xs text-muted" style="margin:1.25rem 0 0">Перевірено ' + date(r.checked_at) + '. Дані — відкриті дані Мін’юсту (Єдиний реєстр боржників) і ДСА (справи про банкрутство, справи, призначені до розгляду, Єдиний державний реєстр судових рішень) станом на ' + date(r.data_at) + '. Судові справи привʼязані за точним збігом назви з ЄДР; справи компаній з неоднозначними назвами не показуються. ' +
-        (r.price > 0 ? 'Списано ' + r.price + ' грн з балансу.' : 'Без оплати (повторний перегляд).') + ' Звіт збережено в кабінеті → «Перевірка компаній».</p>' +
-      '<div class="row" style="gap:8px;margin-top:1rem"><button class="btn btn-ghost" onclick="window.print()"><i class="ti ti-printer"></i>Друк / PDF</button><button class="btn btn-ghost" onclick="CompanyCheck.close()">Закрити</button></div>';
+        (r.token ? 'Оплачено карткою ' + r.price + ' грн.' : r.price > 0 ? 'Списано ' + r.price + ' грн з балансу.' : 'Без оплати (повторний перегляд).') + (r.token ? ' Збережіть посилання на цю сторінку — звіт доступний за ним.' : ' Звіт збережено в кабінеті → «Перевірка компаній».') + '</p>' +
+      '<div class="row" style="gap:8px;margin-top:1rem"><button class="btn btn-ghost" onclick="window.print()"><i class="ti ti-printer"></i>Друк / PDF</button>' + (r.token ? '' : '<button class="btn btn-ghost" onclick="CompanyCheck.close()">Закрити</button>') + '</div>';
   }
 
   async function mountHistory(el){
@@ -126,5 +152,5 @@ const CompanyCheck = (() => {
   }
   function show(i){ const c = (window.__ccHist || [])[i]; if (!c) return; shell().classList.add('open'); document.getElementById('ccBody').innerHTML = report({ ...c.report, price: c.price }); }
 
-  return { open, run, close, topup, mountHistory, show, report };
+  return { open, run, payCard, close, topup, mountHistory, show, report };
 })();

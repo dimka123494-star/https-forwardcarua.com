@@ -139,3 +139,10 @@ grant execute on function public.company_check_charge(uuid, text, jsonb) to serv
 revoke all on function public.company_check(text) from authenticated;
 select cron.unschedule('opendata-fetch-start');
 select cron.unschedule('opendata-fetch-finish');
+
+-- ===== Оплата карткою без кабінету (міграція check_orders, edge-функція check-pay) =====
+create table if not exists public.check_orders (
+  id uuid primary key default gen_random_uuid(), created_at timestamptz not null default now(),
+  token text not null unique, code text not null check (code ~ '^\d{8}$'), email text not null, amount numeric not null,
+  status text not null default 'pending', order_reference text unique, paid_at timestamptz, report jsonb, raw jsonb);
+alter table public.check_orders enable row level security;
