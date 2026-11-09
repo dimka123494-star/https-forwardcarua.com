@@ -982,6 +982,7 @@ function openInvite(){
   document.getElementById('i-msg').className = 'msg';
   document.getElementById('i-btn').textContent = 'Надіслати запрошення';
   window.__claimInvite = null;
+  const svc = document.getElementById('iSvc'); if (svc.closest('.field')) svc.closest('.field').style.display = '';
   document.getElementById('inviteModal').classList.add('open');
 }
 function closeInvite(){ document.getElementById('inviteModal').classList.remove('open'); }
@@ -998,7 +999,8 @@ async function sendInvite(){
       phone: v('i-phone'), telegram: v('i-tg'), about: v('i-about'),
       services: [...document.querySelectorAll('#iSvc .on')].map(el => el.dataset.name),
       // заявка з реєстру, перевірена по телефону — публікуємо одразу
-      publish: !!window.__claimInvite, edrpou: window.__claimInvite ? window.__claimInvite.edrpou : undefined
+      publish: !!window.__claimInvite, edrpou: window.__claimInvite ? window.__claimInvite.edrpou : undefined,
+      kind: window.__claimInvite && window.__claimInvite.kind === 'carrier' ? 'carrier' : 'broker'
     });
     m.className = 'msg show msg-ok';
     m.textContent = (window.__claimInvite ? 'Профіль опубліковано в каталозі. ' : '') + 'Лист для входу надіслано на ' + v('i-email');

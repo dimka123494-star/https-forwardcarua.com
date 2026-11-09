@@ -31,12 +31,14 @@ const yes = (b, t, f) => b ? '<span style="color:var(--green)"><i class="ti ti-c
 /** Повертає { title, desc, canonical, index, h1, html, ld } */
 export function renderCarrier(d){
   const code = esc(d.code), canonical = SITE + '/perevizhnyk/' + d.code;
-  const name = d.is_fop ? 'ФОП, код ' + d.code : prettyName(d.name);
+  // ФОП, що підтвердив профіль, сам погодився на публікацію — показуємо назву з його кабінету
+  const fopOpen = d.is_fop && d.state === 'claimed' && d.profile && d.profile.name;
+  const name = d.is_fop ? (fopOpen ? d.profile.name : 'ФОП, код ' + d.code) : prettyName(d.name);
   const ok = d.status === 'Чинна';
   const intl = ok && d.intl_cargo;
-  const title = d.is_fop ? 'Перевізник ФОП — ліцензія, код ' + d.code + ' | МитнийБрокер'
+  const title = d.is_fop && !fopOpen ? 'Перевізник ФОП — ліцензія, код ' + d.code + ' | МитнийБрокер'
     : name + ' — перевізник, ЄДРПОУ ' + d.code + (intl ? ', міжнародні перевезення' : '') + ' | МитнийБрокер';
-  const desc = (d.is_fop ? 'Перевізник ФОП' : name + ' (ЄДРПОУ ' + d.code + ')') + ': ' +
+  const desc = (d.is_fop && !fopOpen ? 'Перевізник ФОП' : name + ' (ЄДРПОУ ' + d.code + ')') + ': ' +
     (ok ? 'ліцензія Укртрансбезпеки чинна' + (d.intl_cargo ? ', включає міжнародні перевезення вантажів' : '') + (d.dangerous ? ' і небезпечні вантажі' : '') + '.'
         : 'чинної ліцензії в реєстрі не знайдено.') +
     (d.edr && d.edr.state && d.edr.state !== 'зареєстровано' ? ' Увага: за ЄДР — ' + d.edr.state + '.' : d.edr && d.edr.reg_date ? ' Зареєстровано ' + date(d.edr.reg_date) + (d.edr.heads && d.edr.heads[0] ? ', керівник — ' + cap(d.edr.heads[0].name) : '') + '.' : '') +
@@ -76,12 +78,34 @@ export function renderCarrier(d){
       row('Джерело', '<a href="https://data.gov.ua/dataset/a1799820-195b-4982-8141-6e84f58103e7" target="_blank" rel="noopener nofollow">Відкриті дані ЄДР, Мін’юст</a>' + (d.edr_at ? ' · ' + date(d.edr_at) : '')) +
       '</table></div>';
   }
+  const pr = d.state === 'claimed' && d.profile ? d.profile : null;
+  let contact = '';
+  if (pr){
+    const tel = String(pr.phone || '').replace(/[^\d+]/g, '');
+    const tg = String(pr.telegram || '').replace(/^@|^https?:\/\/t\.me\//, '');
+    const list = a => Array.isArray(a) && a.length ? esc(a.join(', ')) : '';
+    contact = '<div class="card" style="margin-top:1rem;border-color:rgba(59,130,246,.35)"><h2 style="font-size:18px;margin:0 0 .5rem">Контакти перевізника</h2>' +
+      '<p class="text-xs text-muted" style="margin:0 0 .75rem">Профіль підтверджено представником компанії.</p>' +
+      '<table style="width:100%;font-size:14px;border-collapse:collapse">' +
+      (pr.city || pr.region ? row('Місто', esc([pr.city, pr.region].filter(Boolean).join(', '))) : '') +
+      (pr.fleet ? row('Автопарк', esc(pr.fleet) + ' авто') : '') +
+      (list(pr.transport) ? row('Транспорт', list(pr.transport)) : '') +
+      (list(pr.routes) ? row('Напрямки', list(pr.routes)) : '') +
+      '</table>' + (pr.about ? '<p class="text-sm" style="margin:.75rem 0 0;white-space:pre-line">' + esc(pr.about) + '</p>' : '') +
+      '<div class="row" style="gap:8px;flex-wrap:wrap;margin-top:1rem">' +
+        (tel ? '<a class="btn btn-primary" href="tel:' + esc(tel) + '" onclick="try{track(\'carrier_call\',{edrpou:\'' + code + '\'})}catch(e){}"><i class="ti ti-phone"></i>' + esc(pr.phone) + '</a>' : '') +
+        (tg ? '<a class="btn btn-ghost" href="https://t.me/' + esc(tg) + '" target="_blank" rel="noopener"><i class="ti ti-brand-telegram"></i>Telegram</a>' : '') +
+        '<a class="btn btn-ghost" href="/broker/' + esc(d.broker_id) + '"><i class="ti ti-truck"></i>Профіль на біржі</a>' +
+        '<a class="btn btn-ghost" href="/perevezennya"><i class="ti ti-package"></i>Запропонувати вантаж</a>' +
+      '</div></div>';
+  }
   const html =
-    '<section class="container-narrow page-hero" style="padding-bottom:1rem"><div class="crumbs"><a href="/">МитнийБрокер</a> › <a href="/perevirka-perevizhnyka">Перевірка перевізника</a> › ' + esc(d.is_fop ? 'ФОП' : name) + '</div>' +
+    '<section class="container-narrow page-hero" style="padding-bottom:1rem"><div class="crumbs"><a href="/">МитнийБрокер</a> › <a href="/perevirka-perevizhnyka">Перевірка перевізника</a> › ' + esc(d.is_fop && !fopOpen ? 'ФОП' : name) + '</div>' +
       badge + claimedBadge + (bad ? ' <span class="badge" style="background:rgba(240,90,90,.12);color:var(--red);border:.5px solid rgba(240,90,90,.35);padding:5px 12px;border-radius:20px;font-size:12px"><i class="ti ti-alert-triangle"></i> ЄДР: ' + esc(e.state) + '</span>' : '') +
       '<h1 class="h-lg" style="font-size:clamp(26px,5vw,40px);margin-top:1rem">' + esc(name) + '</h1>' +
       '<p class="lead">' + lead + '</p>' +
-      '<div class="card" style="margin-top:1.5rem"><table style="width:100%;font-size:14px;border-collapse:collapse">' +
+      contact +
+      '<div class="card" style="margin-top:1rem"><table style="width:100%;font-size:14px;border-collapse:collapse">' +
         (d.is_fop ? '' : row('Назва в реєстрі', esc(d.name))) +
         row(d.is_fop ? 'Код (РНОКПП)' : 'Код ЄДРПОУ', code) +
         row('Ліцензія', ok ? '<span style="color:var(--green)">Чинна</span>' : '<span style="color:var(--red)">' + esc(d.status || 'немає') + '</span>') +
@@ -107,6 +131,7 @@ export function renderCarrier(d){
       { '@type': 'ListItem', position: 2, name: 'Перевірка перевізника', item: SITE + '/perevirka-perevizhnyka' },
       { '@type': 'ListItem', position: 3, name: d.is_fop ? 'ФОП' : name, item: canonical }] }
   ].concat(d.is_fop ? [] : [Object.assign({ '@type': 'Organization', name, legalName: (d.edr && d.edr.name) || d.name, identifier: d.code, url: canonical },
-      d.edr && d.edr.reg_date ? { foundingDate: d.edr.reg_date } : {})]) };
-  return { title, desc, canonical, index: !d.is_fop, h1: name, html, ld };
+      d.edr && d.edr.reg_date ? { foundingDate: d.edr.reg_date } : {},
+      pr && pr.phone ? { telephone: pr.phone } : {}, pr && pr.city ? { address: { '@type': 'PostalAddress', addressLocality: pr.city, addressCountry: 'UA' } } : {})]) };
+  return { title, desc, canonical, index: !d.is_fop || !!fopOpen, h1: name, html, ld };
 }

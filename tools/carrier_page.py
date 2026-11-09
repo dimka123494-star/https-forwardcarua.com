@@ -63,11 +63,7 @@ const rpc = async (fn, args) => { const sb = await sbReady(); const { data, erro
 function claimBox(){
   const box = $('claimBox'); if (!box) return;
   const st = box.dataset.state, broker = box.dataset.broker;
-  if (st === 'claimed'){
-    box.innerHTML = '<h2 style="font-size:22px">Профіль підтверджено компанією</h2><p style="margin-left:0">Автопарк, напрямки й контакти — у профілі перевізника на біржі ВантажПоруч.</p>' +
-      '<div class="row"><a class="btn btn-primary" href="/broker/' + esc(broker) + '"><i class="ti ti-truck"></i>Профіль перевізника</a></div>';
-    return;
-  }
+  if (st === 'claimed'){ box.closest('section').remove(); return; }  // контакти вже в картці «Контакти перевізника»
   if (st === 'pending'){
     box.innerHTML = '<h2 style="font-size:22px">Заявку на підтвердження отримано</h2><p style="margin-left:0">Ми звʼяжемося з компанією, щоб підтвердити, що заявку подав її представник. Зазвичай це займає до одного робочого дня.</p>';
     return;

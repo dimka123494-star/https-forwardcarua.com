@@ -460,9 +460,7 @@
       '<td class="text-xs text-muted">' + timeAgo(c.created_at) + (c.comment ? '<div>' + esc(c.comment) + '</div>' : '') + '</td>' +
       '<td><div class="row-actions">' +
         (c.status === 'new' ? '<button class="btn-quiet" onclick="Outreach.claimVerify(\'' + c.id + '\')">1. Підтвердив по телефону</button>' : '<span class="text-xs" style="color:var(--green)"><i class="ti ti-check"></i> Телефон підтверджено</span>') +
-        (c.kind === 'carrier'
-          ? '<button class="btn btn-primary btn-sm" onclick="Outreach.claimDone(\'' + c.id + '\')">' + (c.status === 'new' ? '' : '2. ') + 'Опрацьовано</button>'
-          : '<button class="btn btn-primary btn-sm" onclick="Outreach.claimInvite(\'' + c.id + '\')">' + (c.status === 'new' ? '' : '2. ') + 'Опублікувати й запросити</button>') +
+        '<button class="btn btn-primary btn-sm" onclick="Outreach.claimInvite(\'' + c.id + '\')">' + (c.status === 'new' ? '' : '2. ') + 'Опублікувати й запросити</button>' +
         '<button class="btn-quiet" onclick="Outreach.claimReject(\'' + c.id + '\')">Відхилити</button></div></td></tr>').join('');
   }
   async function claimSet(id, status){
@@ -484,7 +482,10 @@
     if (p){ set('i-city', p.city); const r = $('i-region'); if (r && p.region) r.value = p.region; if (!c.phone && p.phone) set('i-phone', p.phone); }
     window.__claimInvite = c;
     const b = $('i-btn'); if (b) b.textContent = 'Опублікувати й надіслати доступ';
-    const m = $('i-msg'); if (m){ m.className = 'msg show msg-ok'; m.textContent = 'Компанію перевірено — профіль зʼявиться в каталозі одразу, а на email прийде лист для входу в кабінет.'; }
+    const svc = $('iSvc'); if (svc && svc.closest('.field')) svc.closest('.field').style.display = c.kind === 'carrier' ? 'none' : '';
+    const m = $('i-msg'); if (m){ m.className = 'msg show msg-ok'; m.textContent = c.kind === 'carrier'
+      ? 'Перевізника перевірено — сторінка /perevizhnyk/' + c.edrpou + ' покаже «Профіль підтверджено» і контакти, а на email прийде лист для входу в кабінет перевізника. Якщо в нього вже є кабінет з цим email — просто привʼяжемо його.'
+      : 'Компанію перевірено — профіль зʼявиться в каталозі одразу, а на email прийде лист для входу в кабінет.'; }
   }
   async function afterClaimInvite(){
     const c = window.__claimInvite; if (!c) return; window.__claimInvite = null;

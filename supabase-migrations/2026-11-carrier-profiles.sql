@@ -61,3 +61,7 @@ revoke all on function public.carrier_public(text), public.carrier_search(text),
   public.claim_carrier_profile(text, text, text, text, text, text, text) from public;
 grant execute on function public.carrier_public(text), public.carrier_search(text),
   public.claim_carrier_profile(text, text, text, text, text, text, text) to anon, authenticated;
+
+-- Оновлено (міграції carrier_public_edr, carrier_public_profile, carrier_sitemap_claimed_fop):
+--  carrier_public повертає edr/edr_at (дані ЄДР) і profile (контакти, автопарк, напрямки) для підтвердженого профілю;
+--  carrier_sitemap включає ФОП, які підтвердили профіль.

@@ -795,6 +795,7 @@ async function inviteBroker(fields){
       bad_name:        'Вкажіть назву компанії або ім\'я',
       already_exists:  data.claimed ? 'Такий брокер уже є в каталозі' : 'Запрошення цьому брокеру вже надіслано',
       email_registered:'Цей email уже зареєстрований на платформі',
+      other_kind:      data.kind === 'carrier' ? 'Цей email уже зареєстрований як перевізник' : 'Цей email уже зареєстрований як брокер',
       invite_failed:   'Лист не надіслався. Перевірте email',
       profile_failed:  'Профіль не створено'
     };
