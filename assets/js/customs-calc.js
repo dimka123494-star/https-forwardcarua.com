@@ -10,7 +10,6 @@
     diesel: { small: 75, large: 150, threshold: 3500 }
   };
   const PM_2026 = 3328; /* прожитковий мінімум для працездатних осіб на 01.01.2026 */
-  const PDF_LIB = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
 
   let st = { mode: 'car', fuel: 'petrol', eur: 0, usd: 0, rateDate: '', broker: null, paid: false, last: null };
 
@@ -279,13 +278,7 @@
   }
 
   /* ---------------- PDF ---------------- */
-  function loadPdfLib(){
-    if (window.html2pdf) return Promise.resolve();
-    return new Promise((res, rej) => {
-      const s = document.createElement('script'); s.src = PDF_LIB; s.onload = res; s.onerror = () => rej(new Error('PDF-бібліотека не завантажилась'));
-      document.head.appendChild(s);
-    });
-  }
+  const loadPdfLib = () => PdfSnap.load();
 
   function pdfHtml(r){
     const b = st.broker || {};
@@ -326,20 +319,8 @@
      можна надіслати посилання в будь-який месенджер, а кнопки спрацьовують миттєво. */
   let prepId = 0;
   async function buildBlob(r){
-    await loadPdfLib();
-    const host = $('cc-pdf-host');
-    host.innerHTML = pdfHtml(r);
-    try{
-      return await html2pdf().set({
-        margin: 8, image: { type: 'jpeg', quality: 0.95 },
-        // Safari (iPhone) неправильно рахує позицію fixed-блоку на прокрученій сторінці: зсув зверху й обрізаний низ.
-        // Тому блок лежить у документі (absolute, 0×0), а в копії для знімка стає звичайним видимим блоком.
-        html2canvas: { scale: 2, backgroundColor: '#ffffff', scrollX: 0, scrollY: 0,
-          windowHeight: Math.max(1200, host.firstChild.scrollHeight + 100),
-          onclone: d => { const h = d.getElementById('cc-pdf-host'); if (h) h.style.cssText = 'position:absolute;left:0;top:0;width:auto;height:auto;overflow:visible'; } },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-      }).from(host.firstChild).outputPdf('blob');
-    } finally { host.innerHTML = ''; }
+    // окремий iframe без прокрутки — інакше Safari на iPhone зсуває знімок (див. pdf-snap.js)
+    return PdfSnap.blob(pdfHtml(r));
   }
 
   async function upload(blob){

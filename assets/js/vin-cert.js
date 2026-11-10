@@ -1,7 +1,6 @@
 /* vin-cert.js — довідка про ТЗ за VIN з екологічним класом і QR для перевірки.
    Потребує config.js, db.js, vin.js, bizcard.js (QR) і qrcode-generator. */
 const VinCert = (() => {
-  const PDF_LIB = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
   const FUEL = { petrol: 'Бензин', diesel: 'Дизель', hybrid: 'Гібрид (бензин + електро)', phev: 'Плагін-гібрид', gas: 'Газ / бензин', electric: 'Електро' };
   const CAT = { M1: 'M1 — легковий', N1: 'N1 — вантажний до 3,5 т', N2: 'N2/N3 — вантажний понад 3,5 т', M2: 'M2/M3 — автобус', L: 'L — мототехніка', other: 'Інше' };
   const BASIS = { estimate: 'Орієнтовно — за датою реєстрації / роком випуску', v9: 'Підтверджено: поле V.9 свідоцтва про реєстрацію', coc: 'Підтверджено: сертифікат відповідності (COC)', other: 'Підтверджено іншим документом' };
@@ -319,10 +318,7 @@ const VinCert = (() => {
   function manual(){ st.manualEuro = true; }
   function basis(){ estimate(); }
 
-  function loadPdfLib(){
-    if (window.html2pdf) return Promise.resolve();
-    return new Promise((res, rej) => { const s = document.createElement('script'); s.src = PDF_LIB; s.onload = res; s.onerror = () => rej(new Error('PDF-бібліотека не завантажилась')); document.head.appendChild(s); });
-  }
+  const loadPdfLib = () => PdfSnap.load();
 
   // QR растровим зображенням — html2canvas некоректно малює складні SVG
   function qrImg(text){
@@ -399,19 +395,9 @@ const VinCert = (() => {
   }
 
   async function buildBlob(c){
-    await loadPdfLib();
-    const host = $('vc-pdf-host'); host.innerHTML = pdfHtml(c);
-    try{
-      const el = host.firstChild;
-      const pdf = await html2pdf().set({ margin: 8, image: { type: 'jpeg', quality: 0.95 }, html2canvas: { scale: 2, backgroundColor: '#ffffff', scrollX: 0, scrollY: 0,
-          windowHeight: Math.max(1200, el.scrollHeight + 100),   // Safari: без зсуву й обрізання на прокрученій сторінці
-          onclone: d => { const h = d.getElementById('vc-pdf-host'); if (h) h.style.cssText = 'position:absolute;left:0;top:0;width:auto;height:auto;overflow:visible'; } },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } }).from(el).toPdf().get('pdf');
-      // Якщо вміст ледь перевищує аркуш, html2pdf додає майже порожню другу сторінку — прибираємо її
-      const mm = el.offsetHeight * 194 / el.offsetWidth;
-      if (pdf.getNumberOfPages() === 2 && mm < 281 + 12) pdf.deletePage(2);
-      return pdf.output('blob');
-    } finally { host.innerHTML = ''; }
+    // окремий iframe без прокрутки — інакше Safari на iPhone зсуває знімок (див. pdf-snap.js);
+    // вміст трохи довший за аркуш стискається в один аркуш
+    return PdfSnap.blob(pdfHtml(c));
   }
   async function upload(blob, id){
     const sb = await sbReady();
