@@ -167,7 +167,7 @@
     const base = toUah(price, cur);
     const euOrigin = !isEv && $('cc-eu').checked;
     const duty = (isEv || euOrigin) ? 0 : base * 0.10;
-    let exciseEur, exciseNote;
+    let exciseEur, exciseNote, rateNote = '', kvUsed = null;
     if (isEv){
       exciseEur = battery * 1;
       exciseNote = '1 € × ' + battery + ' кВт·год';
@@ -178,6 +178,8 @@
       const kv = carAgeCoef(year);
       exciseEur = rate * (engine / 1000) * kv;
       exciseNote = rate + ' € × ' + (engine / 1000).toFixed(1) + ' л × ' + kv + ' (коеф. віку)';
+      rateNote = rate + ' € за 1 л об\'єму (' + (engine > cfg.threshold ? 'понад ' : 'до ') + cfg.threshold + ' см³)';
+      kvUsed = kv;
     }
     const excise = exciseEur * eurRate;
     const vat = (base + duty + excise) * 0.20;
@@ -185,11 +187,22 @@
     if (base > 290 * PM_2026) pRate = 0.05; else if (base > 165 * PM_2026) pRate = 0.04;
     const pension = isEv ? 0 : base * pRate;
     const fuelName = { petrol:'бензин', diesel:'дизель', hybrid:'гібрид', electric:'електро' }[st.fuel];
+    // товарна позиція 8703 (легкові) — підсубпозиція за паливом і обʼємом
+    const hk = st.fuel === 'hybrid' ? $('cc-hybrid').value : null;
+    const ukt = isEv ? '8703 80' : st.fuel === 'hybrid' ? (hk === 'diesel' ? '8703 50 / 8703 70' : '8703 40 / 8703 60')
+      : st.fuel === 'diesel' ? (engine <= 1500 ? '8703 31' : engine <= 2500 ? '8703 32' : '8703 33')
+      : (engine <= 1000 ? '8703 21' : engine <= 1500 ? '8703 22' : engine <= 3000 ? '8703 23' : '8703 24');
+    const age = new Date().getFullYear() - year;
     return {
       title: 'Розрахунок розмитнення авто',
       subject: [($('cc-car-name').value || '').trim() || 'Легкове авто', fuelName,
                 isEv ? battery + ' кВт·год' : engine + ' см³', year + ' р.'].join(', '),
-      params: [['Митна вартість', price.toLocaleString('uk-UA') + ' ' + cur + (cur !== 'UAH' ? ' = ' + money(base) : '')],
+      params: [['Код УКТ ЗЕД', ukt + ' — легкові автомобілі' + (st.fuel === 'hybrid' ? ' (гібрид / плагін-гібрид)' : '')],
+               ['Двигун', isEv ? 'електро, батарея ' + battery + ' кВт·год' : fuelName + (st.fuel === 'hybrid' ? ' (' + (hk === 'diesel' ? 'дизельний' : 'бензиновий') + ')' : '') + ', ' + engine + ' см³ (' + (engine / 1000).toFixed(1) + ' л)'],
+               ['Рік випуску', year + ' р., вік ' + age + ' ' + (age % 10 === 1 && age % 100 !== 11 ? 'рік' : age % 10 >= 2 && age % 10 <= 4 && (age % 100 < 10 || age % 100 >= 20) ? 'роки' : 'років') + (kvUsed ? ' · коефіцієнт віку для акцизу ' + kvUsed : '')],
+               ['Митна вартість', price.toLocaleString('uk-UA') + ' ' + cur + (cur !== 'UAH' ? ' = ' + money(base) : '')],
+               ['Ставка мита', isEv ? '0% — електромобілі' : euOrigin ? '0% — походження з ЄС (EUR.1)' : '10% від митної вартості'],
+               ['Ставка акцизу', isEv ? '1 € за 1 кВт·год ємності батареї' : rateNote],
                ...(euOrigin ? [['Походження', 'ЄС, сертифікат EUR.1']] : [])],
       lines: [
         ['Ввізне мито', isEv ? '0% для електромобілів' : (euOrigin ? '0% (EUR.1)' : '10% від митної вартості'), duty],
