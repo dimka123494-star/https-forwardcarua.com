@@ -150,7 +150,7 @@
         (st.public ? '' : '<div class="hint">PDF містить ваше ім\'я, телефон і Telegram — клієнт одразу знає, кому дзвонити.</div>') +
       '</div>' +
     '</div>' +
-    '<div id="cc-pdf-host" style="position:fixed;left:0;top:0;z-index:-1;opacity:0;pointer-events:none"></div>';
+    '<div id="cc-pdf-host" style="position:absolute;left:0;top:0;width:0;height:0;overflow:hidden;z-index:-1;pointer-events:none" aria-hidden="true"></div>';
   }
 
   /* ---------------- розрахунок ---------------- */
@@ -332,7 +332,11 @@
     try{
       return await html2pdf().set({
         margin: 8, image: { type: 'jpeg', quality: 0.95 },
-        html2canvas: { scale: 2, backgroundColor: '#ffffff', scrollY: 0 },
+        // Safari (iPhone) неправильно рахує позицію fixed-блоку на прокрученій сторінці: зсув зверху й обрізаний низ.
+        // Тому блок лежить у документі (absolute, 0×0), а в копії для знімка стає звичайним видимим блоком.
+        html2canvas: { scale: 2, backgroundColor: '#ffffff', scrollX: 0, scrollY: 0,
+          windowHeight: Math.max(1200, host.firstChild.scrollHeight + 100),
+          onclone: d => { const h = d.getElementById('cc-pdf-host'); if (h) h.style.cssText = 'position:absolute;left:0;top:0;width:auto;height:auto;overflow:visible'; } },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
       }).from(host.firstChild).outputPdf('blob');
     } finally { host.innerHTML = ''; }

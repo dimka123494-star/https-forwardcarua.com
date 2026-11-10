@@ -98,7 +98,7 @@ const VinCert = (() => {
           '<div class="field"><label class="label" for="vc-note">Примітка</label><input class="input" id="vc-note" maxlength="300" placeholder="Напр.: пробіг, комплектація"></div></div>' +
         '<button class="btn btn-primary" id="vc-make-btn" onclick="VinCert.create()"><i class="ti ti-file-certificate"></i> Сформувати довідку PDF</button>' +
         '<div id="vc-send" style="margin-top:1rem"></div>' +
-        '<div id="vc-pdf-host" style="position:fixed;left:-10000px;top:0"></div>' +
+        '<div id="vc-pdf-host" style="position:absolute;left:0;top:0;width:0;height:0;overflow:hidden;z-index:-1;pointer-events:none" aria-hidden="true"></div>' +
       '</div>' +
       '<h2 class="h-sm" style="margin-bottom:10px">Останні довідки</h2><div id="vc-list" class="text-sm text-muted">Завантаження…</div>';
     $('vc-mkt').addEventListener('toggle', e => { if (e.target.open) mktLinks(); });
@@ -403,7 +403,9 @@ const VinCert = (() => {
     const host = $('vc-pdf-host'); host.innerHTML = pdfHtml(c);
     try{
       const el = host.firstChild;
-      const pdf = await html2pdf().set({ margin: 8, image: { type: 'jpeg', quality: 0.95 }, html2canvas: { scale: 2, backgroundColor: '#ffffff', scrollY: 0 },
+      const pdf = await html2pdf().set({ margin: 8, image: { type: 'jpeg', quality: 0.95 }, html2canvas: { scale: 2, backgroundColor: '#ffffff', scrollX: 0, scrollY: 0,
+          windowHeight: Math.max(1200, el.scrollHeight + 100),   // Safari: без зсуву й обрізання на прокрученій сторінці
+          onclone: d => { const h = d.getElementById('vc-pdf-host'); if (h) h.style.cssText = 'position:absolute;left:0;top:0;width:auto;height:auto;overflow:visible'; } },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } }).from(el).toPdf().get('pdf');
       // Якщо вміст ледь перевищує аркуш, html2pdf додає майже порожню другу сторінку — прибираємо її
       const mm = el.offsetHeight * 194 / el.offsetWidth;
