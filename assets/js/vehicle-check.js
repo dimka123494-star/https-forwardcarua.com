@@ -110,7 +110,56 @@ function summary(r){
       '<p class="text-xs text-muted" style="margin:.5rem 0 0">WayForPay: Visa, Mastercard, Apple Pay, Google Pay. Звіт відкриється одразу після оплати.</p></div></div>';
   }
 
+  // ---- PDF звіту з QR-кодом: QR веде на оригінал звіту на forwardcarua.com (перевірка справжності) ----
+  let pdfData = null;
+  const loadScript = src => new Promise((res, rej) => { const s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = rej; document.head.appendChild(s); });
+  function verifyUrl(r){
+    if (r.token && /^[a-f0-9]{40}$/.test(String(r.token))) return 'https://forwardcarua.com/zvit-avto?t=' + r.token;
+    if (r.by === 'plate') return 'https://forwardcarua.com/avto/' + encodeURIComponent(r.q);
+    return 'https://forwardcarua.com/perevirka-avto?q=' + encodeURIComponent(r.vin || r.q);
+  }
+  function pdfHtml(r, qr){
+    const v = r.vehicle || {}, url = verifyUrl(r);
+    const row = (k, val) => val || val === 0 ? '<tr><td style="padding:5px 8px;border-bottom:1px solid #e5e7eb;color:#6b7280;width:200px">' + esc(k) + '</td><td style="padding:5px 8px;border-bottom:1px solid #e5e7eb;font-weight:600">' + esc(val) + '</td></tr>' : '';
+    const w = r.wanted;
+    const wanted = w == null ? '' : '<div style="margin:12px 0;padding:10px 12px;border-radius:8px;font-weight:600;' + (w.found ? 'background:#fee2e2;color:#991b1b">Авто є в базі розшуку МВС' : 'background:#dcfce7;color:#166534">У базі розшуку МВС не значиться') + '</div>';
+    const hist = (r.history || []).map(h => '<tr><td style="padding:5px 8px;border-bottom:1px solid #e5e7eb;white-space:nowrap;vertical-align:top">' + date(h.date) + '</td><td style="padding:5px 8px;border-bottom:1px solid #e5e7eb"><b>' + esc(cap(h.op) || 'Реєстраційна операція') + '</b><div style="color:#6b7280;font-size:11px">' +
+      [h.region, h.tsc && /^ТСЦ/.test(h.tsc) ? h.tsc : '', h.owner ? 'власник — ' + h.owner : '', cap(h.color)].filter(Boolean).map(esc).join(' · ') + '</div></td></tr>').join('');
+    return '<div style="width:800px;padding:28px 32px;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#111;background:#fff;box-sizing:border-box">' +
+      '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;border-bottom:2px solid #10b981;padding-bottom:12px">' +
+        '<div><div style="font-size:22px;font-weight:800">Митний<span style="color:#10b981">Брокер</span></div><div style="color:#6b7280;font-size:12px">forwardcarua.com · Перевірка авто за даними МВС</div>' +
+        '<div style="font-size:20px;font-weight:700;margin-top:14px">Звіт про авто ' + esc(r.q) + '</div><div style="font-size:15px;margin-top:2px">' + vline(v) + '</div>' +
+        '<div style="color:#6b7280;font-size:11px;margin-top:6px">Сформовано ' + date(r.checked_at) + '</div></div>' +
+        '<div style="text-align:center;width:150px"><img src="' + qr + '" style="width:130px;height:130px;display:block;margin:0 auto"><div style="font-size:10px;color:#6b7280;line-height:1.3;margin-top:4px">Скануйте, щоб відкрити оригінал звіту на forwardcarua.com</div></div></div>' +
+      wanted +
+      '<table style="width:100%;border-collapse:collapse;margin-top:8px">' + row('VIN', r.vin) + row('Номерні знаки', (r.plates || []).join(', ')) + row('Марка й модель', [v.brand, v.model].filter(Boolean).join(' ')) +
+        row('Рік випуску', v.year) + row('Колір', cap(v.color)) + row('Пальне', cap(v.fuel)) + row('Обʼєм двигуна', v.capacity ? v.capacity + ' см³' : '') +
+        row('Тип / кузов', [cap(v.kind), cap(v.body)].filter(Boolean).join(', ')) + row('Власна / повна маса', v.own_weight ? v.own_weight + ' / ' + (v.total_weight || '—') + ' кг' : '') +
+        row(r.history_partial ? 'Перший запис з цим номером' : 'В Україні з', date(r.first_date)) + row('Змін власника', r.owner_changes) + row('Ввезено з-за кордону', r.imported ? date(r.imported) : '') + '</table>' +
+      (hist ? '<div style="font-size:15px;font-weight:700;margin:16px 0 6px">Історія реєстраційних операцій</div><table style="width:100%;border-collapse:collapse">' + hist + '</table>' : '') +
+      '<div style="margin-top:18px;padding-top:10px;border-top:1px solid #e5e7eb;color:#6b7280;font-size:10px;line-height:1.5">Джерело — відкриті дані Головного сервісного центру МВС (data.gov.ua): «Відомості про транспортні засоби та їх власників», «Транспортні засоби в розшуку». ' +
+        'Імена, адреси й контакти власників не публікуються. Оригінал звіту: ' + esc(url) + '</div></div>';
+  }
+  async function pdf(){
+    const r = pdfData, btn = document.getElementById('vcPdfBtn');
+    if (!r) return;
+    const label = btn ? btn.innerHTML : '';
+    if (btn){ btn.disabled = true; btn.textContent = 'Готуємо PDF…'; }
+    try{
+      if (typeof PdfSnap === 'undefined') await loadScript('/assets/js/pdf-snap.js');
+      if (typeof qrcode !== 'function') await loadScript('https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js');
+      const q = qrcode(0, 'M'); q.addData(verifyUrl(r)); q.make();
+      const blob = await PdfSnap.blob(pdfHtml(r, q.createDataURL(6, 2)));
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob); a.download = 'Zvit-avto-' + String(r.q).replace(/[^\p{L}\p{N}]+/gu, '') + '.pdf';
+      document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 30000);
+      try{ track('vehicle_pdf', {}); }catch(e){}
+    }catch(e){ alert('Не вдалося сформувати PDF. Спробуйте ще раз.'); }
+    finally{ if (btn){ btn.disabled = false; btn.innerHTML = label; } }
+  }
+
   function report(r){
+    pdfData = r;
     if (!r.found) return summary(r);
     const v = r.vehicle || {};
     const w = r.wanted;
@@ -130,7 +179,7 @@ function summary(r){
       '<p class="text-xs text-muted" style="margin:1.25rem 0 0">Перевірено ' + date(r.checked_at) + '. Джерело — відкриті дані Головного сервісного центру МВС («Відомості про транспортні засоби та їх власників», «Транспортні засоби в розшуку») ' +
         (r.data_until ? 'за 2013–' + esc(r.data_until) + ' рр. ' : '') + 'Імена, адреси й контакти власників у відкритих даних не публікуються. ' +
         (r.token ? 'Оплачено карткою ' + r.price + ' грн. Збережіть посилання на цю сторінку.' : r.price > 0 ? 'Списано ' + r.price + ' грн з балансу.' : r.price === 0 ? 'Без оплати (повторний перегляд).' : '') + '</p>' +
-      '<div class="row no-print" style="gap:8px;margin-top:1rem"><button class="btn btn-ghost" onclick="window.print()"><i class="ti ti-printer"></i>Друк / PDF</button></div>';
+      '<div class="row no-print" style="gap:8px;margin-top:1rem"><button class="btn btn-primary" id="vcPdfBtn" onclick="VehicleCheck.pdf()"><i class="ti ti-file-download"></i>Завантажити PDF</button></div>';
   }
 
   async function search(q, el){
@@ -230,5 +279,5 @@ function summary(r){
   }
   function show(k){ const c = (window.__vcHist || [])[k]; if (c) openReport({ ...c.report, price: c.price }); }
 
-  return { mount, mountBuy, loadPhotos, search, run, payCard, report, summary, reopen, mountHistory, show, loadPrice };
+  return { mount, mountBuy, loadPhotos, pdf, search, run, payCard, report, summary, reopen, mountHistory, show, loadPrice };
 })();
