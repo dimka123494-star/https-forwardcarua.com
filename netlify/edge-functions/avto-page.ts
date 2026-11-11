@@ -37,8 +37,14 @@ export default async (req: Request, ctx: Context) => {
     });
     const d = r.ok ? await r.json() : null;
     if (!d) return new Response(html, { status: 200, headers });       // джерело недоступне — дорендерить браузер
+    // фото від користувачів (схвалені) — для превʼю в месенджерах і JSON-LD
+    const photos: { url: string }[] = d?.found ? await fetch(`${SB}/rest/v1/rpc/vehicle_photos_public`, {
+      method: "POST", body: JSON.stringify({ p_plate: plate }),
+      headers: { apikey: ANON, Authorization: `Bearer ${ANON}`, "Content-Type": "application/json" },
+    }).then((x) => x.ok ? x.json() : []).catch(() => []) : [];
     if (!d.found) return new Response(setMeta(html, "name", "robots", "noindex,follow"), { status: 404, headers });
     const p = renderVehicle(d);
+    if (photos.length) (p.ld as any).image = photos.slice(0, 5).map((x) => x.url);
     html = html
       .replace(/<title>[^<]*<\/title>/, `<title>${esc(p.title)}</title>`)
       .replace(/<link rel="canonical" href="[^"]*">/, `<link rel="canonical" href="${p.canonical}">`)
@@ -51,6 +57,7 @@ export default async (req: Request, ctx: Context) => {
     html = setMeta(html, "property", "og:title", p.title.split(" | ")[0]);
     html = setMeta(html, "property", "og:description", p.desc);
     html = setMeta(html, "property", "og:url", p.canonical);
+    if (photos.length) html = setMeta(html, "property", "og:image", photos[0].url);
     headers.set("cache-control", "public, max-age=0, must-revalidate");
     headers.set("netlify-cdn-cache-control", "public, s-maxage=86400, stale-while-revalidate=604800");
     return new Response(html, { status: 200, headers });

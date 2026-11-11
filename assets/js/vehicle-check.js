@@ -84,7 +84,7 @@ const partialNote = r => r.history_partial ? '<div class="msg show" style="margi
       '<h3 style="margin:.2rem 0 0;font-size:22px">' + (vline(v) || 'Транспортний засіб') + '</h3>' + (r.vin_masked ? '<div class="text-xs text-muted" style="margin-top:4px">VIN ' + esc(r.vin_masked) + '</div>' : '') +
       '<div class="vc-meta">' + (r.history_partial ? 'Перший запис з цим номером: ' : 'В Україні з ') + date(r.first_date) + ' · операцій у реєстрі: <b style="color:var(--text)">' + r.events + '</b>' +
         (r.by === 'plate' && /^[А-ЯІЇЄ]{2}\d{4}[А-ЯІЇЄ]{2}$/.test(r.q) ? ' · <a href="/avto/' + encodeURIComponent(r.q) + '">сторінка авто</a>' : '') + '</div>' +
-      '<div class="vc-flags">' + flags.join('') + '</div>' + specs(v) + partialNote(r) +
+      '<div class="vc-flags">' + flags.join('') + '</div>' + specs(v) + (r.by === 'plate' ? '<div class="cp-mount" data-compact="1" data-plate="' + esc(r.q) + '"></div>' : '') + partialNote(r) +
       '<div class="text-sm" style="margin-top:.75rem">Остання операція: <b>' + date(r.last.date) + '</b> — ' + esc(cap(r.last.op) || 'реєстраційна операція') + (r.last.region ? ' · ' + esc(r.last.region) : '') + (r.last.owner ? ' · власник — ' + esc(r.last.owner) : '') + '</div>' +
       '</div>' + buyBox(r);
   }
@@ -126,7 +126,7 @@ const partialNote = r => r.history_partial ? '<div class="msg show" style="margi
       '<div class="modal-sub" style="margin-bottom:.75rem">' + vline(v) + '</div>' + photoSlot(v) + wBlock +
       '<div class="text-sm" style="line-height:1.8">' + (r.vin ? 'VIN: <b>' + esc(r.vin) + '</b><br>' : '') +
         ((r.plates || []).length ? 'Номерні знаки: <b>' + r.plates.map(esc).join(', ') + '</b><br>' : '') +
-        (r.history_partial ? 'Перший запис з цим номером: ' : 'В Україні з ') + date(r.first_date) + ' · змін власника: <b>' + r.owner_changes + '</b>' + (r.imported ? ' · ввезено ' + date(r.imported) : '') + '</div>' + specs(v) +
+        (r.history_partial ? 'Перший запис з цим номером: ' : 'В Україні з ') + date(r.first_date) + ' · змін власника: <b>' + r.owner_changes + '</b>' + (r.imported ? ' · ввезено ' + date(r.imported) : '') + '</div>' + specs(v) + ((r.by === 'plate' ? r.q : (r.plates || [])[0]) ? '<div class="cp-mount" data-compact="1" data-plate="' + esc(r.by === 'plate' ? r.q : r.plates[0]) + '"></div>' : '') +
       '<h3 style="font-size:16px;margin:1.25rem 0 .5rem">Історія реєстраційних операцій (' + (r.history || []).length + ')</h3><div class="vc-hist">' + hist + '</div>' + partialNote(r) + prev +
       '<p class="text-xs text-muted" style="margin:1.25rem 0 0">Перевірено ' + date(r.checked_at) + '. Джерело — відкриті дані Головного сервісного центру МВС («Відомості про транспортні засоби та їх власників», «Транспортні засоби в розшуку») ' +
         (r.data_until ? 'за 2013–' + esc(r.data_until) + ' рр. ' : '') + 'Імена, адреси й контакти власників у відкритих даних не публікуються. Записи до 2021 р. не містять VIN, тому прив’язані за номером, маркою й роком випуску. ' +
@@ -144,7 +144,7 @@ const partialNote = r => r.history_partial ? '<div class="msg show" style="margi
       const r = await call({ action: 'summary', q });
       last = r;
       el.innerHTML = summary(r);
-      loadPhotos(el);
+      loadPhotos(el); if (typeof CarPhotos !== 'undefined') CarPhotos.scan(el);
       try{ track('vehicle_search', { found: r.found }); }catch(e){}
       try{ history.replaceState(null, '', location.pathname + '?q=' + encodeURIComponent(r.q)); }catch(e){}
       if (r.found) prefill();
@@ -201,7 +201,7 @@ const partialNote = r => r.history_partial ? '<div class="msg show" style="margi
     o.addEventListener('click', e => { if (e.target === o) o.classList.remove('open'); });
     document.body.appendChild(o); return o;
   }
-  function openReport(r){ shell().classList.add('open'); document.getElementById('vcBody').innerHTML = report(r); loadPhotos(document.getElementById('vcBody')); }
+  function openReport(r){ shell().classList.add('open'); document.getElementById('vcBody').innerHTML = report(r); loadPhotos(document.getElementById('vcBody')); if (typeof CarPhotos !== 'undefined') CarPhotos.scan(document.getElementById('vcBody')); }
 
   function mount(el, q){
     if (!el) return;

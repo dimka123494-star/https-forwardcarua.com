@@ -352,6 +352,7 @@
         <h1 class="h-md">Перевірки компаній і авто <span class="text-sm text-muted" id="ckTotal"></span></h1>
         <button class="btn-quiet" onclick="loadChecks()"><i class="ti ti-refresh"></i> Оновити</button>
       </div>
+      <div class="card" id="phMod" style="margin-bottom:1.25rem;display:none"></div>
       <div class="stat-grid" id="ckStats" style="margin-bottom:1.25rem"></div>
       <div class="table-wrap table-scroll"><table>
         <thead><tr><th>Компанія</th><th>Хто замовив</th><th>Оплата</th><th>Результат</th><th>Коли</th></tr></thead>
@@ -1160,7 +1161,35 @@ async function reject(id){
 
 /* ---------- Платежі ---------- */
 /* ---------- Перевірки компаній ---------- */
+/* ---------- Фото авто на модерації ---------- */
+async function loadCarPhotos(){
+  const sb = await sbReady(), box = document.getElementById('phMod');
+  const { data } = await sb.from('vehicle_photos').select('id, created_at, plate, path, author_email, user_id').eq('status', 'pending').order('created_at').limit(40);
+  const list = data || [];
+  const nav = document.querySelector('.adm-link[data-p="checks"]');
+  if (nav){ let b = nav.querySelector('.ph-badge'); if (!b){ b = document.createElement('span'); b.className = 'ph-badge'; b.style.cssText = 'margin-left:6px;background:var(--amber);color:#111;border-radius:999px;padding:0 7px;font-size:11px'; nav.appendChild(b); } b.textContent = list.length || ''; b.style.display = list.length ? '' : 'none'; }
+  if (!list.length){ box.style.display = 'none'; return; }
+  const urls = await Promise.all(list.map(p => sb.storage.from('car-photos-inbox').createSignedUrl(p.path, 3600).then(r => r.data && r.data.signedUrl).catch(() => null)));
+  box.style.display = '';
+  box.innerHTML = '<div class="card-title">Фото авто на модерації (' + list.length + ')</div><p class="hint" style="margin:0 0 .75rem">Схвалюйте, якщо на фото справді авто, немає облич, чужих документів і реклами. Схвалене зʼявиться на сторінці /avto/номер.</p>' +
+    '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px">' + list.map((p, i) =>
+      '<div class="card" style="padding:8px" id="ph-' + p.id + '">' + (urls[i] ? '<a href="' + urls[i] + '" target="_blank"><img src="' + urls[i] + '" style="width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:6px"></a>' : '<div class="text-xs text-muted">файл недоступний</div>') +
+      '<div class="text-sm" style="margin-top:6px"><a href="/avto/' + encodeURIComponent(p.plate) + '" target="_blank"><b>' + esc(p.plate) + '</b></a> <span class="text-xs text-muted">' + timeAgo(p.created_at) + '</span></div>' +
+      '<div class="text-xs text-muted">' + esc(p.author_email || (p.user_id ? 'користувач кабінету' : 'гість')) + '</div>' +
+      '<div class="row" style="gap:6px;margin-top:6px"><button class="btn btn-primary btn-sm" onclick="modCarPhoto(\'' + p.id + '\', true)">Схвалити</button><button class="btn btn-ghost btn-sm" onclick="modCarPhoto(\'' + p.id + '\', false)">Відхилити</button></div></div>').join('') + '</div>';
+}
+async function modCarPhoto(id, approve){
+  const el = document.getElementById('ph-' + id); if (el) el.style.opacity = '.4';
+  try{
+    const s = await currentSession();
+    const res = await fetch(SUPABASE_URL + '/functions/v1/car-photo', { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: SUPABASE_ANON, Authorization: 'Bearer ' + s.access_token }, body: JSON.stringify({ action: 'moderate', id, approve }) });
+    if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || res.status);
+    loadCarPhotos();
+  }catch(e){ if (el) el.style.opacity = ''; alert('Не вдалося: ' + e.message); }
+}
+
 async function loadChecks(){
+  loadCarPhotos().catch(e => console.error(e));
   const sb = await sbReady();
   const [a, b, va, vb] = await Promise.all([
     sb.from('company_checks').select('id, created_at, code, price, report, brokers(name, email, kind)').order('created_at', { ascending: false }).limit(300),

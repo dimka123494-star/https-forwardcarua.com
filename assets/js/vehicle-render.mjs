@@ -67,6 +67,7 @@ export function renderVehicle(r) {
     `<p class="lead">${story}</p>` +
     `<div class="vc-flags">${flags.join("")}</div>` +
     `<div class="vc-specs" style="margin-top:1rem">${facts.map((f) => `<div><span>${esc(f[0])}</span><b>${esc(f[1])}</b></div>`).join("")}</div>` +
+    `<div class="cp-mount" data-plate="${esc(plate)}" style="margin-top:1rem"></div>` +
     `</section>` +
     `<section class="container-narrow" style="padding-top:1rem"><div id="vcBuyMount"></div></section>` +
     `<section class="container-narrow seo" style="padding-top:1.5rem">` +

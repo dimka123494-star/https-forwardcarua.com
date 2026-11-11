@@ -347,3 +347,6 @@ button.card{color:var(--text);font:inherit;-webkit-appearance:none;appearance:no
 .vc-photo:empty{display:none}
 .vc-photo img{display:block;width:100%;aspect-ratio:16/10;object-fit:cover}
 .vc-photo figcaption{font-size:11px;color:var(--muted);padding:6px 10px}
+.cp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:6px;margin-top:.5rem}
+.cp-grid img{display:block;width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:6px;border:.5px solid var(--border)}
+.cp-add{margin-top:.5rem}

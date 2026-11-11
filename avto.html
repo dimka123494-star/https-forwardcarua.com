@@ -116,6 +116,7 @@
 </footer>
 <script src="/assets/js/config.js"></script>
 <script src="/assets/js/db.js"></script>
+<script src="/assets/js/car-photos.js"></script>
 <script src="/assets/js/vehicle-check.js"></script>
 <script type="module">
 import { renderVehicle } from '/assets/js/vehicle-render.mjs';
@@ -134,7 +135,7 @@ VehicleCheck.mount(document.getElementById('vcMount'));
     return;
   }
   if (!main.dataset.ssr){ const p = renderVehicle(r); main.innerHTML = p.html; document.title = p.title; }
-  VehicleCheck.loadPhotos(main);
+  VehicleCheck.loadPhotos(main); CarPhotos.scan(main);
   VehicleCheck.mountBuy(document.getElementById('vcBuyMount'), r);
 })();
 </script>
