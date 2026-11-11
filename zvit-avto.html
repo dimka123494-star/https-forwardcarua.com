@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Звіт про авто | МитнийБрокер</title>
+<meta name="robots" content="noindex,nofollow">
+<meta name="referrer" content="no-referrer">
+<meta name="theme-color" content="#0a0f0d">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.7.0/dist/tabler-icons.min.css">
+<link rel="stylesheet" href="/assets/css/app.css">
+<style>
+@media print{.nav,.no-print{display:none!important}body{background:#fff;color:#000}.card{border-color:#ccc}}
+</style>
+</head>
+<body>
+<nav class="nav no-print">
+  <a class="nav-brand" href="/">Митний<span>Брокер</span></a>
+  <div class="nav-links"><a class="nav-link" href="/perevirka-avto">Перевірка авто</a><a class="nav-link" href="/kalkulyator-rozmytnennya">Калькулятор розмитнення</a></div>
+</nav>
+<div class="page">
+  <main class="container-narrow" style="padding-top:2rem;padding-bottom:3rem">
+    <div class="card" id="zv"><p class="text-sm text-muted">Завантажуємо звіт…</p></div>
+    <div class="card no-print" id="zvList" style="margin-top:1rem;display:none"></div>
+  </main>
+</div>
+<script src="/assets/js/config.js"></script>
+<script src="/assets/js/db.js"></script>
+<script src="/assets/js/vehicle-check.js"></script>
+<script>
+(function(){
+  const box = document.getElementById('zv');
+  const t = new URLSearchParams(location.search).get('t') || '';
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+  // інші оплачені перевірки з цього браузера
+  try{
+    const l = JSON.parse(localStorage.getItem('vcOrders') || '[]').filter(x => x.t !== t);
+    if (l.length){ const el = document.getElementById('zvList'); el.style.display = '';
+      el.innerHTML = '<div class="card-title">Ваші інші перевірки з цього браузера</div>' + l.map(x => '<div><a href="/zvit-avto?t=' + esc(x.t) + '">' + esc(x.q) + '</a> <span class="text-xs text-muted">' + new Date(x.at).toLocaleDateString('uk-UA') + '</span></div>').join(''); }
+  }catch(e){}
+  if (!/^[a-f0-9]{40}$/.test(t)){ box.innerHTML = '<h1 class="h-md">Звіт не знайдено</h1><p class="text-sm text-muted">Перевірте посилання. Нову перевірку можна замовити на сторінці <a href="/perevirka-avto">«Перевірка авто»</a>.</p>'; return; }
+  let tries = 0;
+  async function load(){
+    tries++;
+    try{
+      const res = await fetch(SUPABASE_URL + '/functions/v1/vehicle-check', { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: SUPABASE_ANON }, body: JSON.stringify({ action: 'report', token: t }) });
+      const d = await res.json().catch(() => ({}));
+      if (res.status === 404){ box.innerHTML = '<h1 class="h-md">Звіт не знайдено</h1><p class="text-sm text-muted">Посилання недійсне.</p>'; return; }
+      if (d.status === 'paid' && d.report){
+        box.innerHTML = VehicleCheck.report(Object.assign({}, d.report, { token: t }));
+        document.title = 'Звіт про авто ' + d.report.q + ' | МитнийБрокер';
+        if (tries === 1 || sessionStorage.getItem('vcTracked') !== t){ try{ track('purchase', { value: d.report.price, currency: 'UAH', transaction_id: t.slice(0, 12), items: [{ item_name: 'vehicle_check' }] }); sessionStorage.setItem('vcTracked', t); }catch(e){} }
+        return;
+      }
+      if (d.status === 'pending' || d.status === 'inprocessing' || !d.status){
+        box.innerHTML = '<h1 class="h-md">Чекаємо підтвердження оплати…</h1><p class="text-sm text-muted">Зазвичай це кілька секунд. Сторінка оновиться сама.</p>';
+        if (tries < 60) setTimeout(load, 3000);
+        else box.innerHTML += '<p class="text-sm">Оплата ще не підтверджена. Якщо гроші списано — напишіть на <a href="mailto:custom@forwardcarua.com">custom@forwardcarua.com</a>, вкажіть номер авто ' + esc(d.q || '') + '.</p>';
+        return;
+      }
+      box.innerHTML = '<h1 class="h-md">Оплату не завершено</h1><p class="text-sm text-muted">Статус: ' + esc(d.status) + '. Гроші не списано. <a href="/perevirka-avto">Спробувати ще раз</a>.</p>';
+    }catch(e){
+      box.innerHTML = '<p class="text-sm">Не вдалося завантажити звіт — оновіть сторінку.</p>';
+    }
+  }
+  load();
+})();
+</script>
+</body>
+</html>

@@ -92,6 +92,7 @@
         <button class="cab-item"        data-pane="rmpd"     onclick="pane('rmpd',this)"><i class="ti ti-file-certificate"></i>RMPD Польща <span class="cab-badge" id="rmBadge" style="display:none">0</span></button>
         <button class="cab-item"        data-pane="sent"     onclick="pane('sent',this)"><i class="ti ti-map-pin-check"></i>SENT Польща <span class="cab-badge" id="snBadge" style="display:none">0</span></button>
         <button class="cab-item"        data-pane="checks"   onclick="pane('checks',this)"><i class="ti ti-shield-search"></i>Перевірка компаній</button>
+        <button class="cab-item"        data-pane="vehicles" onclick="pane('vehicles',this)"><i class="ti ti-car"></i>Перевірка авто</button>
         <button class="cab-item"        data-pane="deleg"    onclick="pane('deleg',this)"><i class="ti ti-id"></i>Відрядження водія <span class="cab-badge" id="dlBadge" style="display:none">0</span></button>
         <button class="cab-item"        data-pane="requests" onclick="pane('requests',this)"><i class="ti ti-inbox"></i>Заявки <span class="cab-badge" id="reqBadge" style="display:none">0</span></button>
         <button class="cab-item"        data-pane="reviews"  onclick="pane('reviews',this)"><i class="ti ti-star"></i>Відгуки <span class="cab-badge" id="rvBadge" style="display:none">0</span></button>
@@ -262,6 +263,13 @@
         <h1 class="h-md" style="margin-bottom:.5rem">Перевірка компаній</h1>
         <p class="text-sm text-muted" style="margin-bottom:1rem">Боржник чи ні, чи є справи про банкрутство — за ЄДРПОУ будь-якої компанії. Оплата з балансу, повторний перегляд протягом 30 днів безкоштовний.</p>
         <div id="checksMount"></div>
+      </section>
+
+      <!-- ПЕРЕВІРКА АВТО -->
+      <section class="cab-pane" id="pane-vehicles">
+        <h1 class="h-md" style="margin-bottom:.5rem">Перевірка авто</h1>
+        <p class="text-sm text-muted" style="margin-bottom:1rem">Історія реєстрацій МВС за номером або VIN: власники, ввезення, номери, розшук. Коротка довідка безкоштовно, повний звіт — з балансу; повторний перегляд протягом 30 днів безкоштовний.</p>
+        <div id="vehiclesMount"></div>
       </section>
 
       <!-- АВТОПАРК -->
@@ -445,6 +453,7 @@
 <script src="/assets/js/config.js"></script>
 <script src="/assets/js/db.js"></script>
 <script src="/assets/js/company-check.js"></script>
+<script src="/assets/js/vehicle-check.js"></script>
 <script src="/assets/js/uktzed.js"></script>
 <script src="/assets/js/pdf-snap.js"></script>
 <script src="/assets/js/customs-calc.js"></script>
@@ -1096,6 +1105,7 @@ window.addEventListener('DOMContentLoaded', async () => {
   Sent.mount(document.getElementById('sentMount'), { broker });
   Deleg.mount(document.getElementById('delegMount'), { broker });
   CompanyCheck.mountHistory(document.getElementById('checksMount'));
+  VehicleCheck.mountHistory(document.getElementById('vehiclesMount'));
   csHowChange(); myConsultations().then(l => { myCons = l; renderConsult(); });
   renderConsult();
   if (broker.kind !== 'carrier') renderServices();

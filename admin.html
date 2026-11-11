@@ -96,7 +96,7 @@
   <button class="adm-link" data-p="deleg" onclick="pane('deleg',this)"><i class="ti ti-user-check"></i>Відрядження <span class="cab-badge" id="dlAdmBadge" style="display:none">0</span></button>
   <div class="adm-group">Фінанси</div>
   <button class="adm-link" data-p="billing" onclick="pane('billing',this)"><i class="ti ti-credit-card"></i>Платежі</button>
-  <button class="adm-link" data-p="checks" onclick="pane('checks',this)"><i class="ti ti-shield-search"></i>Перевірки компаній</button>
+  <button class="adm-link" data-p="checks" onclick="pane('checks',this)"><i class="ti ti-shield-search"></i>Перевірки компаній і авто</button>
 </aside>
 <div class="adm-shade" onclick="document.body.classList.remove('adm-open')"></div>
 
@@ -349,7 +349,7 @@
     <!-- ПЛАТЕЖІ -->
     <section class="cab-pane" id="pane-checks">
       <div class="spread" style="margin-bottom:1rem">
-        <h1 class="h-md">Перевірки компаній <span class="text-sm text-muted" id="ckTotal"></span></h1>
+        <h1 class="h-md">Перевірки компаній і авто <span class="text-sm text-muted" id="ckTotal"></span></h1>
         <button class="btn-quiet" onclick="loadChecks()"><i class="ti ti-refresh"></i> Оновити</button>
       </div>
       <div class="stat-grid" id="ckStats" style="margin-bottom:1.25rem"></div>
@@ -1162,13 +1162,19 @@ async function reject(id){
 /* ---------- Перевірки компаній ---------- */
 async function loadChecks(){
   const sb = await sbReady();
-  const [a, b] = await Promise.all([
+  const [a, b, va, vb] = await Promise.all([
     sb.from('company_checks').select('id, created_at, code, price, report, brokers(name, email, kind)').order('created_at', { ascending: false }).limit(300),
-    sb.from('check_orders').select('id, created_at, code, email, amount, status, paid_at, report, token').neq('status', 'test').order('created_at', { ascending: false }).limit(300)]);
+    sb.from('check_orders').select('id, created_at, code, email, amount, status, paid_at, report, token').neq('status', 'test').order('created_at', { ascending: false }).limit(300),
+    sb.from('vehicle_checks').select('id, created_at, q, price, report, brokers(name, email, kind)').order('created_at', { ascending: false }).limit(300),
+    sb.from('vehicle_orders').select('id, created_at, q, email, amount, status, paid_at, report, token').order('created_at', { ascending: false }).limit(300)]);
   const rows = [
     ...(a.data || []).map(c => ({ at: c.created_at, code: c.code, rep: c.report, who: (c.brokers && c.brokers.name) || '—', whoSub: (c.brokers && c.brokers.email) || '', kind: c.brokers && c.brokers.kind === 'carrier' ? 'перевізник' : 'брокер',
       pay: Number(c.price) ? 'Баланс · ' + uah(c.price) : 'повторний / адмін', paid: Number(c.price) || 0, ok: true })),
     ...(b.data || []).map(o => ({ at: o.created_at, code: o.code, rep: o.report, who: o.email, whoSub: 'без кабінету', kind: '',
+      pay: o.status === 'paid' ? 'Картка · ' + uah(o.amount) : 'Картка · ' + (o.status === 'pending' ? 'не оплачено' : o.status), paid: o.status === 'paid' ? Number(o.amount) : 0, ok: o.status === 'paid', token: o.token })),
+    ...(va.data || []).map(c => ({ veh: true, at: c.created_at, code: c.q, rep: c.report, who: (c.brokers && c.brokers.name) || '—', whoSub: (c.brokers && c.brokers.email) || '', kind: c.brokers && c.brokers.kind === 'carrier' ? 'перевізник' : 'брокер',
+      pay: Number(c.price) ? 'Баланс · ' + uah(c.price) : 'повторний / адмін', paid: Number(c.price) || 0, ok: true })),
+    ...(vb.data || []).map(o => ({ veh: true, at: o.created_at, code: o.q, rep: o.report, who: o.email, whoSub: 'без кабінету', kind: '',
       pay: o.status === 'paid' ? 'Картка · ' + uah(o.amount) : 'Картка · ' + (o.status === 'pending' ? 'не оплачено' : o.status), paid: o.status === 'paid' ? Number(o.amount) : 0, ok: o.status === 'paid', token: o.token }))
   ].sort((x, y) => new Date(y.at) - new Date(x.at));
   const now = Date.now(), m30 = rows.filter(r => now - new Date(r.at) < 30 * 864e5);
@@ -1177,13 +1183,16 @@ async function loadChecks(){
     '<div class="stat"><div class="stat-val" style="color:var(--green)">' + uah(m30.reduce((s, r) => s + r.paid, 0)) + '</div><div class="stat-label">Виручка за 30 днів</div></div>' +
     '<div class="stat"><div class="stat-val" style="color:var(--blue)">' + m30.filter(r => r.ok).length + '</div><div class="stat-label">Перевірок за 30 днів</div></div>' +
     '<div class="stat"><div class="stat-val" style="color:var(--amber)">' + m30.filter(r => r.token && r.ok).length + '</div><div class="stat-label">З них карткою (без кабінету)</div></div>';
+  const vflags = r => !r ? '<span class="text-muted">звіт ще не відкрито</span>' : [r.wanted && r.wanted.found ? '<span style="color:var(--red)">у розшуку</span>' : 'не в розшуку', 'власників змінювалось: ' + (r.owner_changes ?? '—')].join(' · ');
   const flags = r => !r ? '<span class="text-muted">звіт ще не відкрито</span>' : [r.erb ? '<span style="color:var(--red)">боржник · ' + r.erb.n + ' ВП</span>' : 'не боржник',
     (r.bankrupt || []).length ? '<span style="color:var(--red)">банкрутство</span>' : 'без банкрутства', r.courts && r.courts.n ? 'суди: ' + r.courts.n : 'без судів'].join(' · ');
   document.getElementById('ckTable').innerHTML = rows.length ? rows.map(r =>
-    '<tr' + (r.ok ? '' : ' style="opacity:.55"') + '><td><div style="font-weight:500">' + esc((r.rep && r.rep.name) || '—') + '</div><div class="text-xs text-muted">ЄДРПОУ <a href="/perevizhnyk/' + esc(r.code) + '" target="_blank">' + esc(r.code) + '</a></div></td>' +
+    '<tr' + (r.ok ? '' : ' style="opacity:.55"') + '><td>' + (r.veh
+      ? '<div style="font-weight:500"><i class="ti ti-car"></i> ' + esc(r.rep && r.rep.vehicle ? [r.rep.vehicle.brand, r.rep.vehicle.model, r.rep.vehicle.year].filter(Boolean).join(' ') : 'Авто') + '</div><div class="text-xs text-muted"><a href="/perevirka-avto?q=' + encodeURIComponent(r.code) + '" target="_blank">' + esc(r.code) + '</a></div></td>'
+      : '<div style="font-weight:500">' + esc((r.rep && r.rep.name) || '—') + '</div><div class="text-xs text-muted">ЄДРПОУ <a href="/perevizhnyk/' + esc(r.code) + '" target="_blank">' + esc(r.code) + '</a></div></td>') +
     '<td class="text-sm">' + esc(r.who) + '<div class="text-xs text-muted">' + esc([r.kind, r.whoSub].filter(Boolean).join(' · ')) + '</div></td>' +
-    '<td class="text-sm">' + esc(r.pay) + (r.token && r.ok ? '<div class="text-xs"><a href="/zvit?t=' + esc(r.token) + '" target="_blank">звіт</a></div>' : '') + '</td>' +
-    '<td class="text-xs">' + flags(r.rep) + '</td><td class="text-xs text-muted">' + timeAgo(r.at) + '</td></tr>').join('')
+    '<td class="text-sm">' + esc(r.pay) + (r.token && r.ok ? '<div class="text-xs"><a href="/' + (r.veh ? 'zvit-avto' : 'zvit') + '?t=' + esc(r.token) + '" target="_blank">звіт</a></div>' : '') + '</td>' +
+    '<td class="text-xs">' + (r.veh ? vflags : flags)(r.rep) + '</td><td class="text-xs text-muted">' + timeAgo(r.at) + '</td></tr>').join('')
     : '<tr><td colspan="5"><div class="empty">Перевірок ще не було</div></td></tr>';
 }
 
