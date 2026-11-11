@@ -111,6 +111,7 @@ def num(s):
 
 
 OPS = {}
+HDRS = []
 
 
 class Spool:
@@ -139,7 +140,20 @@ def process(path, spool, vins):
     with open_text(path) as t:
         rd = csv.reader(t, delimiter=';')
         hdr = [h.strip().strip('﻿').strip('"').upper() for h in next(rd)]
+        HDRS.append(hdr)
+        # у різні роки МВС по-різному називає колонки (KOATUU / KATOTTG, OPER_CODE тощо) — зводимо до одних назв
+        alias = {'REG_ADDR_KOATUU': ('KOATUU', 'KATOTTG', 'ADDR'), 'OPER_CODE': ('OPER_CODE', 'OPERCODE', 'CODE_OPER'),
+                 'OPER_NAME': ('OPER_NAME', 'OPERNAME', 'NAME_OPER', 'OPER'), 'DEP_CODE': ('DEP_CODE', 'DEPCODE'),
+                 'D_REG': ('D_REG', 'DATE', 'DREG'), 'N_REG_NEW': ('N_REG_NEW', 'N_REG', 'NREG', 'REG_NUM', 'NUMBER'),
+                 'MAKE_YEAR': ('MAKE_YEAR', 'YEAR')}
         ix = {h: i for i, h in enumerate(hdr)}
+        for k, subs in alias.items():
+            if k in ix:
+                continue
+            for j, h in enumerate(hdr):
+                if any(x in h for x in subs) and h not in alias:
+                    ix[k] = j
+                    break
         g = lambda row, k: row[ix[k]].strip() if k in ix and ix[k] < len(row) else ''
         for row in rd:
             if len(row) < 10:
@@ -156,7 +170,8 @@ def process(path, spool, vins):
             if model and brand.upper().endswith(' ' + model.upper()):
                 brand = brand[: -len(model) - 1].strip()
             koatuu = g(row, 'REG_ADDR_KOATUU')
-            ev = [ddate(g(row, 'D_REG')), code, g(row, 'PERSON')[:1].upper(), koatuu[:2] if koatuu[:1].isdigit() else '',
+            reg = koatuu[:2] if koatuu[:1].isdigit() else koatuu[2:4] if koatuu[:2].upper() == 'UA' else ''   # КОАТУУ або КАТОТТГ (UA..)
+            ev = [ddate(g(row, 'D_REG')), code, g(row, 'PERSON')[:1].upper(), reg,
                   g(row, 'DEP_CODE'), brand, model, num(g(row, 'MAKE_YEAR')), g(row, 'COLOR'), g(row, 'KIND'), g(row, 'BODY'),
                   g(row, 'PURPOSE'), g(row, 'FUEL'), num(g(row, 'CAPACITY')), num(g(row, 'OWN_WEIGHT')), num(g(row, 'TOTAL_WEIGHT')), vin]
             key = plate or ('#' + vin if vin else '')
@@ -252,7 +267,7 @@ def main():
         fetch(r['url'], p)
         n = process(p, spool, vins)
         print(y, r['name'], n, 'rows', round(time.time() - t0), 's', flush=True)
-        used.append({'year': y, 'id': r['id'], 'rows': n, 'modified': r.get('last_modified') or r.get('created')})
+        used.append({'year': y, 'id': r['id'], 'rows': n, 'modified': r.get('last_modified') or r.get('created'), 'hdr': HDRS[-1] if HDRS else None})
     spool.flush()
     for f in os.listdir(CACHE):     # прибираємо старі версії з кешу
         if f.endswith('.bin') and f not in keep:
