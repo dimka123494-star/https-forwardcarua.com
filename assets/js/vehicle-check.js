@@ -30,7 +30,13 @@ const VehicleCheck = (() => {
     return '<div class="vc-specs">' + rows.map(r => '<div><span>' + r[0] + '</span><b>' + esc(r[1]) + '</b></div>').join('') + '</div>';
   }
 
+  const W_KEYS = { brandmodel: 'Марка й модель', color: 'Колір', vehiclenumber: 'Номер', bodynumber: 'Номер кузова / VIN', chassisnumber: 'Номер шасі', enginenumber: 'Номер двигуна',
+    illegalseizuredate: 'Дата незаконного заволодіння', organunit: 'Орган поліції', insertdate: 'Внесено в базу', cartype: 'Тип' };
+  const wItem = x => '<div class="text-xs" style="margin-top:6px;line-height:1.6">' + Object.entries(x).filter(([k, v]) => v && W_KEYS[k]).map(([k, v]) =>
+    W_KEYS[k] + ': <b>' + esc(/date$/.test(k) ? date(String(v).slice(0, 10)) : v) + '</b>').join(' · ') + '</div>';
+  const wAlert = w => '<div class="msg show msg-err" style="margin:0 0 1rem"><b>Авто є в базі розшуку МВС</b> — не купуйте й не оформлюйте його без перевірки в сервісному центрі МВС' + (w.items || []).map(wItem).join('') + '</div>';
   function summary(r){
+    if (!r.found && r.wanted && r.wanted.found) return wAlert(r.wanted) + '<p class="text-xs text-muted">У реєстраційних даних МВС за «' + esc(r.q) + '» записів немає — дані з бази транспорту в розшуку.</p>';
     if (!r.found) return '<div class="card"><h3 style="margin:0 0 .4rem">Нічого не знайдено</h3><p class="text-sm text-muted" style="margin:0">За «' + esc(r.q) + '» немає записів у реєстраційних даних МВС' +
       (r.data_until ? ' (2013–' + esc(r.data_until) + ')' : '') + '. Перевірте номер: у старих форматах і транзитних номерах бувають розбіжності. Для авто, ввезеного недавно, дані можуть ще не бути опубліковані.</p></div>';
     const v = r.vehicle || {};
@@ -63,8 +69,7 @@ const VehicleCheck = (() => {
     const v = r.vehicle || {};
     const w = r.wanted;
     const wBlock = w == null ? '' : w.found
-      ? '<div class="msg show msg-err" style="margin:0 0 1rem"><b>Авто є в базі розшуку МВС</b> — не купуйте й не оформлюйте його без перевірки в сервісному центрі МВС' +
-        (w.items || []).map(x => '<div class="text-xs" style="margin-top:6px">' + Object.entries(x).filter(([k, val]) => val).slice(0, 8).map(([k, val]) => esc(k) + ': ' + esc(val)).join(' · ') + '</div>').join('') + '</div>'
+      ? wAlert(w)
       : '<div class="msg show msg-ok" style="margin:0 0 1rem"><b>У базі розшуку МВС не значиться</b></div>';
     const hist = (r.history || []).slice().reverse().map(h => '<div class="vc-ev"><div class="vc-dt">' + date(h.date) + '</div><div><b>' + esc(cap(h.op) || 'Реєстраційна операція') + '</b>' +
       '<div class="text-xs text-muted">' + [h.region, h.tsc ? 'ТСЦ ' + h.tsc : '', h.owner ? 'власник — ' + h.owner : '', h.color ? cap(h.color) : '', h.fuel ? cap(h.fuel) : ''].filter(Boolean).map(esc).join(' · ') + '</div></div></div>').join('');

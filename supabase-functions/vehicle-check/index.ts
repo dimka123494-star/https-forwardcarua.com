@@ -143,7 +143,12 @@ async function buildReport(pq: { q: string; vin: boolean }, full: boolean) {
   const ops = m?.ops ?? {};
   const base = { q: pq.q, by: pq.vin ? "vin" : "plate", checked_at: new Date().toISOString(), data_at: m?.generated ?? null,
     data_until: (m?.sources ?? []).map((s: any) => s.year).sort().at(-1) ?? null };
-  if (!main) return { ...base, found: false };
+  if (!main) {
+    // немає в реєстраційних даних, але є в розшуку (напр. викрадене на окупованій території) — показуємо безкоштовно
+    const w = await wanted();
+    const hits = w?.[pq.q] ?? [];
+    return { ...base, found: false, wanted: hits.length ? { found: true, items: hits.slice(0, 5) } : null };
+  }
   const evs = main.evs;
   const opName = (e: Ev) => ops[e[1]] ?? String(e[1] ?? "");
   const owners = evs.filter((e) => OWNER.has(String(e[1]))).length;
