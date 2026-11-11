@@ -12,7 +12,7 @@ on:
     paths: ['tools/vehicles_import.py', '.github/workflows/vehicles.yml']
 permissions:
   contents: write
-concurrency: vehicles
+concurrency: vehicles-import
 jobs:
   import:
     runs-on: ubuntu-latest
