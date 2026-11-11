@@ -64,8 +64,7 @@ const VehicleCheck = (() => {
   const wItem = x => '<div class="text-xs" style="margin-top:6px;line-height:1.6">' + Object.entries(x).filter(([k, v]) => v && W_KEYS[k]).map(([k, v]) =>
     W_KEYS[k] + ': <b>' + esc(/date$/.test(k) ? date(String(v).slice(0, 10)) : v) + '</b>').join(' · ') + '</div>';
   const wAlert = w => '<div class="msg show msg-err" style="margin:0 0 1rem"><b>Авто є в базі розшуку МВС</b> — не купуйте й не оформлюйте його без перевірки в сервісному центрі МВС' + (w.items || []).map(wItem).join('') + '</div>';
-const partialNote = r => r.history_partial ? '<div class="msg show" style="margin:.75rem 0 0;font-size:13px;border:.5px solid var(--border)">Історія в реєстрі починається з перереєстрації ' + date(r.first_date) + '. Перша реєстрація в Україні була раніше — під іншим номером. До 2021 р. МВС публікував операції без VIN, тому однозначно привʼязати ті записи до цього авто неможливо. Якщо знаєте попередній номер — перевірте його окремо.</div>' : '';
-  function summary(r){
+function summary(r){
     if (!r.found && r.wanted && r.wanted.found) return wAlert(r.wanted) + '<p class="text-xs text-muted">У реєстраційних даних МВС за «' + esc(r.q) + '» записів немає — дані з бази транспорту в розшуку.</p>';
     if (!r.found) return '<div class="card"><h3 style="margin:0 0 .4rem">Нічого не знайдено</h3><p class="text-sm text-muted" style="margin:0">За «' + esc(r.q) + '» немає записів у реєстраційних даних МВС' +
       (r.data_until ? ' (2013–' + esc(r.data_until) + ')' : '') + '. Перевірте номер: у старих форматах і транзитних номерах бувають розбіжності. Для авто, ввезеного недавно, дані можуть ще не бути опубліковані.</p></div>';
@@ -84,7 +83,7 @@ const partialNote = r => r.history_partial ? '<div class="msg show" style="margi
       '<h3 style="margin:.2rem 0 0;font-size:22px">' + (vline(v) || 'Транспортний засіб') + '</h3>' + (r.vin_masked ? '<div class="text-xs text-muted" style="margin-top:4px">VIN ' + esc(r.vin_masked) + '</div>' : '') +
       '<div class="vc-meta">' + (r.history_partial ? 'Перший запис з цим номером: ' : 'В Україні з ') + date(r.first_date) + ' · операцій у реєстрі: <b style="color:var(--text)">' + r.events + '</b>' +
         (r.by === 'plate' && /^[А-ЯІЇЄ]{2}\d{4}[А-ЯІЇЄ]{2}$/.test(r.q) ? ' · <a href="/avto/' + encodeURIComponent(r.q) + '">сторінка авто</a>' : '') + '</div>' +
-      '<div class="vc-flags">' + flags.join('') + '</div>' + specs(v) + (r.by === 'plate' ? '<div class="cp-mount" data-compact="1" data-plate="' + esc(r.q) + '"></div>' : '') + partialNote(r) +
+      '<div class="vc-flags">' + flags.join('') + '</div>' + specs(v) + (r.by === 'plate' ? '<div class="cp-mount" data-compact="1" data-plate="' + esc(r.q) + '"></div>' : '') +
       '<div class="text-sm" style="margin-top:.75rem">Остання операція: <b>' + date(r.last.date) + '</b> — ' + esc(cap(r.last.op) || 'реєстраційна операція') + (r.last.region ? ' · ' + esc(r.last.region) : '') + (r.last.owner ? ' · власник — ' + esc(r.last.owner) : '') + '</div>' +
       '</div>' + buyBox(r);
   }
@@ -127,9 +126,9 @@ const partialNote = r => r.history_partial ? '<div class="msg show" style="margi
       '<div class="text-sm" style="line-height:1.8">' + (r.vin ? 'VIN: <b>' + esc(r.vin) + '</b><br>' : '') +
         ((r.plates || []).length ? 'Номерні знаки: <b>' + r.plates.map(esc).join(', ') + '</b><br>' : '') +
         (r.history_partial ? 'Перший запис з цим номером: ' : 'В Україні з ') + date(r.first_date) + ' · змін власника: <b>' + r.owner_changes + '</b>' + (r.imported ? ' · ввезено ' + date(r.imported) : '') + '</div>' + specs(v) + ((r.by === 'plate' ? r.q : (r.plates || [])[0]) ? '<div class="cp-mount" data-compact="1" data-plate="' + esc(r.by === 'plate' ? r.q : r.plates[0]) + '"></div>' : '') +
-      '<h3 style="font-size:16px;margin:1.25rem 0 .5rem">Історія реєстраційних операцій (' + (r.history || []).length + ')</h3><div class="vc-hist">' + hist + '</div>' + partialNote(r) + prev +
+      '<h3 style="font-size:16px;margin:1.25rem 0 .5rem">Історія реєстраційних операцій (' + (r.history || []).length + ')</h3><div class="vc-hist">' + hist + '</div>' + prev +
       '<p class="text-xs text-muted" style="margin:1.25rem 0 0">Перевірено ' + date(r.checked_at) + '. Джерело — відкриті дані Головного сервісного центру МВС («Відомості про транспортні засоби та їх власників», «Транспортні засоби в розшуку») ' +
-        (r.data_until ? 'за 2013–' + esc(r.data_until) + ' рр. ' : '') + 'Імена, адреси й контакти власників у відкритих даних не публікуються. Записи до 2021 р. не містять VIN, тому прив’язані за номером, маркою й роком випуску. ' +
+        (r.data_until ? 'за 2013–' + esc(r.data_until) + ' рр. ' : '') + 'Імена, адреси й контакти власників у відкритих даних не публікуються. ' +
         (r.token ? 'Оплачено карткою ' + r.price + ' грн. Збережіть посилання на цю сторінку.' : r.price > 0 ? 'Списано ' + r.price + ' грн з балансу.' : r.price === 0 ? 'Без оплати (повторний перегляд).' : '') + '</p>' +
       '<div class="row no-print" style="gap:8px;margin-top:1rem"><button class="btn btn-ghost" onclick="window.print()"><i class="ti ti-printer"></i>Друк / PDF</button></div>';
   }
