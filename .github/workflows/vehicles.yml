@@ -1,0 +1,40 @@
+name: Відкриті дані МВС — історія транспортних засобів
+on:
+  schedule:
+    - cron: '41 2 * * 2'   # вівторок 02:41 UTC; якщо МВС нічого не оновило — нічого не публікуємо
+  workflow_dispatch:
+    inputs:
+      force:
+        description: 'Перебудувати навіть без змін у джерелах'
+        default: ''
+  push:
+    branches: [main]
+    paths: ['tools/vehicles_import.py', '.github/workflows/vehicles.yml']
+permissions:
+  contents: write
+concurrency: vehicles
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    steps:
+      - uses: actions/checkout@v4
+      - name: Кеш архівів МВС
+        uses: actions/cache@v4
+        with:
+          path: tzcache
+          key: tz-${{ github.run_id }}
+          restore-keys: tz-
+      - name: Import
+        env:
+          FORCE: ${{ github.event.inputs.force || (github.event_name == 'push' && '1') || '' }}
+        run: python3 tools/vehicles_import.py
+      - name: Publish to branch vehicles (без історії)
+        run: |
+          if [ -f NOCHANGE ]; then echo "без змін"; exit 0; fi
+          du -sh out; ls out/p | wc -l
+          cd out
+          git init -q -b vehicles
+          git config user.name "edr-bot"; git config user.email "noreply@forwardcarua.com"
+          git add . && git commit -qm "Історія ТЗ $(date -u +%F)"
+          git push -qf "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" vehicles
