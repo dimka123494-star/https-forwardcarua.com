@@ -61,21 +61,28 @@ async function gz(path: string, optional = false): Promise<any> {
 const shardCache = new Map<string, any>();
 async function pshard(key: string) {
   const p = `p/${String(crc32(key) % PSH).padStart(4, "0")}.json.gz`;
-  if (!shardCache.has(p)) { if (shardCache.size > 40) shardCache.clear(); shardCache.set(p, await gz(p)); }
+  if (!shardCache.has(p)) { if (shardCache.size > 8) shardCache.clear(); shardCache.set(p, await gz(p)); }
   return shardCache.get(p)[key] ?? [];
 }
 async function vplates(vin: string): Promise<string[]> {
   const d = await gz(`v/${String(crc32(vin) % VSH).padStart(3, "0")}.json.gz`);
   return d[vin] ?? [];
 }
-let META: any = null, META_AT = 0, WANTED: any = null, WANTED_AT = 0;
+let META: any = null, META_AT = 0;
 async function meta() {
   if (!META || Date.now() - META_AT > 3600e3) { META = await (await fetch(RAW + "meta.json")).json(); META_AT = Date.now(); }
   return META;
 }
-async function wanted() {
-  if (!WANTED || Date.now() - WANTED_AT > 3600e3) { try { WANTED = await gz("wanted.json.gz", true) ?? {}; WANTED_AT = Date.now(); } catch (_) { WANTED = WANTED ?? null; } }
-  return WANTED;
+// реєстр розшуку — шарди w/NNN.json.gz за crc32(номер|VIN) % 256; null — джерело недоступне
+async function wantedFor(keys: string[]): Promise<any[] | null> {
+  try {
+    const out: any[] = [];
+    for (const k of [...new Set(keys.filter(Boolean))]) {
+      const d = await gz(`w/${String(crc32(k) % 256).padStart(3, "0")}.json.gz`);
+      out.push(...(d[k] ?? []));
+    }
+    return out;
+  } catch (_) { return null; }
 }
 
 // подія: [дата, код, P|J, регіон, ТСЦ, марка, модель, рік, колір, тип, кузов, призначення, пальне, обʼєм, маса, повна, VIN]
@@ -145,8 +152,7 @@ async function buildReport(pq: { q: string; vin: boolean }, full: boolean) {
     data_until: (m?.sources ?? []).map((s: any) => s.year).sort().at(-1) ?? null };
   if (!main) {
     // немає в реєстраційних даних, але є в розшуку (напр. викрадене на окупованій території) — показуємо безкоштовно
-    const w = await wanted();
-    const hits = w?.[pq.q] ?? [];
+    const hits = await wantedFor([pq.q]) ?? [];
     return { ...base, found: false, wanted: hits.length ? { found: true, items: hits.slice(0, 5) } : null };
   }
   const evs = main.evs;
@@ -155,6 +161,7 @@ async function buildReport(pq: { q: string; vin: boolean }, full: boolean) {
   const imported = evs.find((e) => IMPORT.has(String(e[1])));
   const isNew = evs.find((e) => NEWCAR.has(String(e[1])));
   const last = evs.at(-1)!;
+  const hits = await wantedFor([pq.q, main.vin]);   // факт розшуку показуємо всім, подробиці — у повному звіті
   const summary = {
     ...base, found: true, vehicle: vehicleInfo(evs),
     vin_masked: main.vin ? main.vin.slice(0, 6) + "•••••" + main.vin.slice(-4) : null,
@@ -163,10 +170,9 @@ async function buildReport(pq: { q: string; vin: boolean }, full: boolean) {
     last: { date: d8(last[0]), op: opName(last), region: REGIONS[last[3]] ?? null, owner: last[2] === "J" ? "юридична особа" : last[2] === "P" ? "фізична особа" : null },
     deregistered: isDereg(String(last[1])),
     other_vehicles: other.length,
+    wanted_flag: hits === null ? null : hits.length > 0,
   };
   if (!full) return summary;
-  const w = await wanted();
-  const hits = w ? [...(w[pq.q] ?? []), ...(main.vin && main.vin !== pq.q ? w[main.vin] ?? [] : [])] : null;
   const allPlates = main.vin ? await vplates(main.vin).catch(() => []) : [];
   return {
     ...summary, full: true, vin: main.vin || null, plates: allPlates.length ? allPlates : (pq.vin ? [] : [pq.q]),

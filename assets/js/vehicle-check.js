@@ -44,6 +44,8 @@ const VehicleCheck = (() => {
     flags.push(r.owner_changes ? '<span class="vc-flag">Змін власника: <b>' + r.owner_changes + '</b></span>' : '<span class="vc-flag ok">Змін власника не зафіксовано</span>');
     if (r.imported) flags.push('<span class="vc-flag">Ввезено з-за кордону · ' + date(r.imported) + '</span>');
     if (r.new_in_ua) flags.push('<span class="vc-flag ok">Новим з салону · ' + date(r.new_in_ua) + '</span>');
+    if (r.wanted_flag) flags.unshift('<span class="vc-flag bad"><b>У базі розшуку МВС</b></span>');
+    else if (r.wanted_flag === false) flags.push('<span class="vc-flag ok">Не в розшуку</span>');
     if (r.deregistered) flags.push('<span class="vc-flag bad">Знято з обліку</span>');
     if (r.other_vehicles) flags.push('<span class="vc-flag">Цей номер мали ще ' + r.other_vehicles + ' авто</span>');
     return '<div class="card vc-card">' +
@@ -56,7 +58,7 @@ const VehicleCheck = (() => {
       '<div class="card vc-buy" id="vcBuy"><div class="spread" style="gap:12px;flex-wrap:wrap;align-items:center"><div><h3 style="margin:0 0 .35rem;font-size:18px">Повний звіт · ' + price + ' грн</h3>' +
       '<ul class="text-sm" style="margin:0;padding-left:18px;line-height:1.7"><li>Уся історія: кожна реєстрація, перереєстрація й зняття з обліку з датою, областю й ТСЦ</li>' +
       '<li>Повний VIN і всі номерні знаки, які мало авто</li><li>Тип власника на кожному етапі (фізична чи юридична особа), зміни кольору, пального, перереєстрації</li>' +
-      '<li>Перевірка в базі розшуку МВС</li>' + (r.other_vehicles ? '<li>Які інші авто раніше їздили з цим номером</li>' : '') + '</ul></div></div>' +
+      '<li>Подробиці з бази розшуку МВС: дата, орган поліції, номери кузова й двигуна</li>' + (r.other_vehicles ? '<li>Які інші авто раніше їздили з цим номером</li>' : '') + '</ul></div></div>' +
       '<div class="msg" id="vcMsg" style="margin-top:.75rem"></div>' +
       '<div id="vcCab" style="display:none;margin-top:.75rem"><button class="btn btn-primary btn-block" id="vcBtn" onclick="VehicleCheck.run()"><i class="ti ti-wallet"></i>Списати ' + price + ' грн з балансу кабінету</button></div>' +
       '<div id="vcCard" style="margin-top:.75rem"><div class="field"><label class="label" for="vcEmail">Email для чека й посилання на звіт</label><input class="input" id="vcEmail" type="email" autocomplete="email" placeholder="you@example.com"></div>' +

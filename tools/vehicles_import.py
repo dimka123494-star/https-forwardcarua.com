@@ -5,7 +5,7 @@
 #   p/NNNN.json.gz — {номер: [[дата, код_операції, P|J, регіон, ТСЦ, марка, модель, рік, колір, тип, кузов, призначення,
 #                              пальне, обʼєм, власна_маса, повна_маса, VIN], ...]}; записи без номера — під ключем "#VIN"
 #   v/NNN.json.gz  — {VIN: [номери]}
-#   wanted.json.gz — {номер|VIN: [рядки з реєстру розшуку]}
+#   w/NNN.json.gz  — {номер|VIN: [рядки з реєстру розшуку]}
 #   meta.json      — дата, джерела, довідник операцій
 # Персональних даних власників у джерелі немає: лише тип (фізична / юридична особа) і код КОАТУУ місця реєстрації.
 import codecs, csv, gzip, hashlib, io, json, os, re, sys, time, urllib.parse, urllib.request, zipfile, zlib
@@ -17,7 +17,7 @@ WANTED_PKG = '2a746426-b289-4eb2-be8f-aac03e68948c'
 CACHE = 'tzcache'
 TMP = 'tztmp'
 OUT = 'out'
-PSH, VSH = 4096, 1024
+PSH, VSH, WSH = 4096, 1024, 256
 csv.field_size_limit(10 ** 7)
 
 LAT = str.maketrans('ABCEHIKMOPTXY', 'АВСЕНІКМОРТХУ')
@@ -303,11 +303,16 @@ def main():
         with gzip.open(OUT + '/v/%03d.json.gz' % sh, 'wt', encoding='utf-8', compresslevel=9) as f:
             json.dump({k: sorted(v) for k, v in m.items()}, f, ensure_ascii=False, separators=(',', ':'))
     w, wsample = wanted()
-    if w is not None:
-        with gzip.open(OUT + '/wanted.json.gz', 'wt', encoding='utf-8', compresslevel=9) as f:
-            json.dump(w, f, ensure_ascii=False, separators=(',', ':'))
+    if w is not None:       # шарди: увесь реєстр розшуку завеликий для одного запиту edge-функції
+        os.makedirs(OUT + '/w', exist_ok=True)
+        ws = defaultdict(dict)
+        for k, v in w.items():
+            ws[zlib.crc32(k.encode()) % WSH][k] = v
+        for sh in range(WSH):
+            with gzip.open(OUT + '/w/%03d.json.gz' % sh, 'wt', encoding='utf-8', compresslevel=9) as f:
+                json.dump(ws.get(sh, {}), f, ensure_ascii=False, separators=(',', ':'))
     meta = {'generated': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()), 'sources': used, 'ops': OPS,
-            'keys': total_keys, 'events': total_ev, 'pshards': PSH, 'vshards': VSH,
+            'keys': total_keys, 'events': total_ev, 'pshards': PSH, 'vshards': VSH, 'wshards': WSH,
             'wanted': len(w) if w is not None else None, 'wanted_sample': wsample}
     json.dump(meta, open(OUT + '/meta.json', 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
     print('keys', total_keys, 'events', total_ev, 'wanted', meta['wanted'], flush=True)
