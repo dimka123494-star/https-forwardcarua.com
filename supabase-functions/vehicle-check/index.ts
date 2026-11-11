@@ -62,7 +62,17 @@ const shardCache = new Map<string, any>();
 async function pshard(key: string) {
   const p = `p/${String(crc32(key) % PSH).padStart(4, "0")}.json.gz`;
   if (!shardCache.has(p)) { if (shardCache.size > 8) shardCache.clear(); shardCache.set(p, await gz(p)); }
-  return shardCache.get(p)[key] ?? [];
+  return (shardCache.get(p)[key] ?? []).map(fixEv);
+}
+// у файлі 2026 р. код операції злитий з назвою («315 - …»), а КОАТУУ немає: код — перші цифри,
+// область — з номера ТСЦ (перші дві цифри — код області, як у КОАТУУ: ТСЦ 0744 → 07, Волинська)
+function fixEv(e: any[]) {
+  const x = e.slice();
+  const c = String(x[1] ?? "").match(/^\s*(\d+)/);
+  if (c) x[1] = c[1];
+  const t = String(x[4] ?? "").match(/^ТСЦ (\d{2})\d{2}$/);
+  if (!x[3] && t) x[3] = t[1];
+  return x;
 }
 async function vplates(vin: string): Promise<string[]> {
   const d = await gz(`v/${String(crc32(vin) % VSH).padStart(3, "0")}.json.gz`);

@@ -173,6 +173,8 @@ def process(path, spool, vins):
             if m:
                 code = code or m.group(1)
                 name = m.group(2)
+            mc = re.match(r'\s*(\d+)', code or '')   # 2026: «315 - НАЗВА» в одній колонці
+            code = mc.group(1) if mc else code
             if code and name and code not in OPS:
                 OPS[code] = name.strip()
             plate, vin = norm_plate(g(row, 'N_REG_NEW')), norm_vin(g(row, 'VIN'))

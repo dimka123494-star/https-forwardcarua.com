@@ -74,7 +74,7 @@ Deno.serve(async (req) => {
     if (jwt && jwt.split(".").length === 3) { try { const { data: { user } } = await db.auth.getUser(jwt); userId = user?.id ?? null; } catch (_) { /* гість */ } }
 
     const id = crypto.randomUUID();
-    const path = `${plate}/${id}.jpg`;
+    const path = `${new Date().toISOString().slice(0, 7)}/${id}.jpg`;   // ключі сховища — лише латиниця
     const { error: up } = await db.storage.from("car-photos-inbox").upload(path, buf, { contentType: "image/jpeg" });
     if (up) { console.error(up); return json({ error: "storage" }, 500); }
     const w = Number(form.get("w")) || null, h = Number(form.get("h")) || null;
