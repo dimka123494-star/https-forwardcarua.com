@@ -6,6 +6,7 @@
 #                              пальне, обʼєм, власна_маса, повна_маса, VIN], ...]}; записи без номера — під ключем "#VIN"
 #   v/NNN.json.gz  — {VIN: [номери]}
 #   w/NNN.json.gz  — {номер|VIN: [рядки з реєстру розшуку]}
+#   sm/NNN.txt     — номери для карти сайту (номер\tдата останньої операції)
 #   meta.json      — дата, джерела, довідник операцій
 # Персональних даних власників у джерелі немає: лише тип (фізична / юридична особа) і код КОАТУУ місця реєстрації.
 import codecs, csv, gzip, hashlib, io, json, os, re, sys, time, urllib.parse, urllib.request, zipfile, zlib
@@ -18,6 +19,8 @@ CACHE = 'tzcache'
 TMP = 'tztmp'
 OUT = 'out'
 PSH, VSH, WSH = 4096, 1024, 256
+SM_SINCE, SM_MAX, SM_PER = '20240101', 2000000, 40000
+PLATE_RE = re.compile(r'^[А-ЯІЇЄ]{2}\d{4}[А-ЯІЇЄ]{2}$')
 csv.field_size_limit(10 ** 7)
 
 LAT = str.maketrans('ABCEHIKMOPTXY', 'АВСЕНІКМОРТХУ')
@@ -276,6 +279,7 @@ def main():
     os.makedirs(OUT + '/p', exist_ok=True)
     os.makedirs(OUT + '/v', exist_ok=True)
     total_keys = total_ev = 0
+    sm = []     # номери для карти сайту /avto/{номер}: стандартний формат, операції з SM_SINCE
     for sh in range(PSH):
         p = os.path.join(TMP, '%d.tmp' % sh)
         data = defaultdict(list)
@@ -292,9 +296,20 @@ def main():
         for k in data:
             data[k].sort(key=lambda e: e[0])
             total_ev += len(data[k])
+            last = data[k][-1][0]
+            if last >= SM_SINCE and PLATE_RE.match(k):
+                sm.append(last + k)
         total_keys += len(data)
         with gzip.open(OUT + '/p/%04d.json.gz' % sh, 'wt', encoding='utf-8', compresslevel=9) as f:
             json.dump(data, f, ensure_ascii=False, separators=(',', ':'))
+    sm.sort(reverse=True)
+    sm = sm[:SM_MAX]
+    os.makedirs(OUT + '/sm', exist_ok=True)
+    for i in range(0, len(sm), SM_PER):
+        with open(OUT + '/sm/%03d.txt' % (i // SM_PER), 'w', encoding='utf-8') as f:
+            f.write('\n'.join(x[8:] + '\t' + x[:8] for x in sm[i:i + SM_PER]) + '\n')
+    sm_files = (len(sm) + SM_PER - 1) // SM_PER
+    del sm
     for sh in range(VSH):
         m = defaultdict(set)
         for line in vins.get(sh, []):
@@ -312,7 +327,7 @@ def main():
             with gzip.open(OUT + '/w/%03d.json.gz' % sh, 'wt', encoding='utf-8', compresslevel=9) as f:
                 json.dump(ws.get(sh, {}), f, ensure_ascii=False, separators=(',', ':'))
     meta = {'generated': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()), 'sources': used, 'ops': OPS,
-            'keys': total_keys, 'events': total_ev, 'pshards': PSH, 'vshards': VSH, 'wshards': WSH,
+            'keys': total_keys, 'events': total_ev, 'pshards': PSH, 'vshards': VSH, 'wshards': WSH, 'sitemaps': sm_files,
             'wanted': len(w) if w is not None else None, 'wanted_sample': wsample}
     json.dump(meta, open(OUT + '/meta.json', 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
     print('keys', total_keys, 'events', total_ev, 'wanted', meta['wanted'], flush=True)

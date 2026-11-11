@@ -26,6 +26,7 @@
 /zvit            /zvit.html          200
 /zvit-avto       /zvit-avto.html     200
 /perevirka-avto  /perevirka-avto.html 200
+/avto/*          /avto.html          200
 /v/*             /vizytka.html       200
 /d/*             /dovidka.html       200
 /terms           /terms.html         200

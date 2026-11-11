@@ -13,3 +13,4 @@ Disallow: /zvit-avto
 Sitemap: https://forwardcarua.com/sitemap.xml
 
 Sitemap: https://forwardcarua.com/sitemap-perevizhnyky.xml
+Sitemap: https://forwardcarua.com/sitemap-avto.xml

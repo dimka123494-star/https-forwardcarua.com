@@ -51,11 +51,25 @@ const VehicleCheck = (() => {
     return '<div class="card vc-card">' +
       '<div class="text-xs text-muted">' + (r.by === 'vin' ? 'VIN ' : 'Номер ') + esc(r.q) + '</div>' +
       '<h3 style="margin:.2rem 0 0;font-size:22px">' + (vline(v) || 'Транспортний засіб') + '</h3>' + (r.vin_masked ? '<div class="text-xs text-muted" style="margin-top:4px">VIN ' + esc(r.vin_masked) + '</div>' : '') +
-      '<div class="vc-meta">В Україні з ' + date(r.first_date) + ' · операцій у реєстрі: <b style="color:var(--text)">' + r.events + '</b></div>' +
+      '<div class="vc-meta">В Україні з ' + date(r.first_date) + ' · операцій у реєстрі: <b style="color:var(--text)">' + r.events + '</b>' +
+        (r.by === 'plate' && /^[А-ЯІЇЄ]{2}\d{4}[А-ЯІЇЄ]{2}$/.test(r.q) ? ' · <a href="/avto/' + encodeURIComponent(r.q) + '">сторінка авто</a>' : '') + '</div>' +
       '<div class="vc-flags">' + flags.join('') + '</div>' + specs(v) +
       '<div class="text-sm" style="margin-top:.75rem">Остання операція: <b>' + date(r.last.date) + '</b> — ' + esc(cap(r.last.op) || 'реєстраційна операція') + (r.last.region ? ' · ' + esc(r.last.region) : '') + (r.last.owner ? ' · власник — ' + esc(r.last.owner) : '') + '</div>' +
-      '</div>' +
-      '<div class="card vc-buy" id="vcBuy"><div class="spread" style="gap:12px;flex-wrap:wrap;align-items:center"><div><h3 style="margin:0 0 .35rem;font-size:18px">Повний звіт · ' + price + ' грн</h3>' +
+      '</div>' + buyBox(r);
+  }
+
+  async function prefill(){
+    try{ const u = await currentUser(); if (u){ const e = document.getElementById('vcEmail'); if (e && !e.value) e.value = u.email || ''; const b = await getMyBroker(); if (b) document.getElementById('vcCab').style.display = ''; } }catch(e){}
+  }
+  // сторінка /avto/{номер}: довідка вже на сторінці — лише блок покупки повного звіту
+  async function mountBuy(el, r){
+    if (!el || !r || !r.found) return;
+    await loadPrice(); last = r;
+    el.innerHTML = buyBox(r); prefill();
+  }
+
+  function buyBox(r){
+    return '<div class="card vc-buy" id="vcBuy"><div class="spread" style="gap:12px;flex-wrap:wrap;align-items:center"><div><h3 style="margin:0 0 .35rem;font-size:18px">Повний звіт · ' + price + ' грн</h3>' +
       '<ul class="text-sm" style="margin:0;padding-left:18px;line-height:1.7"><li>Уся історія: кожна реєстрація, перереєстрація й зняття з обліку з датою, областю й ТСЦ</li>' +
       '<li>Повний VIN і всі номерні знаки, які мало авто</li><li>Тип власника на кожному етапі (фізична чи юридична особа), зміни кольору, пального, перереєстрації</li>' +
       '<li>Подробиці з бази розшуку МВС: дата, орган поліції, номери кузова й двигуна</li>' + (r.other_vehicles ? '<li>Які інші авто раніше їздили з цим номером</li>' : '') + '</ul></div></div>' +
@@ -101,9 +115,7 @@ const VehicleCheck = (() => {
       el.innerHTML = summary(r);
       try{ track('vehicle_search', { found: r.found }); }catch(e){}
       try{ history.replaceState(null, '', location.pathname + '?q=' + encodeURIComponent(r.q)); }catch(e){}
-      if (r.found){
-        try{ const u = await currentUser(); if (u){ const e = document.getElementById('vcEmail'); if (e) e.value = u.email || ''; const b = await getMyBroker(); if (b) document.getElementById('vcCab').style.display = ''; } }catch(e){}
-      }
+      if (r.found) prefill();
     }catch(e){
       el.innerHTML = '<div class="msg show msg-err">' + (e.message === 'bad_query' ? 'Введіть номерний знак (наприклад, АА1234ВВ) або VIN із 17 символів.' : e.message === 'unavailable' ? 'Дані оновлюються — спробуйте за кілька хвилин.' : 'Не вдалося виконати пошук. Спробуйте ще раз.') + '</div>';
     }
@@ -187,5 +199,5 @@ const VehicleCheck = (() => {
   }
   function show(k){ const c = (window.__vcHist || [])[k]; if (c) openReport({ ...c.report, price: c.price }); }
 
-  return { mount, search, run, payCard, report, summary, reopen, mountHistory, show, loadPrice };
+  return { mount, mountBuy, search, run, payCard, report, summary, reopen, mountHistory, show, loadPrice };
 })();
