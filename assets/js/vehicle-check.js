@@ -101,7 +101,7 @@ function summary(r){
   function buyBox(r){
     return '<div class="card vc-buy" id="vcBuy"><div class="spread" style="gap:12px;flex-wrap:wrap;align-items:center"><div><h3 style="margin:0 0 .35rem;font-size:18px">Повний звіт · ' + price + ' грн</h3>' +
       '<ul class="text-sm" style="margin:0;padding-left:18px;line-height:1.7"><li>Уся історія: кожна реєстрація, перереєстрація й зняття з обліку з датою, областю й ТСЦ</li>' +
-      '<li>Повний VIN і всі номерні знаки, які мало авто</li><li>Тип власника на кожному етапі (фізична чи юридична особа), зміни кольору, пального, перереєстрації</li>' +
+      '<li>Повний VIN і номерні знаки, під якими авто реєструвалося з 2021 року (раніші записи МВС не містять VIN)</li><li>Тип власника на кожному етапі (фізична чи юридична особа), зміни кольору, пального, перереєстрації</li>' +
       '<li>Подробиці з бази розшуку МВС: дата, орган поліції, номери кузова й двигуна</li>' + (r.other_vehicles ? '<li>Які інші авто раніше їздили з цим номером</li>' : '') + '</ul></div></div>' +
       '<div class="msg" id="vcMsg" style="margin-top:.75rem"></div>' +
       '<div id="vcCab" style="display:none;margin-top:.75rem"><button class="btn btn-primary btn-block" id="vcBtn" onclick="VehicleCheck.run()"><i class="ti ti-wallet"></i>Списати ' + price + ' грн з балансу кабінету</button></div>' +
