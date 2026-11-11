@@ -93,6 +93,8 @@ const codeSet = (s: string) => new Set(s.split(/\s+/));
 const OWNER = codeSet("40 41 48 49 50 51 54 60 61 62 65 67 80 186 218 300 306 307 308 309 310 311 312 313 314 315 316 317 319 320 321 322 323 324 330 331 332");
 const IMPORT = codeSet("70 71 72 74 75 76 77 105 172 180 182 221");
 const NEWCAR = codeSet("72 74 75 99 100 105 180 184 185");
+// операції, з яких починається історія авто в Україні (первинна реєстрація, ввезення, новий з салону)
+const FIRST = codeSet("10 11 17 20 30 70 71 72 74 75 76 77 99 100 102 105 150 172 180 182 184 185 221 1000");
 const isDereg = (c: string) => /^5\d\d$/.test(c) && c !== "501" && c !== "502" || /^300\d$/.test(c);
 
 function groups(evs: Ev[]) {
@@ -170,6 +172,8 @@ async function buildReport(pq: { q: string; vin: boolean }, full: boolean) {
     last: { date: d8(last[0]), op: opName(last), region: REGIONS[last[3]] ?? null, owner: last[2] === "J" ? "юридична особа" : last[2] === "P" ? "фізична особа" : null },
     deregistered: isDereg(String(last[1])),
     other_vehicles: other.length,
+    // історія починається з перереєстрації — перша реєстрація була раніше під іншим номером, у записах без VIN (до 2021 р.)
+    history_partial: !FIRST.has(String(evs[0][1])),
     wanted_flag: hits === null ? null : hits.length > 0,
   };
   if (!full) return summary;
@@ -178,7 +182,7 @@ async function buildReport(pq: { q: string; vin: boolean }, full: boolean) {
     ...summary, full: true, vin: main.vin || null, plates: allPlates.length ? allPlates : (pq.vin ? [] : [pq.q]),
     wanted: hits === null ? null : { found: hits.length > 0, items: hits.slice(0, 5) },
     history: evs.map((e) => ({ date: d8(e[0]), op: opName(e), code: e[1], owner: e[2] === "J" ? "юридична особа" : e[2] === "P" ? "фізична особа" : null,
-      region: REGIONS[e[3]] ?? null, tsc: e[4] || null, color: e[8] || null, fuel: e[12] || null, capacity: e[13] ?? null, vin: e[16] || null })),
+      region: REGIONS[e[3]] ?? null, tsc: /^ТСЦ/.test(String(e[4] ?? "")) ? e[4] : null, color: e[8] || null, fuel: e[12] || null, capacity: e[13] ?? null, vin: e[16] || null })),
     previous_on_plate: other.map((g) => ({ vehicle: vehicleInfo(g.evs), from: d8(g.evs[0][0]), to: d8(g.evs.at(-1)![0]), events: g.evs.length })),
   };
 }

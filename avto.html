@@ -134,6 +134,7 @@ VehicleCheck.mount(document.getElementById('vcMount'));
     return;
   }
   if (!main.dataset.ssr){ const p = renderVehicle(r); main.innerHTML = p.html; document.title = p.title; }
+  VehicleCheck.loadPhotos(main);
   VehicleCheck.mountBuy(document.getElementById('vcBuyMount'), r);
 })();
 </script>

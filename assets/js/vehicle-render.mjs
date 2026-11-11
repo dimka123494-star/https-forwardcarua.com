@@ -38,7 +38,7 @@ export function renderVehicle(r) {
     ["Марка й модель", name], ["Рік випуску", v.year], ["Колір", cap(v.color)], ["Пальне", cap(v.fuel)],
     ["Обʼєм двигуна", v.capacity ? v.capacity + " см³" : ""], ["Тип / кузов", [cap(v.kind), cap(v.body)].filter(Boolean).join(", ")],
     ["Власна / повна маса", v.own_weight ? v.own_weight + " / " + (v.total_weight || "—") + " кг" : ""],
-    ["VIN", r.vin_masked], ["В Україні з", date(r.first_date)], ["Операцій у реєстрі МВС", r.events],
+    ["VIN", r.vin_masked], [r.history_partial ? "Перший запис з цим номером" : "В Україні з", date(r.first_date)], ["Операцій у реєстрі МВС", r.events],
   ].filter((f) => f[1] !== "" && f[1] != null);
   const flags = [];
   if (r.wanted_flag) flags.push('<span class="vc-flag bad"><b>У базі розшуку МВС</b></span>');
@@ -52,7 +52,8 @@ export function renderVehicle(r) {
   // звʼязний опис — Google бачить унікальний текст, людина — коротку історію
   const story = [
     `Номерний знак <b>${esc(plate)}</b> належить авто <b>${esc(nameYear)}</b>${v.color ? ", колір — " + esc(cap(v.color).toLowerCase()) : ""}${v.fuel ? ", пальне — " + esc(cap(v.fuel).toLowerCase()) : ""}${v.capacity ? ", двигун " + esc(v.capacity) + " см³" : ""}.`,
-    r.imported ? `Авто ввезене з-за кордону й уперше зареєстроване в Україні ${date(r.imported)}.` : r.new_in_ua ? `Авто вперше зареєстроване новим ${date(r.new_in_ua)}.` : `Перший запис у реєстрі МВС — ${date(r.first_date)}.`,
+    r.imported ? `Авто ввезене з-за кордону й уперше зареєстроване в Україні ${date(r.imported)}.` : r.new_in_ua ? `Авто вперше зареєстроване новим ${date(r.new_in_ua)}.` :
+      r.history_partial ? `З цим номером авто зареєстроване ${date(r.first_date)} — після перереєстрації; раніше воно їздило під іншим номером.` : `Перший запис у реєстрі МВС — ${date(r.first_date)}.`,
     r.owner_changes ? `Відтоді власник змінювався ${r.owner_changes} ${r.owner_changes === 1 ? "раз" : r.owner_changes < 5 ? "рази" : "разів"}.` : "Перереєстрацій на нового власника в реєстрі не зафіксовано.",
     r.last ? `Остання операція — ${date(r.last.date)}${r.last.op ? ": " + esc(cap(r.last.op).toLowerCase().replace(/(^|[\s(])тз(?=[\s,.)]|$)/g, "$1ТЗ")) : ""}${r.last.region ? " (" + esc(r.last.region) + ")" : ""}${r.last.owner ? ", власник — " + esc(r.last.owner) : ""}.` : "",
     reg ? `Серія ${esc(reg.series)} — номери, які видають у ${esc(reg.name === "м. Київ" ? "Києві" : reg.name === "м. Севастополь" ? "Севастополі" : reg.name.replace("ська область", "ській області").replace("цька область", "цькій області").replace("зька область", "зькій області"))}.` : "",
@@ -62,6 +63,7 @@ export function renderVehicle(r) {
     `<section class="container-narrow page-hero" style="padding-bottom:.5rem">` +
     `<div class="crumbs"><a href="/">МитнийБрокер</a> › <a href="/perevirka-avto">Перевірка авто</a> › ${esc(plate)}</div>` +
     `<h1 class="h-lg" style="font-size:clamp(26px,5vw,40px)">${esc(plate)}<br><span style="color:var(--green)">${esc(nameYear)}</span></h1>` +
+    (v.brand ? `<figure class="vc-photo" data-b="${esc(v.brand)}" data-m="${esc(String(v.model || "").split(/[\s\-]/)[0])}"></figure>` : "") +
     `<p class="lead">${story}</p>` +
     `<div class="vc-flags">${flags.join("")}</div>` +
     `<div class="vc-specs" style="margin-top:1rem">${facts.map((f) => `<div><span>${esc(f[0])}</span><b>${esc(f[1])}</b></div>`).join("")}</div>` +
@@ -81,7 +83,7 @@ export function renderVehicle(r) {
     `</div><p class="text-xs text-muted" style="margin-top:1.5rem">Джерело — відкриті дані Головного сервісного центру МВС (data.gov.ua) станом на ${date(String(r.data_at || "").slice(0, 10))}. Імена й адреси власників у відкритих даних не публікуються.</p></section>`;
 
   const desc = `${plate}: ${nameYear}${v.color ? ", " + cap(v.color).toLowerCase() : ""}${v.fuel ? ", " + cap(v.fuel).toLowerCase() : ""}. ` +
-    (r.imported ? `Ввезено ${date(r.imported)}. ` : `В Україні з ${date(r.first_date)}. `) +
+    (r.imported ? `Ввезено ${date(r.imported)}. ` : r.history_partial ? `З цим номером з ${date(r.first_date)}. ` : `В Україні з ${date(r.first_date)}. `) +
     `Змін власника: ${r.owner_changes}. ${r.wanted_flag ? "У розшуку. " : ""}Історія реєстрацій МВС і перевірка розшуку.`;
   const ld = {
     "@context": "https://schema.org", "@type": "Vehicle", name: nameYear, url: canonical,

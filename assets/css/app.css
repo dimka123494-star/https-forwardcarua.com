@@ -343,3 +343,7 @@ button.card{color:var(--text);font:inherit;-webkit-appearance:none;appearance:no
 .vc-ev:before{content:"";position:absolute;left:-6px;top:13px;width:10px;height:10px;border-radius:50%;background:var(--green)}
 .vc-dt{color:var(--muted);font-variant-numeric:tabular-nums}
 @media print{.vc-buy{display:none}}
+.vc-photo{margin:.75rem 0;border-radius:var(--r-sm);overflow:hidden;background:var(--surface);border:.5px solid var(--border);max-width:640px}
+.vc-photo:empty{display:none}
+.vc-photo img{display:block;width:100%;aspect-ratio:16/10;object-fit:cover}
+.vc-photo figcaption{font-size:11px;color:var(--muted);padding:6px 10px}

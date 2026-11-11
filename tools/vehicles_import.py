@@ -2,7 +2,7 @@
 #   «Відомості про транспортні засоби та їх власників» — усі реєстраційні операції з 2013 р.;
 #   «Інформація про транспортні засоби, що перебувають у розшуку».
 # Результат (каталог out/, гілка vehicles):
-#   p/NNNN.json.gz — {номер: [[дата, код_операції, P|J, регіон, ТСЦ, марка, модель, рік, колір, тип, кузов, призначення,
+#   p/NNNN.json.gz — {номер: [[дата, код_операції, P|J, регіон, «ТСЦ NNNN», марка, модель, рік, колір, тип, кузов, призначення,
 #                              пальне, обʼєм, власна_маса, повна_маса, VIN], ...]}; записи без номера — під ключем "#VIN"
 #   v/NNN.json.gz  — {VIN: [номери]}
 #   w/NNN.json.gz  — {номер|VIN: [рядки з реєстру розшуку]}
@@ -117,6 +117,13 @@ OPS = {}
 HDRS = []
 
 
+def dep_name(dep, code):
+    """«ТСЦ 0744» — номер сервісного центру, як його знають люди; внутрішній код (12238) і службові записи — ні"""
+    d = re.sub(r'\s+', ' ', dep or '').strip()
+    m = re.search(r'(ТСЦ|РСЦ|ЦЕНТР)\s*(\d{3,5})', d.upper())
+    return 'ТСЦ ' + m.group(2) if m else ''
+
+
 class Spool:
     """рядки JSON по шардах у тимчасові файли (менше памʼяті)"""
     def __init__(self, d, n):
@@ -175,7 +182,7 @@ def process(path, spool, vins):
             koatuu = g(row, 'REG_ADDR_KOATUU')
             reg = koatuu[:2] if koatuu[:1].isdigit() else koatuu[2:4] if koatuu[:2].upper() == 'UA' else ''   # КОАТУУ або КАТОТТГ (UA..)
             ev = [ddate(g(row, 'D_REG')), code, g(row, 'PERSON')[:1].upper(), reg,
-                  g(row, 'DEP_CODE'), brand, model, num(g(row, 'MAKE_YEAR')), g(row, 'COLOR'), g(row, 'KIND'), g(row, 'BODY'),
+                  dep_name(g(row, 'DEP'), g(row, 'DEP_CODE')), brand, model, num(g(row, 'MAKE_YEAR')), g(row, 'COLOR'), g(row, 'KIND'), g(row, 'BODY'),
                   g(row, 'PURPOSE'), g(row, 'FUEL'), num(g(row, 'CAPACITY')), num(g(row, 'OWN_WEIGHT')), num(g(row, 'TOTAL_WEIGHT')), vin]
             key = plate or ('#' + vin if vin else '')
             if not key:

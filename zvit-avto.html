@@ -49,7 +49,7 @@
       const d = await res.json().catch(() => ({}));
       if (res.status === 404){ box.innerHTML = '<h1 class="h-md">Звіт не знайдено</h1><p class="text-sm text-muted">Посилання недійсне.</p>'; return; }
       if (d.status === 'paid' && d.report){
-        box.innerHTML = VehicleCheck.report(Object.assign({}, d.report, { token: t }));
+        box.innerHTML = VehicleCheck.report(Object.assign({}, d.report, { token: t })); VehicleCheck.loadPhotos(box);
         document.title = 'Звіт про авто ' + d.report.q + ' | МитнийБрокер';
         if (tries === 1 || sessionStorage.getItem('vcTracked') !== t){ try{ track('purchase', { value: d.report.price, currency: 'UAH', transaction_id: t.slice(0, 12), items: [{ item_name: 'vehicle_check' }] }); sessionStorage.setItem('vcTracked', t); }catch(e){} }
         return;
