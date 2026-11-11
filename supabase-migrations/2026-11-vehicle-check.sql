@@ -1,0 +1,5 @@
+-- Перевірка авто (застосовано як міграцію vehicle_check 11.11.2026):
+-- vehicle_checks (історія в кабінеті, RLS: власник / адмін), vehicle_orders (оплата карткою, RLS: адмін),
+-- service_prices.vehicle_check = 50 грн, vehicle_check_charge(p_user, p_q, p_report) — списання з гаманця,
+-- повторний перегляд того самого номера/VIN протягом 30 днів безкоштовний.
+-- Дані — гілка vehicles (tools/vehicles_import.py, .github/workflows/vehicles.yml), функція supabase-functions/vehicle-check.

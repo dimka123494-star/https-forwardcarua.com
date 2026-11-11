@@ -41,9 +41,9 @@ const VehicleCheck = (() => {
     if (r.deregistered) flags.push('<span class="vc-flag bad">Знято з обліку</span>');
     if (r.other_vehicles) flags.push('<span class="vc-flag">Цей номер мали ще ' + r.other_vehicles + ' авто</span>');
     return '<div class="card vc-card">' +
-      '<div class="spread" style="gap:10px;flex-wrap:wrap;align-items:flex-start"><div><div class="text-xs text-muted">' + (r.by === 'vin' ? 'VIN ' : 'Номер ') + esc(r.q) + '</div>' +
-      '<h3 style="margin:.2rem 0 0;font-size:22px">' + (vline(v) || 'Транспортний засіб') + '</h3>' + (r.vin_masked ? '<div class="text-xs text-muted" style="margin-top:4px">VIN ' + esc(r.vin_masked) + '</div>' : '') + '</div>' +
-      '<div class="text-xs text-muted" style="text-align:right">В Україні з ' + date(r.first_date) + '<br>Операцій у реєстрі: <b style="color:var(--text)">' + r.events + '</b></div></div>' +
+      '<div class="text-xs text-muted">' + (r.by === 'vin' ? 'VIN ' : 'Номер ') + esc(r.q) + '</div>' +
+      '<h3 style="margin:.2rem 0 0;font-size:22px">' + (vline(v) || 'Транспортний засіб') + '</h3>' + (r.vin_masked ? '<div class="text-xs text-muted" style="margin-top:4px">VIN ' + esc(r.vin_masked) + '</div>' : '') +
+      '<div class="vc-meta">В Україні з ' + date(r.first_date) + ' · операцій у реєстрі: <b style="color:var(--text)">' + r.events + '</b></div>' +
       '<div class="vc-flags">' + flags.join('') + '</div>' + specs(v) +
       '<div class="text-sm" style="margin-top:.75rem">Остання операція: <b>' + date(r.last.date) + '</b> — ' + esc(cap(r.last.op) || 'реєстраційна операція') + (r.last.region ? ' · ' + esc(r.last.region) : '') + (r.last.owner ? ' · власник — ' + esc(r.last.owner) : '') + '</div>' +
       '</div>' +
