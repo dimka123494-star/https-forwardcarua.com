@@ -1,0 +1,23 @@
+name: Probe ТЗ МВС
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['tools/probe_tz.py', '.github/workflows/probe.yml']
+permissions:
+  contents: write
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 tools/probe_tz.py
+      - name: Publish
+        if: always()
+        run: |
+          cd probe
+          git init -q -b probe
+          git config user.name "edr-bot"; git config user.email "noreply@forwardcarua.com"
+          git add . && git commit -qm probe
+          git push -qf "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" probe
