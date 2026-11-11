@@ -335,7 +335,7 @@ async function createBrokerProfile(fields){
     if (/duplicate|unique/i.test(error.message)) throw new Error('Профіль брокера вже існує');
     throw new Error('Не вдалося створити профіль');
   }
-  track('sign_up', { method:'broker' });
+  // Конверсію sign_up надсилає сторінка реєстрації (vhid.html) з id брокера — тут не дублюємо.
   return data;
 }
 
