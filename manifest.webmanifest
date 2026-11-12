@@ -1,0 +1,25 @@
+{
+  "name": "МитнийБрокер — перевірки",
+  "short_name": "Перевірки",
+  "description": "Перевірка авто за номером і VIN, компаній за ЄДРПОУ та перевізників — за відкритими даними МВС, ЄДР, судів і реєстру боржників.",
+  "id": "/app",
+  "start_url": "/app?source=pwa",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "lang": "uk",
+  "background_color": "#0a0f0d",
+  "theme_color": "#0a0f0d",
+  "categories": ["business", "utilities", "auto"],
+  "icons": [
+    { "src": "/assets/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/assets/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/assets/icons/maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "/assets/icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Перевірити авто", "short_name": "Авто", "url": "/app?tab=auto", "icons": [{ "src": "/assets/icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Перевірити компанію", "short_name": "Компанія", "url": "/app?tab=company", "icons": [{ "src": "/assets/icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Перевірити перевізника", "short_name": "Перевізник", "url": "/app?tab=carrier", "icons": [{ "src": "/assets/icons/icon-192.png", "sizes": "192x192" }] }
+  ]
+}

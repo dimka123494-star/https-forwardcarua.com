@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Перевірки — авто, компанії, перевізники | МитнийБрокер</title>
+<meta name="description" content="Застосунок МитнийБрокер: перевірка авто за номером і VIN, компаній за ЄДРПОУ та перевізників. Встановіть на телефон — працює як звичайний застосунок.">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://forwardcarua.com/app">
+<meta name="theme-color" content="#0a0f0d">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Перевірки">
+<meta property="og:title" content="МитнийБрокер — перевірки авто, компаній і перевізників">
+<meta property="og:description" content="Перевірка авто за номером і VIN, компаній за ЄДРПОУ, перевізників — у застосунку на телефоні.">
+<meta property="og:url" content="https://forwardcarua.com/app">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.7.0/dist/tabler-icons.min.css">
+<link rel="stylesheet" href="/assets/css/app.css">
+<style>
+  html,body{background:#0a0f0d}
+  .ap-top{position:sticky;top:0;z-index:20;background:rgba(10,15,13,.92);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+    padding:calc(env(safe-area-inset-top) + 10px) 16px 10px;display:flex;align-items:center;justify-content:space-between;border-bottom:.5px solid var(--border)}
+  .ap-brand{font-weight:800;font-size:18px;color:var(--text);text-decoration:none}.ap-brand span{color:var(--green)}
+  .ap-main{max-width:680px;margin:0 auto;padding:16px 16px calc(env(safe-area-inset-bottom) + 96px)}
+  .ap-pane{display:none}.ap-pane.on{display:block}
+  .ap-h{font-size:22px;font-weight:700;margin:.25rem 0 .35rem}
+  .ap-sub{font-size:13px;color:var(--muted);margin:0 0 1rem;line-height:1.5}
+  .ap-tabs{position:fixed;left:0;right:0;bottom:0;z-index:30;display:grid;grid-template-columns:repeat(4,1fr);
+    background:rgba(14,20,18,.96);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-top:.5px solid var(--border);padding:6px 6px calc(env(safe-area-inset-bottom) + 6px)}
+  .ap-tab{background:none;border:0;color:var(--muted);font:inherit;font-size:11px;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 0;border-radius:10px;cursor:pointer;-webkit-appearance:none;appearance:none}
+  .ap-tab i{font-size:22px}.ap-tab.on{color:var(--green);background:rgba(16,185,129,.08)}
+  .ap-install{display:none;margin-bottom:12px;border-color:var(--green)}
+  .ap-recent a{display:flex;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:.5px solid var(--border);color:var(--text);text-decoration:none;font-size:14px}
+  .ap-recent a:last-child{border-bottom:0}
+  .ap-recent .t{font-size:11px;color:var(--muted);white-space:nowrap}
+  .cp-item{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 14px;margin-bottom:8px;text-decoration:none;color:var(--text)}
+  .cp-item .st{font-size:12px;white-space:nowrap}
+  @media (display-mode: standalone){ .ap-browser-only{display:none!important} }
+</style>
+</head>
+<body>
+<header class="ap-top">
+  <a class="ap-brand" href="/app">Митний<span>Брокер</span></a>
+  <a class="btn btn-ghost btn-sm" id="apAcc" href="/vhid?next=%2Fapp"><i class="ti ti-user"></i>Увійти</a>
+</header>
+
+<main class="ap-main">
+  <div class="card ap-install" id="apInstall"></div>
+
+  <section class="ap-pane" id="pane-auto">
+    <h1 class="ap-h">Перевірка авто</h1>
+    <p class="ap-sub">За номерним знаком або VIN: історія реєстрацій МВС, зміни власника, ввезення, розшук. Коротка довідка — безкоштовно.</p>
+    <div id="vcMount"></div>
+  </section>
+
+  <section class="ap-pane" id="pane-company">
+    <h1 class="ap-h">Перевірка компанії</h1>
+    <p class="ap-sub">За кодом ЄДРПОУ: виконавчі провадження, банкрутство, судові справи й рішення, санкції, статус у ЄДР.</p>
+    <div class="row" style="gap:8px">
+      <input class="input" id="ccQ" inputmode="numeric" maxlength="8" placeholder="Код ЄДРПОУ, 8 цифр" style="flex:1;min-width:0">
+      <button class="btn btn-primary" type="button" id="ccGo"><i class="ti ti-shield-search"></i>Перевірити</button>
+    </div>
+    <div class="msg" id="ccMsg" style="margin-top:10px"></div>
+  </section>
+
+  <section class="ap-pane" id="pane-carrier">
+    <h1 class="ap-h">Перевірка перевізника</h1>
+    <p class="ap-sub">Ліцензія на перевезення, дані ЄДР і контакти — за назвою або кодом ЄДРПОУ. Безкоштовно.</p>
+    <div class="row" style="gap:8px">
+      <input class="input" id="cpQ" placeholder="Назва або код ЄДРПОУ" style="flex:1;min-width:0" autocomplete="off">
+      <button class="btn btn-primary" type="button" id="cpGo"><i class="ti ti-search"></i>Знайти</button>
+    </div>
+    <div id="cpRes" style="margin-top:12px"></div>
+  </section>
+
+  <section class="ap-pane" id="pane-history">
+    <h1 class="ap-h">Історія</h1>
+    <p class="ap-sub">Останні перевірки на цьому пристрої та оплачені звіти.</p>
+    <div class="card" style="margin-bottom:12px"><div class="card-title">Оплачені звіти</div><div class="ap-recent" id="apPaid"></div></div>
+    <div class="card" style="margin-bottom:12px"><div class="card-title">Нещодавні пошуки</div><div class="ap-recent" id="apRecent"></div></div>
+    <div class="card" id="apCab" style="display:none"><div class="card-title">Кабінет</div>
+      <p class="text-sm text-muted" style="margin:0 0 .75rem">Перевірки, оплачені з балансу, зберігаються в кабінеті.</p>
+      <div class="row" style="gap:8px;flex-wrap:wrap"><a class="btn btn-ghost btn-sm" href="/kabinet#vehicles"><i class="ti ti-car"></i>Перевірки авто</a><a class="btn btn-ghost btn-sm" href="/kabinet#checks"><i class="ti ti-shield-search"></i>Перевірки компаній</a></div></div>
+    <p class="text-xs text-muted ap-browser-only" style="margin-top:1rem">Сайт: <a href="/">forwardcarua.com</a> · <a href="/kalkulyator-rozmytnennya">калькулятор розмитнення</a> · <a href="/reyestr-brokeriv">митні брокери</a></p>
+  </section>
+</main>
+
+<nav class="ap-tabs" aria-label="Розділи">
+  <button class="ap-tab" data-tab="auto"><i class="ti ti-car"></i>Авто</button>
+  <button class="ap-tab" data-tab="company"><i class="ti ti-building"></i>Компанія</button>
+  <button class="ap-tab" data-tab="carrier"><i class="ti ti-truck"></i>Перевізник</button>
+  <button class="ap-tab" data-tab="history"><i class="ti ti-history"></i>Історія</button>
+</nav>
+
+<script src="/assets/js/config.js"></script>
+<script src="/assets/js/db.js"></script>
+<script src="/assets/js/company-check.js"></script>
+<script src="/assets/js/car-photos.js"></script>
+<script src="/assets/js/vehicle-check.js"></script>
+<script type="module">
+import { prettyName, esc } from '/assets/js/carrier-render.mjs';
+const $ = id => document.getElementById(id);
+const store = { get(k, d){ try{ return JSON.parse(localStorage.getItem(k)) ?? d; }catch(e){ return d; } }, set(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} } };
+const when = t => { const d = new Date(t); return d.toLocaleDateString('uk-UA', { day: '2-digit', month: '2-digit' }) + ' ' + d.toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' }); };
+
+// ---- вкладки ----
+const params = new URLSearchParams(location.search);
+function tab(name){
+  document.querySelectorAll('.ap-pane').forEach(p => p.classList.toggle('on', p.id === 'pane-' + name));
+  document.querySelectorAll('.ap-tab').forEach(b => b.classList.toggle('on', b.dataset.tab === name));
+  store.set('apTab', name);
+  if (name === 'history') renderHistory();
+  window.scrollTo(0, 0);
+}
+document.querySelectorAll('.ap-tab').forEach(b => b.onclick = () => tab(b.dataset.tab));
+
+// ---- нещодавні пошуки ----
+function remember(type, q, label){
+  q = String(q || '').trim(); if (!q) return;
+  const list = store.get('apRecent', []).filter(x => !(x.type === type && x.q === q));
+  list.unshift({ type, q, label: label || '', at: Date.now() });
+  store.set('apRecent', list.slice(0, 30));
+}
+const TYPE = { auto: ['ti-car', 'Авто'], company: ['ti-building', 'Компанія'], carrier: ['ti-truck', 'Перевізник'] };
+function renderHistory(){
+  const paid = [...store.get('vcOrders', []).map(x => ({ href: '/zvit-avto?t=' + x.t, title: 'Авто ' + x.q, at: x.at })),
+                ...store.get('ccOrders', []).map(x => ({ href: '/zvit?t=' + x.t, title: 'Компанія, ЄДРПОУ ' + x.code, at: x.at }))].sort((a, b) => b.at - a.at);
+  $('apPaid').innerHTML = paid.length ? paid.map(x => '<a href="' + esc(x.href) + '"><span><i class="ti ti-file-text"></i> ' + esc(x.title) + '</span><span class="t">' + when(x.at) + '</span></a>').join('')
+    : '<p class="text-sm text-muted" style="margin:0">Тут зʼявляться звіти, оплачені карткою на цьому пристрої.</p>';
+  const rec = store.get('apRecent', []);
+  $('apRecent').innerHTML = rec.length ? rec.map((x, i) => '<a href="#" data-i="' + i + '"><span><i class="ti ' + TYPE[x.type][0] + '"></i> ' + esc(x.q) + (x.label ? ' <span class="text-xs text-muted">' + esc(x.label) + '</span>' : '') + '</span><span class="t">' + when(x.at) + '</span></a>').join('')
+    : '<p class="text-sm text-muted" style="margin:0">Поки порожньо.</p>';
+  $('apRecent').querySelectorAll('[data-i]').forEach(a => a.onclick = e => { e.preventDefault(); const x = rec[+a.dataset.i]; repeat(x); });
+}
+function repeat(x){
+  if (x.type === 'auto'){ tab('auto'); const i = $('vcQ'); i.value = x.q; $('vcGo').click(); }
+  if (x.type === 'company'){ tab('company'); $('ccQ').value = x.q; $('ccGo').click(); }
+  if (x.type === 'carrier'){ tab('carrier'); $('cpQ').value = x.q; carrierSearch(); }
+}
+
+// ---- авто ----
+VehicleCheck.mount($('vcMount'), params.get('q') || '');
+const vcRemember = () => remember('auto', $('vcQ').value.toUpperCase().replace(/\s+/g, ''));
+$('vcGo').addEventListener('click', vcRemember);
+$('vcQ').addEventListener('keydown', e => { if (e.key === 'Enter') vcRemember(); });
+
+// ---- компанія ----
+function companyGo(){
+  const q = $('ccQ').value.replace(/\D/g, ''), m = $('ccMsg');
+  if (!/^\d{8}$/.test(q)){ m.className = 'msg show msg-err'; m.textContent = 'Код ЄДРПОУ — 8 цифр'; return; }
+  m.className = 'msg'; remember('company', q);
+  CompanyCheck.open(q);
+}
+$('ccGo').onclick = companyGo;
+$('ccQ').addEventListener('keydown', e => { if (e.key === 'Enter') companyGo(); });
+
+// ---- перевізник ----
+const rpc = async (fn, args) => { const sb = await sbReady(); const { data, error } = await sb.rpc(fn, args); if (error) throw error; return data; };
+async function carrierSearch(){
+  const q = $('cpQ').value.trim(), out = $('cpRes'); if (!q) return;
+  if (q.length < 3){ out.innerHTML = '<p class="text-sm text-muted">Введіть щонайменше 3 літери назви або код ЄДРПОУ.</p>'; return; }
+  out.innerHTML = '<p class="text-sm text-muted">Шукаємо…</p>';
+  try{
+    const list = await rpc('carrier_search', { q });
+    remember('carrier', q, list.length === 1 ? prettyName(list[0].name) : '');
+    if (/^\d{8,10}$/.test(q) && !list.length){
+      out.innerHTML = '<div class="card"><b>' + esc(q) + '</b> — немає в ліцензійному реєстрі перевізників.' + (q.length === 8 ? '<p class="text-sm text-muted" style="margin:.5rem 0">Перевірити цю компанію на борги, банкрутство й суди:</p><button class="btn btn-primary btn-sm" onclick="CompanyCheck.open(\'' + q + '\')"><i class="ti ti-shield-search"></i>Перевірити компанію</button>' : '') + '</div>';
+      return;
+    }
+    out.innerHTML = list.length ? list.map(r => '<a class="card cp-item" href="/perevizhnyk/' + esc(r.code) + '"><div><div style="font-weight:600">' + esc(r.is_fop ? 'ФОП' : prettyName(r.name)) + '</div><div class="text-xs text-muted">ЄДРПОУ ' + esc(r.code) + '</div></div>' +
+      '<span class="st" style="color:' + (r.status === 'Чинна' ? 'var(--green)' : 'var(--red)') + '">' + (r.status === 'Чинна' ? (r.intl_cargo ? '✓ міжнародні' : '✓ чинна') : 'немає ліцензії') + '</span></a>').join('')
+      : '<p class="text-sm text-muted">Нічого не знайшли. Перевірте назву або введіть код ЄДРПОУ.</p>';
+  }catch(e){ out.innerHTML = '<p class="text-sm" style="color:var(--red)">Пошук тимчасово не працює — спробуйте пізніше.</p>'; }
+}
+$('cpGo').onclick = carrierSearch;
+$('cpQ').addEventListener('keydown', e => { if (e.key === 'Enter') carrierSearch(); });
+
+// ---- кабінет ----
+(async () => { try{ const u = await currentUser(); if (u){ const a = $('apAcc'); a.href = '/kabinet'; a.innerHTML = '<i class="ti ti-user-circle"></i>Кабінет'; $('apCab').style.display = ''; } }catch(e){} })();
+
+// ---- встановлення ----
+const standalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+const ios = /iphone|ipad|ipod/i.test(navigator.userAgent) && !/crios|fxios/i.test(navigator.userAgent);
+const box = $('apInstall');
+let deferred = null;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault(); deferred = e;
+  if (store.get('apInstallHide', 0) > Date.now()) return;
+  box.style.display = 'block';
+  box.innerHTML = '<div class="spread" style="gap:10px;align-items:center"><div><b>Встановіть застосунок</b><div class="text-xs text-muted">Іконка на головному екрані, відкривається одним дотиком</div></div>' +
+    '<button class="btn btn-primary btn-sm" id="apInstBtn"><i class="ti ti-download"></i>Встановити</button></div>';
+  $('apInstBtn').onclick = async () => { deferred.prompt(); const r = await deferred.userChoice; try{ track('pwa_install_prompt', { outcome: r.outcome }); }catch(e){} box.style.display = 'none'; deferred = null; };
+});
+if (!standalone && ios && !(store.get('apInstallHide', 0) > Date.now())){
+  box.style.display = 'block';
+  box.innerHTML = '<div class="spread" style="gap:10px;align-items:flex-start"><div><b>Додайте на головний екран</b><div class="text-xs text-muted" style="line-height:1.6;margin-top:2px">Натисніть <i class="ti ti-share-2"></i> «Поділитися» внизу Safari → «На початковий екран». Застосунок відкриватиметься як звичайний.</div></div>' +
+    '<button class="btn btn-ghost btn-sm" id="apInstHide" aria-label="Сховати"><i class="ti ti-x"></i></button></div>';
+  $('apInstHide').onclick = () => { store.set('apInstallHide', Date.now() + 14 * 864e5); box.style.display = 'none'; };
+}
+window.addEventListener('appinstalled', () => { box.style.display = 'none'; try{ track('pwa_installed', {}); }catch(e){} });
+if (standalone) try{ track('pwa_open', {}); }catch(e){}
+
+// ---- service worker ----
+if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => {}));
+
+tab(params.get('tab') || (params.get('q') ? 'auto' : store.get('apTab', 'auto')));
+</script>
+</body>
+</html>

@@ -8,6 +8,7 @@ Disallow: /rakhunok
 Disallow: /moi-zayavky
 Disallow: /vhid
 Disallow: /zvit
+Disallow: /offline
 Disallow: /zvit-avto
 
 Sitemap: https://forwardcarua.com/sitemap.xml
