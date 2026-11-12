@@ -72,7 +72,8 @@ function summary(r){
     const flags = [];
     flags.push(r.owner_changes ? '<span class="vc-flag">Змін власника: <b>' + r.owner_changes + '</b></span>' : '<span class="vc-flag ok">Змін власника не зафіксовано</span>');
     if (r.imported) flags.push('<span class="vc-flag">Ввезено з-за кордону · ' + date(r.imported) + '</span>');
-    if (r.new_in_ua) flags.push('<span class="vc-flag ok">Новим з салону · ' + date(r.new_in_ua) + '</span>');
+    if (r.new_in_ua) flags.push('<span class="vc-flag ok">Новим · перша реєстрація ' + date(r.new_in_ua) + '</span>');
+    if (r.dealer) flags.push('<span class="vc-flag">Куплено в автосалоні · ' + date(r.dealer) + '</span>');
     if (r.wanted_flag) flags.unshift('<span class="vc-flag bad"><b>У базі розшуку МВС</b></span>');
     else if (r.wanted_flag === false) flags.push('<span class="vc-flag ok">Не в розшуку</span>');
     if (r.deregistered) flags.push('<span class="vc-flag bad">Знято з обліку</span>');

@@ -45,7 +45,8 @@ export function renderVehicle(r) {
   else if (r.wanted_flag === false) flags.push('<span class="vc-flag ok">Не в розшуку</span>');
   flags.push(r.owner_changes ? `<span class="vc-flag">Змін власника: <b>${r.owner_changes}</b></span>` : '<span class="vc-flag ok">Змін власника не зафіксовано</span>');
   if (r.imported) flags.push(`<span class="vc-flag">Ввезено з-за кордону · ${date(r.imported)}</span>`);
-  if (r.new_in_ua) flags.push(`<span class="vc-flag ok">Новим з салону · ${date(r.new_in_ua)}</span>`);
+  if (r.new_in_ua) flags.push(`<span class="vc-flag ok">Новим · перша реєстрація ${date(r.new_in_ua)}</span>`);
+  if (r.dealer) flags.push(`<span class="vc-flag">Куплено в автосалоні · ${date(r.dealer)}</span>`);
   if (r.deregistered) flags.push('<span class="vc-flag bad">Знято з обліку</span>');
   if (r.other_vehicles) flags.push(`<span class="vc-flag">Цей номер мали ще ${r.other_vehicles} авто</span>`);
 
@@ -53,6 +54,7 @@ export function renderVehicle(r) {
   const story = [
     `Номерний знак <b>${esc(plate)}</b> належить авто <b>${esc(nameYear)}</b>${v.color ? ", колір — " + esc(cap(v.color).toLowerCase()) : ""}${v.fuel ? ", пальне — " + esc(cap(v.fuel).toLowerCase()) : ""}${v.capacity ? ", двигун " + esc(v.capacity) + " см³" : ""}.`,
     r.imported ? `Авто ввезене з-за кордону й уперше зареєстроване в Україні ${date(r.imported)}.` : r.new_in_ua ? `Авто вперше зареєстроване новим ${date(r.new_in_ua)}.` :
+      r.dealer ? `Уперше зареєстроване в Україні ${date(r.dealer)} — придбане в автосалоні (торговельній організації).` :
       r.history_partial ? `З цим номером авто зареєстроване ${date(r.first_date)} — після перереєстрації; раніше воно їздило під іншим номером.` : `Перший запис у реєстрі МВС — ${date(r.first_date)}.`,
     r.owner_changes ? `Відтоді власник змінювався ${r.owner_changes} ${r.owner_changes === 1 ? "раз" : r.owner_changes < 5 ? "рази" : "разів"}.` : "Перереєстрацій на нового власника в реєстрі не зафіксовано.",
     r.last ? `Остання операція — ${date(r.last.date)}${r.last.op ? ": " + esc(cap(r.last.op).toLowerCase().replace(/(^|[\s(])тз(?=[\s,.)]|$)/g, "$1ТЗ")) : ""}${r.last.region ? " (" + esc(r.last.region) + ")" : ""}${r.last.owner ? ", власник — " + esc(r.last.owner) : ""}.` : "",

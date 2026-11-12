@@ -131,7 +131,9 @@ const brandKey = (e: Ev) => String(e[5] || "").split(" ")[0].toUpperCase() + "|"
 const codeSet = (s: string) => new Set(s.split(/\s+/));
 const OWNER = codeSet("40 41 48 49 50 51 54 60 61 62 65 67 80 186 218 300 306 307 308 309 310 311 312 313 314 315 316 317 319 320 321 322 323 324 330 331 332");
 const IMPORT = codeSet("70 71 72 74 75 76 77 105 172 180 182 221");
-const NEWCAR = codeSet("72 74 75 99 100 105 180 184 185");
+// лише операції, де прямо сказано «нового ТЗ»; 99/100 — покупка в торговельній організації (автосалон, комісійний), не обовʼязково новий
+const NEWCAR = codeSet("72 74 75 105 180 184 185");
+const DEALER = codeSet("99 100");
 // операції, з яких починається історія авто в Україні (первинна реєстрація, ввезення, новий з салону)
 const FIRST = codeSet("10 11 17 20 30 70 71 72 74 75 76 77 99 100 102 105 150 172 180 182 184 185 221 1000");
 const isDereg = (c: string) => /^5\d\d$/.test(c) && c !== "501" && c !== "502" || /^300\d$/.test(c);
@@ -201,18 +203,19 @@ async function buildReport(pq: { q: string; vin: boolean }, full: boolean) {
   const owners = evs.filter((e) => OWNER.has(String(e[1]))).length;
   const imported = evs.find((e) => IMPORT.has(String(e[1])));
   const isNew = evs.find((e) => NEWCAR.has(String(e[1])));
+  const dealer = !isNew ? evs.find((e) => DEALER.has(String(e[1]))) : undefined;
   const last = evs.at(-1)!;
   const hits = await wantedFor([pq.q, main.vin]);   // факт розшуку показуємо всім, подробиці — у повному звіті
   const summary = {
     ...base, found: true, vehicle: vehicleInfo(evs),
     vin_masked: main.vin ? main.vin.slice(0, 6) + "•••••" + main.vin.slice(-4) : null,
     first_date: d8(evs[0][0]), events: evs.length, owner_changes: owners,
-    imported: imported ? d8(imported[0]) : null, new_in_ua: isNew ? d8(isNew[0]) : null,
+    imported: imported ? d8(imported[0]) : null, new_in_ua: isNew ? d8(isNew[0]) : null, dealer: dealer ? d8(dealer[0]) : null,
     last: { date: d8(last[0]), op: opName(last), region: REGIONS[last[3]] ?? null, owner: last[2] === "J" ? "юридична особа" : last[2] === "P" ? "фізична особа" : null },
     deregistered: isDereg(String(last[1])),
     other_vehicles: other.length,
     // історія починається з перереєстрації — перша реєстрація була раніше під іншим номером, у записах без VIN (до 2021 р.)
-    history_partial: !FIRST.has(String(evs[0][1])),
+    history_partial: !evs.filter((e) => e[0] === evs[0][0]).some((e) => FIRST.has(String(e[1]))),   // у перший день може бути кілька операцій
     wanted_flag: hits === null ? null : hits.length > 0,
   };
   if (!full) return summary;
