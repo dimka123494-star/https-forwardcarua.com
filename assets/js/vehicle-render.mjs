@@ -84,7 +84,7 @@ export function renderVehicle(r) {
     `<div><i class="ti ti-check"></i>Для авто з-за кордону — історію за VIN у Carfax чи аналогах</div></div>` +
     `<div class="rm-more">` +
     `<a class="card" href="/perevirka-avto"><i class="ti ti-search"></i><b>Перевірити інше авто</b><div class="text-sm text-muted">За номером або VIN</div></a>` +
-    `<a class="card" href="/kalkulyator-rozmytnennya"><i class="ti ti-calculator"></i><b>Калькулятор розмитнення</b><div class="text-sm text-muted">Мито, акциз і ПДВ</div></a>` +
+    `<a class="card" href="/app?source=avto"><i class="ti ti-device-mobile"></i><b>Застосунок НомерОК</b><div class="text-sm text-muted">Перевірка номера камерою телефона</div></a><a class="card" href="/kalkulyator-rozmytnennya"><i class="ti ti-calculator"></i><b>Калькулятор розмитнення</b><div class="text-sm text-muted">Мито, акциз і ПДВ</div></a>` +
     (brokerSlug ? `<a class="card" href="/brokery/${brokerSlug}"><i class="ti ti-users"></i><b>Митні брокери${lastReg ? " — " + esc(lastReg) : reg ? " — " + esc(reg.name) : ""}</b><div class="text-sm text-muted">Розмитнення й оформлення авто</div></a>` : "") +
     `</div><p class="text-xs text-muted" style="margin-top:1.5rem">Джерело — відкриті дані Головного сервісного центру МВС (data.gov.ua) станом на ${date(String(r.data_at || "").slice(0, 10))}. Імена й адреси власників у відкритих даних не публікуються.</p></section>`;
 

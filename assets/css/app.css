@@ -368,3 +368,12 @@ button.card{color:var(--text);font:inherit;-webkit-appearance:none;appearance:no
 .ps-shot:disabled{opacity:.5}
 .ps-spin{display:inline-block;animation:psSpin 1s linear infinite}
 @keyframes psSpin{to{transform:rotate(360deg)}}
+
+/* промо застосунку: QR на компʼютері, кнопка на телефоні */
+.app-promo{display:flex;gap:1rem;align-items:center}
+.app-promo-ic{border-radius:14px;flex:none}
+.app-promo-tx{flex:1;min-width:0;display:flex;flex-direction:column;gap:.35rem;align-items:flex-start}
+.app-promo-qr{margin:0;text-align:center;flex:none}
+.app-promo-qr img{display:block;border-radius:8px;background:#fff}
+.app-promo-btn{display:none}
+@media (max-width:760px),(pointer:coarse){.app-promo-qr{display:none}.app-promo-btn{display:inline-flex}}
