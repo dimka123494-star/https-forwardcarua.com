@@ -182,6 +182,22 @@ function summary(r){
       '<div class="row no-print" style="gap:8px;margin-top:1rem"><button class="btn btn-primary" id="vcPdfBtn" onclick="VehicleCheck.pdf()"><i class="ti ti-file-download"></i>Завантажити PDF</button></div>';
   }
 
+  // «Можливо, ви мали на увазі»: схожі номери з реєстру (сплутані О/0, латинські літери, яких немає на номерах)
+  async function suggestInto(el, q, replace){
+    try{
+      const d = await call({ action: 'suggest', q });
+      if (!d.items || !d.items.length) return;
+      const box = document.createElement('div');
+      box.className = 'card'; box.style.cssText = 'margin-top:10px;padding:12px 14px';
+      box.innerHTML = '<div class="text-sm" style="margin-bottom:8px"><b>Можливо, ви мали на увазі:</b></div>' + d.items.map(x =>
+        '<button type="button" class="btn btn-ghost btn-sm" style="margin:0 6px 6px 0" data-q="' + esc(x.q) + '"><b>' + esc(x.q) + '</b>&nbsp;<span class="text-xs text-muted">' +
+        esc([x.brand, x.model, x.year].filter(Boolean).join(' ')) + '</span></button>').join('');
+      box.querySelectorAll('[data-q]').forEach(b => b.onclick = () => { const i = document.getElementById('vcQ'); if (i) i.value = b.dataset.q; search(b.dataset.q, el); });
+      if (replace){ const m = el.querySelector('.msg'); if (m) m.innerHTML = 'Такого номера в українському форматі немає — на номерах бувають лише літери А, В, Е, І, К, М, Н, О, Р, С, Т, Х.'; }
+      el.appendChild(box);
+    }catch(e){}
+  }
+
   async function search(q, el){
     el = el || document.getElementById('vcRes');
     q = String(q || '').trim();
@@ -192,11 +208,13 @@ function summary(r){
       const r = await call({ action: 'summary', q });
       last = r;
       el.innerHTML = summary(r);
+      if (!r.found && !(r.wanted && r.wanted.found)) suggestInto(el, q);
       loadPhotos(el); if (typeof CarPhotos !== 'undefined') CarPhotos.scan(el);
       try{ track('vehicle_search', { found: r.found }); }catch(e){}
       try{ history.replaceState(null, '', location.pathname + '?q=' + encodeURIComponent(r.q)); }catch(e){}
       if (r.found) prefill();
     }catch(e){
+      if (e.message === 'bad_query') suggestInto(el, q, true);
       el.innerHTML = '<div class="msg show msg-err">' + (e.message === 'bad_query' ? 'Введіть номерний знак (наприклад, АА1234ВВ) або VIN із 17 символів.' : e.message === 'unavailable' ? 'Дані оновлюються — спробуйте за кілька хвилин.' : 'Не вдалося виконати пошук. Спробуйте ще раз.') + '</div>';
     }
   }
