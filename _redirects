@@ -28,6 +28,13 @@
 /perevirka-avto  /perevirka-avto.html 200
 /avto/*          /avto.html          200
 /app             /app.html           200
+/apps            /app                301
+/ap              /app                301
+/pwa             /app                301
+/zastosunok      /app                301
+/dodatok         /app                301
+/додаток         /app                301
+/застосунок      /app                301
 /v/*             /vizytka.html       200
 /d/*             /dovidka.html       200
 /terms           /terms.html         200
