@@ -20,7 +20,7 @@ TMP = 'tztmp'
 OUT = 'out'
 PSH, VSH, WSH = 4096, 1024, 256
 SM_SINCE, SM_MAX, SM_PER = '20240101', 2000000, 40000
-PLATE_RE = re.compile(r'^[А-ЯІЇЄ]{2}\d{4}[А-ЯІЇЄ]{2}$')
+PLATE_RE = re.compile(r'^[А-ЯІЇЄ]{2}\d{4}[А-ЯІЇЄZV][А-ЯІЇЄ]$')   # Z/V — номери електромобілів
 csv.field_size_limit(10 ** 7)
 
 LAT = str.maketrans('ABCEHIKMOPTXY', 'АВСЕНІКМОРТХУ')

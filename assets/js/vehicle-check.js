@@ -82,7 +82,7 @@ function summary(r){
       photoSlot(v) +
       '<h3 style="margin:.2rem 0 0;font-size:22px">' + (vline(v) || 'Транспортний засіб') + '</h3>' + (r.vin_masked ? '<div class="text-xs text-muted" style="margin-top:4px">VIN ' + esc(r.vin_masked) + '</div>' : '') +
       '<div class="vc-meta">' + (r.history_partial ? 'Перший запис з цим номером: ' : 'В Україні з ') + date(r.first_date) + ' · операцій у реєстрі: <b style="color:var(--text)">' + r.events + '</b>' +
-        (r.by === 'plate' && /^[А-ЯІЇЄ]{2}\d{4}[А-ЯІЇЄ]{2}$/.test(r.q) ? ' · <a href="/avto/' + encodeURIComponent(r.q) + '">сторінка авто</a>' : '') + '</div>' +
+        (r.by === 'plate' && /^[А-ЯІЇЄ]{2}\d{4}[А-ЯІЇЄZV][А-ЯІЇЄ]$/.test(r.q) ? ' · <a href="/avto/' + encodeURIComponent(r.q) + '">сторінка авто</a>' : '') + '</div>' +
       '<div class="vc-flags">' + flags.join('') + '</div>' + specs(v) + (r.by === 'plate' ? '<div class="cp-mount" data-compact="1" data-plate="' + esc(r.q) + '"></div>' : '') +
       '<div class="text-sm" style="margin-top:.75rem">Остання операція: <b>' + date(r.last.date) + '</b> — ' + esc(cap(r.last.op) || 'реєстраційна операція') + (r.last.region ? ' · ' + esc(r.last.region) : '') + (r.last.owner ? ' · власник — ' + esc(r.last.owner) : '') + '</div>' +
       '</div>' + buyBox(r);
@@ -193,7 +193,7 @@ function summary(r){
         '<button type="button" class="btn btn-ghost btn-sm" style="margin:0 6px 6px 0" data-q="' + esc(x.q) + '"><b>' + esc(x.q) + '</b>&nbsp;<span class="text-xs text-muted">' +
         esc([x.brand, x.model, x.year].filter(Boolean).join(' ')) + '</span></button>').join('');
       box.querySelectorAll('[data-q]').forEach(b => b.onclick = () => { const i = document.getElementById('vcQ'); if (i) i.value = b.dataset.q; search(b.dataset.q, el); });
-      if (replace){ const m = el.querySelector('.msg'); if (m) m.innerHTML = 'Такого номера в українському форматі немає — на номерах бувають лише літери А, В, Е, І, К, М, Н, О, Р, С, Т, Х.'; }
+      if (replace){ const m = el.querySelector('.msg'); if (m) m.innerHTML = 'Такого номера в українському форматі немає. На номерах бувають літери А, В, Е, І, К, М, Н, О, Р, С, Т, Х, а в електромобілів друга пара літер починається з Z, V або Y.'; }
       el.appendChild(box);
     }catch(e){}
   }

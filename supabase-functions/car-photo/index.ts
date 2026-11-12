@@ -53,7 +53,7 @@ Deno.serve(async (req) => {
     // ---- завантаження ----
     const form = await req.formData();
     const plate = toCyr(String(form.get("plate") ?? "").toUpperCase().replace(/[\s\-.]/g, ""));
-    if (!/^[0-9А-ЯІЇЄ]{4,10}$/.test(plate) || !/\d/.test(plate)) return json({ error: "bad_plate" }, 400);
+    if (!/^[0-9А-ЯІЇЄZV]{4,10}$/.test(plate) || !/\d/.test(plate)) return json({ error: "bad_plate" }, 400);
     if (form.get("consent") !== "1") return json({ error: "consent" }, 400);
     const file = form.get("file");
     if (!(file instanceof File)) return json({ error: "no_file" }, 400);

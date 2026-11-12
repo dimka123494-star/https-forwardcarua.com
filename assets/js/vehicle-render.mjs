@@ -18,7 +18,7 @@ const SERIES = [
   ["СЕ ІЕ", "Чернівецька область", "chernivetska"], ["АК КК", "АР Крим", null], ["СН ІН", "м. Севастополь", null],
 ];
 export function plateRegion(plate) {
-  const m = String(plate || "").match(/^([А-ЯІЇЄ]{2})\d{4}[А-ЯІЇЄ]{2}$/);
+  const m = String(plate || "").match(/^([А-ЯІЇЄ]{2})\d{4}[А-ЯІЇЄZV][А-ЯІЇЄ]$/);
   if (!m) return null;
   const s = SERIES.find((x) => x[0].split(" ").includes(m[1]));
   return s ? { series: m[1], name: s[1], slug: s[2] } : null;

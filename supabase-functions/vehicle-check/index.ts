@@ -46,8 +46,9 @@ function parseQ(raw: string): { q: string; vin: boolean } | null {
   if (/^[A-HJ-NPR-Z0-9]{17}$/.test(asVin) && /\d/.test(asVin) && /[A-Z]/.test(asVin)) return { q: asVin, vin: true };
   let p = tr(s, LAT, CYR);
   // формат АА1234ВВ: у цифровому блоці літеру О часто вводять замість нуля
-  if (p.length === 8 && /^[А-ЯІЇЄ]{2}.{4}[А-ЯІЇЄ]{2}$/.test(p)) p = p.slice(0, 2) + p.slice(2, 6).replace(/О/g, "0") + p.slice(6);
-  if (/^[0-9А-ЯІЇЄ]{4,10}$/.test(p) && /\d/.test(p)) return { q: p, vin: false };
+  if (p.length === 8 && /^[А-ЯІЇЄ]{2}.{4}[А-ЯІЇЄZV]{2}$/.test(p)) p = p.slice(0, 2) + p.slice(2, 6).replace(/О/g, "0") + p.slice(6);
+  // електромобілі: друга пара літер з латинською Z або V (ВК0997ZА); Y уже перетворено на У
+  if (/^[0-9А-ЯІЇЄZV]{4,10}$/.test(p) && /\d/.test(p)) return { q: p, vin: false };
   return null;
 }
 // «Можливо, ви мали на увазі»: номер АА1234ВВ з однією нестандартною або сплутаною літерою —
@@ -58,7 +59,7 @@ async function suggest(raw: string) {
   if (s.length !== 8) return [];
   s = s.slice(0, 2) + s.slice(2, 6).replace(/[ОO]/g, "0").replace(/[ІI]/g, "1").replace(/[ЗZ]/g, "3").replace(/[SЅ]/g, "5").replace(/В/g, "8") + s.slice(6);
   if (!/^\d{4}$/.test(s.slice(2, 6))) return [];
-  const pos = [0, 1, 6, 7].filter((i) => !PLATE_LETTERS.includes(s[i]));
+  const pos = [0, 1, 6, 7].filter((i) => !(PLATE_LETTERS + (i === 6 ? "ZV" : "")).includes(s[i]));
   const cands: string[] = [];
   if (pos.length === 0) for (const L of PLATE_LETTERS) { if (L !== s[7]) cands.push(s.slice(0, 7) + L); }   // номер є, але не знайдено — пробуємо останню літеру
   else if (pos.length === 1) for (const L of PLATE_LETTERS) cands.push(s.slice(0, pos[0]) + L + s.slice(pos[0] + 1));
