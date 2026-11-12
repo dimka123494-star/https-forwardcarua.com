@@ -46,6 +46,14 @@ const PlateScan = (() => {
     return c;
   }
 
+  // без бінаризації — для фото з нерівним світлом
+  function raw(src, sx, sy, sw, sh){
+    const scale = Math.max(1, Math.min(3, 1200 / sw));
+    const c = document.createElement('canvas'); c.width = Math.round(sw * scale); c.height = Math.round(sh * scale);
+    c.getContext('2d').drawImage(src, sx, sy, sw, sh, 0, 0, c.width, c.height);
+    return c;
+  }
+
   async function recognize(canvas){
     const w = await getWorker();
     const { data } = await w.recognize(canvas);
@@ -96,29 +104,26 @@ const PlateScan = (() => {
     const k = Math.max(vr.width / v.videoWidth, vr.height / v.videoHeight);
     const ox = (v.videoWidth * k - vr.width) / 2, oy = (v.videoHeight * k - vr.height) / 2;
     const sx = (fr.left - vr.left + ox) / k, sy = (fr.top - vr.top + oy) / k, sw = fr.width / k, sh = fr.height / k;
-    await run(c => prep(v, sx, sy, sw, sh), () => { const c = document.createElement('canvas'); c.width = sw; c.height = sh; c.getContext('2d').drawImage(v, sx, sy, sw, sh, 0, 0, sw, sh); return c; });
+    await run([() => prep(v, sx, sy, sw, sh), () => raw(v, sx, sy, sw, sh)]);
   }
 
   async function fromFile(file){
     const url = URL.createObjectURL(file), im = new Image();
     im.onload = async () => {
-      // фото з галереї: пробуємо весь кадр і центральну смугу
-      await run(() => prep(im, 0, 0, im.naturalWidth, im.naturalHeight),
-        () => prep(im, im.naturalWidth * 0.1, im.naturalHeight * 0.35, im.naturalWidth * 0.8, im.naturalHeight * 0.3), true);
+      // фото з галереї: весь кадр (як є і контрастний) і центральна смуга
+      const W = im.naturalWidth, H = im.naturalHeight;
+      await run([() => raw(im, 0, 0, W, H), () => prep(im, 0, 0, W, H), () => prep(im, W * 0.1, H * 0.35, W * 0.8, H * 0.3), () => raw(im, W * 0.1, H * 0.35, W * 0.8, H * 0.3)]);
       URL.revokeObjectURL(url);
     };
     im.src = url;
   }
 
-  async function run(first, second, sparse){
+  async function run(attempts){
     const btn = document.querySelector('#psOverlay [data-shot]'); if (btn) btn.disabled = true;
     msg('<i class="ti ti-loader-2 ps-spin"></i> Розпізнаємо номер…');
     try{
-      const w = await getWorker();
-      if (sparse) await w.setParameters({ tessedit_pageseg_mode: '11' });
-      let r = await recognize(first());
-      if (!r.plates.length) r = await recognize(second());
-      if (sparse) await w.setParameters({ tessedit_pageseg_mode: '7' });
+      let r = { plates: [] };
+      for (const a of attempts){ r = await recognize(a()); if (r.plates.length) break; }
       try{ track('plate_scan', { found: r.plates.length }); }catch(e){}
       if (!r.plates.length){ msg('Не вдалося прочитати номер. Підійдіть ближче, щоб номер заповнив рамку, і спробуйте ще раз.', true); return; }
       if (r.plates.length === 1){ close(); onPlate && onPlate(r.plates[0]); return; }
@@ -128,5 +133,5 @@ const PlateScan = (() => {
     finally{ if (btn) btn.disabled = false; }
   }
 
-  return { open, close, candidates, recognize, prep };
+  return { open, close, candidates, recognize, prep, raw };
 })();
