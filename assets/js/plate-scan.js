@@ -61,7 +61,7 @@ const PlateScan = (() => {
   // пошук номера в кадрі: рядки з густими вертикальними краями (літери/цифри) → прямокутники з пропорціями номера
   function locate(src, sx, sy, sw, sh){
     const W = 640, H = Math.max(1, Math.round(sh * W / sw)), k = sw / W;
-    const c = document.createElement('canvas'); c.width = W; c.height = H;
+    const c = locC || (locC = document.createElement('canvas')); c.width = W; c.height = H;
     const x = c.getContext('2d', { willReadFrequently: true }); x.drawImage(src, sx, sy, sw, sh, 0, 0, W, H);
     const p = x.getImageData(0, 0, W, H).data, g = new Float32Array(W * H);
     for (let i = 0, j = 0; j < g.length; i += 4, j++) g[j] = 0.299 * p[i] + 0.587 * p[i + 1] + 0.114 * p[i + 2];
@@ -114,7 +114,7 @@ const PlateScan = (() => {
 
   async function recognize(canvas){
     const w = await getWorker();
-    const { data } = await w.recognize(canvas);
+    let data; try{ ({ data } = await w.recognize(canvas)); } finally { if (canvas !== snapC){ canvas.width = canvas.height = 0; } }
     const plates = candidates(data.text); return { text: data.text, plates, fix: plates.fix };
   }
 
@@ -135,7 +135,13 @@ const PlateScan = (() => {
   }
   const msg = (t, err) => { const m = document.querySelector('#psOverlay [data-msg]'); if (m){ m.innerHTML = t; m.classList.toggle('err', !!err); } };
 
-  let scanning = false, busy = false, prev = null;
+  let scanning = false, busy = false, prev = null, snapC = null, locC = null;
+  // один canvas на кадр замість нового щоразу — iPhone обмежує памʼять під canvas
+  function grab(v){
+    const c = snapC || (snapC = document.createElement('canvas'));
+    if (c.width !== v.videoWidth) c.width = v.videoWidth; if (c.height !== v.videoHeight) c.height = v.videoHeight;
+    c.getContext('2d').drawImage(v, 0, 0); return c;
+  }
   async function open(cb){
     onPlate = cb; prev = null;
     const o = ui(); o.classList.add('open');
@@ -158,6 +164,7 @@ const PlateScan = (() => {
     const o = document.getElementById('psOverlay'); if (o) o.classList.remove('open');
     document.documentElement.style.overflow = '';
     if (stream){ stream.getTracks().forEach(t => t.stop()); stream = null; }
+    if (snapC){ snapC.width = snapC.height = 0; snapC = null; }
   }
 
   // видима частина відео (object-fit: cover) і рамка → пікселі відео
@@ -184,8 +191,7 @@ const PlateScan = (() => {
       if (g && g.v.videoWidth && !busy){
         busy = true;
         try{
-          const snap = document.createElement('canvas'); snap.width = g.v.videoWidth; snap.height = g.v.videoHeight;
-          snap.getContext('2d').drawImage(g.v, 0, 0);
+          const snap = grab(g.v);
           const tries = attemptsFor(snap, g.view, g.frame, false);
           for (const a of tries){
             if (!scanning) break;
@@ -198,15 +204,14 @@ const PlateScan = (() => {
         }catch(e){}
         busy = false;
       }
-      await new Promise(res => setTimeout(res, 400));
+      await new Promise(res => setTimeout(res, 700));
     }
   }
   function done(plate){ try{ track('plate_scan', { found: 1, auto: 1 }); }catch(e){} if (navigator.vibrate) navigator.vibrate(60); close(); onPlate && onPlate(plate); }
 
   async function shoot(){
     const g = geom(); if (!g.v.videoWidth) return;
-    const snap = document.createElement('canvas'); snap.width = g.v.videoWidth; snap.height = g.v.videoHeight;
-    snap.getContext('2d').drawImage(g.v, 0, 0);
+    const snap = grab(g.v);
     scanning = false; while (busy) await new Promise(r => setTimeout(r, 50));
     await run(attemptsFor(snap, g.view, g.frame, true));
     if (stream && document.getElementById('psOverlay').classList.contains('open') && !document.querySelector('#psOverlay [data-p]')){ scanning = true; loop(); }
