@@ -135,6 +135,68 @@ const PlateScan = (() => {
     });
   }
 
+  // ── нейромережа для номерів (YOLOv9 детектор + fast-plate-ocr, MIT), ONNX у браузері ──
+  // знаходить номер під кутом, здалеку, у дощ; Tesseract лишається запасним варіантом
+  const ORT = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.1/dist/';
+  const OCR_ABC = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_';
+  let ml = null;
+  function getML(){
+    if (ml) return ml;
+    ml = (async () => {
+      if (!window.ort) await new Promise((res, rej) => { const s = document.createElement('script'); s.src = ORT + 'ort.wasm.min.js'; s.onload = res; s.onerror = rej; document.head.appendChild(s); });
+      ort.env.wasm.wasmPaths = ORT; ort.env.wasm.numThreads = 1;
+      const o = { executionProviders: ['wasm'] };
+      const [det, ocr] = await Promise.all([ort.InferenceSession.create('/assets/models/plate-det.onnx', o), ort.InferenceSession.create('/assets/models/plate-ocr.onnx', o)]);
+      return { det, ocr };
+    })();
+    ml.catch(() => { ml = null; });
+    return ml;
+  }
+  const mlC = {};
+  function cv(name, w, h){ const c = mlC[name] || (mlC[name] = document.createElement('canvas')); if (c.width !== w) c.width = w; if (c.height !== h) c.height = h; return c; }
+  // детектор: letterbox 384×384 → рамки номерів у координатах джерела
+  async function detect(m, src, r){
+    const S = 384, k = Math.min(S / r.sw, S / r.sh), nw = Math.round(r.sw * k), nh = Math.round(r.sh * k), dx = (S - nw) / 2, dy = (S - nh) / 2;
+    const c = cv('det', S, S), x = c.getContext('2d', { willReadFrequently: true });
+    x.fillStyle = 'rgb(114,114,114)'; x.fillRect(0, 0, S, S); x.drawImage(src, r.sx, r.sy, r.sw, r.sh, Math.round(dx - 0.1), Math.round(dy - 0.1), nw, nh);
+    const p = x.getImageData(0, 0, S, S).data, t = new Float32Array(3 * S * S), A = S * S;
+    for (let i = 0, j = 0; j < A; i += 4, j++){ t[j] = p[i] / 255; t[A + j] = p[i + 1] / 255; t[2 * A + j] = p[i + 2] / 255; }
+    const out = await m.det.run({ images: new ort.Tensor('float32', t, [1, 3, S, S]) });
+    const d = out[Object.keys(out)[0]].data, boxes = [];
+    for (let i = 0; i + 6 < d.length; i += 7){
+      if (d[i + 6] < 0.35) continue;
+      const x1 = (d[i + 1] - dx) / k, y1 = (d[i + 2] - dy) / k, x2 = (d[i + 3] - dx) / k, y2 = (d[i + 4] - dy) / k;
+      boxes.push({ sx: r.sx + x1, sy: r.sy + y1, sw: x2 - x1, sh: y2 - y1, score: d[i + 6] });
+    }
+    return boxes.sort((a, b) => b.score - a.score).slice(0, 3);
+  }
+  // розпізнавання символів: номер 128×64 RGB uint8
+  async function readBox(m, src, b){
+    const c = cv('ocr', 128, 64), x = c.getContext('2d', { willReadFrequently: true });
+    x.drawImage(src, Math.max(0, b.sx), Math.max(0, b.sy), b.sw, b.sh, 0, 0, 128, 64);
+    const p = x.getImageData(0, 0, 128, 64).data, t = new Uint8Array(128 * 64 * 3);
+    for (let i = 0, j = 0; i < p.length; i += 4, j += 3){ t[j] = p[i]; t[j + 1] = p[i + 1]; t[j + 2] = p[i + 2]; }
+    const out = await m.ocr.run({ input: new ort.Tensor('uint8', t, [1, 64, 128, 3]) });
+    const pr = (out.plate || out[Object.keys(out)[0]]).data, N = OCR_ABC.length;
+    let text = '', conf = 1;
+    for (let s = 0; s < 10; s++){
+      let bi = 0; for (let c2 = 1; c2 < N; c2++) if (pr[s * N + c2] > pr[s * N + bi]) bi = c2;
+      if (OCR_ABC[bi] !== '_'){ text += OCR_ABC[bi]; conf = Math.min(conf, pr[s * N + bi]); }
+    }
+    return { text, conf };
+  }
+  // пошук номера нейромережею; null — якщо нейромережа недоступна
+  async function scanML(src, r){
+    let m; try{ m = await getML(); }catch(e){ return null; }
+    const boxes = await detect(m, src, r), res = [];
+    for (const b of boxes){
+      const rd = await readBox(m, src, b), plates = candidates(rd.text);
+      if (plates.length) res.push({ text: rd.text, plates, fix: plates.fix, conf: rd.conf * b.score });
+    }
+    res.sort((a, b) => a.fix - b.fix || b.conf - a.conf);
+    return res[0] || { plates: [], boxes: boxes.length };
+  }
+
   async function recognize(canvas){
     const w = await getWorker();
     let data; try{ ({ data } = await w.recognize(canvas)); } finally { if (canvas !== snapC){ canvas.width = canvas.height = 0; } }
@@ -145,7 +207,7 @@ const PlateScan = (() => {
     let o = document.getElementById('psOverlay');
     if (o) return o;
     o = document.createElement('div'); o.id = 'psOverlay'; o.className = 'ps-overlay';
-    o.innerHTML = '<div class="ps-top"><button class="ps-x" aria-label="Закрити" data-close><i class="ti ti-x"></i></button><span>Наведіть рамку на номерний знак</span></div>' +
+    o.innerHTML = '<div class="ps-top"><button class="ps-x" aria-label="Закрити" data-close><i class="ti ti-x"></i></button><span>Наведіть камеру на номерний знак</span></div>' +
       '<div class="ps-view"><video playsinline muted autoplay></video><div class="ps-frame"></div></div>' +
       '<div class="ps-msg" data-msg>Наведіть камеру на номер — розпізнаємо автоматично</div>' +
       '<div class="ps-bar"><label class="ps-alt"><input type="file" accept="image/*" hidden data-file><i class="ti ti-photo"></i>Фото з галереї</label>' +
@@ -166,10 +228,10 @@ const PlateScan = (() => {
     c.getContext('2d').drawImage(v, 0, 0); return c;
   }
   async function open(cb){
-    onPlate = cb; prev = null;
+    onPlate = cb; prev = null; busy = false;
     const o = ui(); o.classList.add('open');
     document.documentElement.style.overflow = 'hidden';
-    getWorker().catch(() => {});      // завантажуємо розпізнавання, поки людина цілиться
+    getML().catch(() => getWorker().catch(() => {}));      // завантажуємо розпізнавання, поки людина цілиться
     try{
       stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 } }, audio: false });
       const v = o.querySelector('video'); v.srcObject = stream;
@@ -215,7 +277,13 @@ const PlateScan = (() => {
         busy = true;
         try{
           const snap = grab(g.v);
-          const tries = attemptsFor(snap, g.view, g.frame, false);
+          const r0 = await scanML(snap, g.view);
+          if (r0){
+            if (r0.plates && r0.plates.length === 1 && ((r0.fix === 0 && r0.conf > 0.5) || prev === r0.plates[0])){ busy = false; done(r0.plates[0]); return; }
+            if (r0.plates && r0.plates.length) prev = r0.plates[0];
+            msg(r0.boxes === 0 ? 'Наведіть камеру на номер — розпізнаємо автоматично' : '<i class="ti ti-loader-2 ps-spin"></i> Бачу номер, читаю…');
+          }
+          const tries = r0 ? [] : attemptsFor(snap, g.view, g.frame, false);
           for (const a of tries){
             if (!scanning) break;
             const r = await recognize(a());
@@ -227,7 +295,7 @@ const PlateScan = (() => {
         }catch(e){}
         busy = false;
       }
-      await new Promise(res => setTimeout(res, 700));
+      await new Promise(res => setTimeout(res, ml ? 250 : 700));
     }
   }
   function done(plate){ try{ track('plate_scan', { found: 1, auto: 1 }); }catch(e){} if (navigator.vibrate) navigator.vibrate(60); close(); onPlate && onPlate(plate); }
@@ -236,7 +304,7 @@ const PlateScan = (() => {
     const g = geom(); if (!g.v.videoWidth) return;
     const snap = grab(g.v);
     scanning = false; while (busy) await new Promise(r => setTimeout(r, 50));
-    await run(attemptsFor(snap, g.view, g.frame, true));
+    await run(attemptsFor(snap, g.view, g.frame, true), { src: snap, r: g.view });
     if (stream && document.getElementById('psOverlay').classList.contains('open') && !document.querySelector('#psOverlay [data-p]')){ scanning = true; loop(); }
   }
 
@@ -245,18 +313,21 @@ const PlateScan = (() => {
     const url = URL.createObjectURL(file), im = new Image();
     im.onload = async () => {
       const W = im.naturalWidth, H = im.naturalHeight, all = { sx: 0, sy: 0, sw: W, sh: H };
-      await run([...attemptsFor(im, all, null, true), () => raw(im, 0, 0, W, H), () => prep(im, 0, 0, W, H), () => prep(im, W * 0.1, H * 0.35, W * 0.8, H * 0.3)]);
+      await run([...attemptsFor(im, all, null, true), () => raw(im, 0, 0, W, H), () => prep(im, 0, 0, W, H), () => prep(im, W * 0.1, H * 0.35, W * 0.8, H * 0.3)], { src: im, r: all });
       URL.revokeObjectURL(url);
     };
     im.src = url;
   }
 
-  async function run(attempts){
+  let mlSrc = null;
+  async function run(attempts, src){
+    mlSrc = src || null;
     const btn = document.querySelector('#psOverlay [data-shot]'); if (btn) btn.disabled = true;
     msg('<i class="ti ti-loader-2 ps-spin"></i> Розпізнаємо номер…');
     try{
       let r = { plates: [] };
-      for (const a of attempts){ r = await recognize(a()); if (r.plates.length) break; }
+      if (mlSrc){ const r0 = await scanML(mlSrc.src, mlSrc.r); if (r0 && r0.plates.length) r = r0; }
+      if (!r.plates.length) for (const a of attempts){ r = await recognize(a()); if (r.plates.length) break; }
       try{ track('plate_scan', { found: r.plates.length }); }catch(e){}
       if (!r.plates.length){ msg('Номер не знайдено. Наведіть камеру так, щоб номер був чітким, — розпізнаємо автоматично.', true); return; }
       if (r.plates.length === 1){ close(); onPlate && onPlate(r.plates[0]); return; }
@@ -267,5 +338,5 @@ const PlateScan = (() => {
     finally{ if (btn) btn.disabled = false; }
   }
 
-  return { open, close, candidates, recognize, prep, raw, stretch, locate, attemptsFor };
+  return { open, close, candidates, recognize, prep, raw, stretch, locate, attemptsFor, scanML, getML };
 })();

@@ -27,3 +27,8 @@
   Cache-Control: public, max-age=0, must-revalidate
 /assets/icons/*
   Cache-Control: public, max-age=2592000
+
+# Моделі розпізнавання номерів (~11 МБ) — завантажуються раз і лежать у кеші
+/assets/models/*
+  Cache-Control: public, max-age=2592000
+  Content-Type: application/octet-stream
