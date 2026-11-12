@@ -39,13 +39,31 @@ const PlateScan = (() => {
 
   // підготовка: збільшити, у сірий, підсилити контраст — Tesseract краще читає чорне на білому
   function prep(src, sx, sy, sw, sh){
-    const scale = Math.max(1, 900 / sw);
+    const scale = Math.max(1, Math.min(4, 900 / sw));
     const c = document.createElement('canvas'); c.width = Math.round(sw * scale); c.height = Math.round(sh * scale);
     const x = c.getContext('2d'); x.drawImage(src, sx, sy, sw, sh, 0, 0, c.width, c.height);
-    const d = x.getImageData(0, 0, c.width, c.height), p = d.data;
-    let sum = 0; for (let i = 0; i < p.length; i += 4){ const g = 0.299 * p[i] + 0.587 * p[i + 1] + 0.114 * p[i + 2]; p[i] = p[i + 1] = p[i + 2] = g; sum += g; }
-    const avg = sum / (p.length / 4);
-    for (let i = 0; i < p.length; i += 4){ const v = p[i] > avg * 0.85 ? 255 : 0; p[i] = p[i + 1] = p[i + 2] = v; }
+    const d = x.getImageData(0, 0, c.width, c.height), p = d.data, n = p.length / 4, hist = new Uint32Array(256);
+    for (let i = 0; i < p.length; i += 4){ const g = (0.299 * p[i] + 0.587 * p[i + 1] + 0.114 * p[i + 2]) | 0; p[i] = g; hist[g]++; }
+    // поріг Оцу — розділяє темні символи й світле тло навіть на тьмяному, розмитому номері
+    let sum = 0; for (let t = 0; t < 256; t++) sum += t * hist[t];
+    let sB = 0, wB = 0, best = 0, thr = 128;
+    for (let t = 0; t < 256; t++){ wB += hist[t]; if (!wB) continue; const wF = n - wB; if (!wF) break; sB += t * hist[t];
+      const mB = sB / wB, mF = (sum - sB) / wF, v = wB * wF * (mB - mF) * (mB - mF); if (v > best){ best = v; thr = t; } }
+    for (let i = 0; i < p.length; i += 4){ const v = p[i] > thr ? 255 : 0; p[i] = p[i + 1] = p[i + 2] = v; }
+    x.putImageData(d, 0, 0);
+    return c;
+  }
+
+  // розтягнути контраст (без бінаризації) — для тьмяних фото, дощу, вечора
+  function stretch(src, sx, sy, sw, sh){
+    const scale = Math.max(1, Math.min(4, 900 / sw));
+    const c = document.createElement('canvas'); c.width = Math.round(sw * scale); c.height = Math.round(sh * scale);
+    const x = c.getContext('2d'); x.drawImage(src, sx, sy, sw, sh, 0, 0, c.width, c.height);
+    const d = x.getImageData(0, 0, c.width, c.height), p = d.data, hist = new Uint32Array(256), n = p.length / 4;
+    for (let i = 0; i < p.length; i += 4){ const g = (0.299 * p[i] + 0.587 * p[i + 1] + 0.114 * p[i + 2]) | 0; p[i] = g; hist[g]++; }
+    let lo = 0, hi = 255, acc = 0; for (; lo < 255 && (acc += hist[lo]) < n * 0.02; lo++); acc = 0; for (; hi > 0 && (acc += hist[hi]) < n * 0.02; hi--);
+    const k = 255 / Math.max(1, hi - lo);
+    for (let i = 0; i < p.length; i += 4){ const v = Math.max(0, Math.min(255, (p[i] - lo) * k)); p[i] = p[i + 1] = p[i + 2] = v; }
     x.putImageData(d, 0, 0);
     return c;
   }
@@ -65,13 +83,18 @@ const PlateScan = (() => {
     const x = c.getContext('2d', { willReadFrequently: true }); x.drawImage(src, sx, sy, sw, sh, 0, 0, W, H);
     const p = x.getImageData(0, 0, W, H).data, g = new Float32Array(W * H);
     for (let i = 0, j = 0; j < g.length; i += 4, j++) g[j] = 0.299 * p[i] + 0.587 * p[i + 1] + 0.114 * p[i + 2];
+    // поріг краю — від контрасту самого кадру (дощ, вечір, брудний номер дають слабкі краї)
+    const gh = new Uint32Array(256); let gn = 0;
+    for (let y = 1; y < H - 1; y += 2) for (let xx = 1; xx < W - 1; xx += 2){ gh[Math.min(255, Math.abs(g[y * W + xx + 1] - g[y * W + xx - 1]) | 0)]++; gn++; }
+    let T = 255, acc = 0; while (T > 0 && (acc += gh[T]) < gn * 0.04) T--;
+    T = Math.max(12, Math.min(45, T));
     const m = new Uint8Array(W * H), gap = Math.round(W * 0.025);
     for (let y = 1; y < H - 1; y++){
       let start = -1, last = -1, n = 0;
       const flush = () => { if (start >= 0 && n >= 8 && last - start >= W * 0.05 && last - start <= W * 0.8) m.fill(1, y * W + start, y * W + last + 1); };
       for (let xx = 1; xx < W - 1; xx++){
         const o = y * W + xx;
-        if (Math.abs(g[o + 1] - g[o - 1]) > 45){
+        if (Math.abs(g[o + 1] - g[o - 1]) > T){
           if (start < 0 || xx - last > gap){ flush(); start = xx; n = 0; }
           last = xx; n++;
         }
@@ -244,5 +267,5 @@ const PlateScan = (() => {
     finally{ if (btn) btn.disabled = false; }
   }
 
-  return { open, close, candidates, recognize, prep, raw, locate, attemptsFor };
+  return { open, close, candidates, recognize, prep, raw, stretch, locate, attemptsFor };
 })();

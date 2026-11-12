@@ -274,7 +274,9 @@ function summary(r){
     if (!el) return;
     el.innerHTML = '<div class="row" style="gap:8px"><input class="input" id="vcQ" placeholder="Номер (АА1234ВВ) або VIN" autocomplete="off" autocapitalize="characters" style="flex:1;min-width:0;text-transform:uppercase">' +
       '<button class="btn btn-ghost" type="button" id="vcCam" aria-label="Сфотографувати номер" title="Сфотографувати номер" style="padding-left:12px;padding-right:12px"><i class="ti ti-camera" style="margin:0"></i></button>' +
-      '<button class="btn btn-primary" type="button" id="vcGo"><i class="ti ti-search"></i>Перевірити</button></div><div id="vcRes" style="margin-top:1rem"></div>';
+      '<button class="btn btn-primary" type="button" id="vcGo"><i class="ti ti-search"></i>Перевірити</button></div>' +
+      (/iPhone|iPad/.test(navigator.userAgent) ? '<div class="text-xs text-muted" style="margin-top:6px"><i class="ti ti-scan"></i> Порада: торкніться поля й виберіть «Сканувати текст» — камера iPhone розпізнає номер навіть здалеку й у дощ.</div>' : '') +
+      '<div id="vcRes" style="margin-top:1rem"></div>';
     const i = document.getElementById('vcQ'), go = () => search(i.value, document.getElementById('vcRes'));
     document.getElementById('vcGo').onclick = go;
     // номер з камери: скрипт розпізнавання вантажимо лише за потреби
