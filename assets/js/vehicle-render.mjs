@@ -71,7 +71,7 @@ export function renderVehicle(r) {
     `<div class="vc-specs" style="margin-top:1rem">${facts.map((f) => `<div><span>${esc(f[0])}</span><b>${esc(f[1])}</b></div>`).join("")}</div>` +
     `<div class="card" style="margin-top:1rem;display:flex;gap:.75rem;align-items:center;flex-wrap:wrap"><i class="ti ti-shield-check" style="font-size:28px;color:var(--green)"></i>` +
     `<div style="flex:1;min-width:200px"><b>Автоцивілка (ОСЦПВ)</b><div class="text-sm text-muted">Чинність поліса на ${esc(plate)} можна перевірити в базі МТСБУ — безкоштовно.</div></div>` +
-    `<a class="btn btn-outline" href="https://policy.mtsbu.ua/" target="_blank" rel="noopener">Перевірити в МТСБУ</a></div>` +
+    `<a class="btn btn-ghost" href="https://policy.mtsbu.ua/" target="_blank" rel="noopener">Перевірити в МТСБУ</a></div>` +
     `<div class="cp-mount" data-plate="${esc(plate)}" style="margin-top:1rem"></div>` +
     `</section>` +
     `<section class="container-narrow" style="padding-top:1rem"><div id="vcBuyMount"></div></section>` +
