@@ -20,17 +20,20 @@ const PlateScan = (() => {
   const L_OK = 'ABCEHIKMOPTX', TO_L = { '0': 'O', '1': 'I', '8': 'B', '4': 'A', '6': 'B' }, TO_D = { O: '0', D: '0', Q: '0', I: '1', L: '1', B: '8', S: '5', Z: '2', G: '6', T: '7', A: '4' };
   function candidates(text){
     const s = String(text || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
-    const out = [];
+    const out = new Map();   // номер → кількість виправлень (менше — надійніше)
     for (let i = 0; i + 8 <= s.length; i++){
       const w = s.slice(i, i + 8).split('');
-      let ok = true;
-      for (const k of [0, 1, 7]) { if (TO_L[w[k]]) w[k] = TO_L[w[k]]; if (!L_OK.includes(w[k])) ok = false; }
-      if (TO_L[w[6]]) w[6] = TO_L[w[6]];
-      if (!(L_OK + 'ZVY').includes(w[6])) ok = false;
-      for (const k of [2, 3, 4, 5]) { if (TO_D[w[k]]) w[k] = TO_D[w[k]]; if (!/\d/.test(w[k])) ok = false; }
-      if (ok) out.push(toCyr(w.join('')));
+      let ok = true, fix = 0;
+      const toL = k => { if (TO_L[w[k]]) { w[k] = TO_L[w[k]]; fix++; } };
+      for (const k of [0, 1, 7]) { toL(k); if (!L_OK.includes(w[k])) ok = false; }
+      toL(6); if (!(L_OK + 'ZVY').includes(w[6])) ok = false;
+      for (const k of [2, 3, 4, 5]) { if (TO_D[w[k]]) { w[k] = TO_D[w[k]]; fix++; } if (!/\d/.test(w[k])) ok = false; }
+      if (!ok) continue;
+      const p = toCyr(w.join(''));
+      if (!out.has(p) || out.get(p) > fix) out.set(p, fix);
     }
-    return [...new Set(out)];
+    const best = Math.min(...out.values());
+    return [...out].filter(([, f]) => f === best).map(([p]) => p);
   }
 
   // підготовка: збільшити, у сірий, підсилити контраст — Tesseract краще читає чорне на білому
