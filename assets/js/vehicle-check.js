@@ -273,9 +273,17 @@ function summary(r){
   function mount(el, q){
     if (!el) return;
     el.innerHTML = '<div class="row" style="gap:8px"><input class="input" id="vcQ" placeholder="Номер (АА1234ВВ) або VIN" autocomplete="off" autocapitalize="characters" style="flex:1;min-width:0;text-transform:uppercase">' +
+      '<button class="btn btn-ghost" type="button" id="vcCam" aria-label="Сфотографувати номер" title="Сфотографувати номер" style="padding-left:12px;padding-right:12px"><i class="ti ti-camera" style="margin:0"></i></button>' +
       '<button class="btn btn-primary" type="button" id="vcGo"><i class="ti ti-search"></i>Перевірити</button></div><div id="vcRes" style="margin-top:1rem"></div>';
     const i = document.getElementById('vcQ'), go = () => search(i.value, document.getElementById('vcRes'));
     document.getElementById('vcGo').onclick = go;
+    // номер з камери: скрипт розпізнавання вантажимо лише за потреби
+    document.getElementById('vcCam').onclick = async () => {
+      try{
+        if (typeof PlateScan === 'undefined') await loadScript('/assets/js/plate-scan.js');
+        PlateScan.open(plate => { i.value = plate; i.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' })); });
+      }catch(e){ alert('Камера недоступна — введіть номер вручну.'); }
+    };
     i.addEventListener('keydown', e => { if (e.key === 'Enter') go(); });
     if (q){ i.value = q; go(); }
   }
