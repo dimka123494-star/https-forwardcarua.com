@@ -9,7 +9,7 @@ on:
         default: ''
   push:
     branches: [main]
-    paths: ['tools/vehicles_import.py', '.github/workflows/vehicles.yml']
+    paths: ['tools/vehicles_import.py', '.github/workflows/vehicles-import.yml']
 permissions:
   contents: write
 concurrency: vehicles-import
