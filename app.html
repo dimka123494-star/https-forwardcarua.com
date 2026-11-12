@@ -206,7 +206,13 @@ window.addEventListener('appinstalled', () => { box.style.display = 'none'; try{
 if (standalone) try{ track('pwa_open', {}); }catch(e){}
 
 // ---- service worker ----
-if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => {}));
+if ('serviceWorker' in navigator) {
+  // нова версія застосунку → один раз перезавантажити сторінку, щоб одразу показати оновлення
+  const hadSW = !!navigator.serviceWorker.controller; let reloaded = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => { if (hadSW && !reloaded) { reloaded = true; location.reload(); } });
+  window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').then(r => r.update()).catch(() => {}));
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) navigator.serviceWorker.getRegistration().then(r => r && r.update()).catch(() => {}); });
+}
 
 tab(params.get('tab') || (params.get('q') ? 'auto' : store.get('apTab', 'auto')));
 </script>
