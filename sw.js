@@ -4,7 +4,7 @@
    - /assets/: віддаємо з кешу й тихо оновлюємо у фоні (stale-while-revalidate);
    - запити до Supabase, WayForPay, CDN та інших доменів не чіпаємо: дані перевірок завжди свіжі.
    Змінили оболонку — підніміть VERSION, і старий кеш прибереться. */
-const VERSION = 'mb-app-v10';
+const VERSION = 'mb-app-v11';
 const SHELL = ['/app', '/offline.html', '/assets/css/app.css', '/assets/js/config.js', '/assets/js/db.js',
   '/assets/js/vehicle-check.js', '/assets/js/plate-scan.js', '/assets/js/car-photos.js', '/assets/js/company-check.js', '/assets/js/pdf-snap.js',
   '/assets/icons/icon-192.png', '/assets/icons/icon-512.png', '/manifest.webmanifest'];

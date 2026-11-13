@@ -99,13 +99,20 @@ const VehicleCheck = (() => {
       if (a.added) t.push(tile('Оголошення від', date(String(a.added).slice(0, 10)), 'calendar'));
       if (a.city) t.push(tile('Місто', a.city, 'map-pin'));
       if (a.sold) t.push(tile('Статус', 'Продано ' + date(String(a.sold).slice(0, 10)), 'check'));
-    } else if (p.mileage) t.push(tile('Пробіг з оголошення', p.mileage.replace(/^Пробіг /, ''), 'gauge'));
+    } else {
+      // архів оголошень за рік (пошук за VIN / номером): «Пробіг від 97 до 97 тис.км» → «97 тис. км»
+      const mm = String(p.mileage || '').match(/від\s*(\d+)\s*до\s*(\d+)/);
+      if (p.mileage) t.push(tile('Пробіг у попередньому оголошенні', mm ? (mm[1] === mm[2] ? mm[1] : mm[1] + '–' + mm[2]) + ' тис. км' : p.mileage.replace(/^Пробіг /, ''), 'gauge'));
+      if (p.region) t.push(tile('Продавали в області', p.region, 'map-pin'));
+      if (p.color) t.push(tile('Колір в оголошенні', p.color, 'palette'));
+      if (p.drive) t.push(tile('Привід', p.drive, 'steering-wheel'));
+    }
     if (p.modification) t.push(tile('Модифікація', p.modification, 'engine'));
     if (p.generation) t.push(tile('Покоління', p.generation, 'versions'));
     const ph = a && a.photos && a.photos.length ? '<div class="vc-gal">' + a.photos.map(u => '<a href="' + esc(u) + '" target="_blank" rel="noopener"><img src="' + esc(u) + '" loading="lazy" alt=""></a>').join('') + '</div>' : '';
-    return '<h4 class="vc-h">Оголошення на AUTO.RIA</h4>' + ph + '<div class="vc-tiles">' + t.join('') + '</div>' +
+    return '<h4 class="vc-h">' + (a ? 'Оголошення на AUTO.RIA' : 'Авто продавали на AUTO.RIA') + '</h4>' + ph + '<div class="vc-tiles">' + t.join('') + '</div>' +
       (a && a.url ? '<a class="btn btn-ghost btn-sm" style="margin-top:.6rem" href="' + esc(a.url) + '" target="_blank" rel="noopener"><i class="ti ti-external-link"></i>Відкрити оголошення</a>' : '') +
-      '<p class="text-xs text-muted" style="margin:.5rem 0 0">Дані й фото — з оголошення про продаж на AUTO.RIA. Порівняйте пробіг із тим, що каже продавець.</p>';
+      '<p class="text-xs text-muted" style="margin:.5rem 0 0">' + (a ? 'Дані й фото — з оголошення про продаж на AUTO.RIA.' : 'Дані з оголошення про продаж цього авто на AUTO.RIA за останній рік (саме оголошення вже зняте).') + ' Порівняйте пробіг із тим, що каже продавець.</p>';
   }
   function title(s){ return String(s || '').toLowerCase().replace(/(^|[\s\-,(])(\S)/g, (m, a, b) => a + b.toUpperCase()); }
 
@@ -201,7 +208,7 @@ const VehicleCheck = (() => {
         row(r.history_partial ? 'Перший запис з цим номером' : 'В Україні з', date(r.first_date)) + row('Змін власника', r.owner_changes) + row('Ввезено з-за кордону', r.imported ? date(r.imported) : '') + row('Екологічний стандарт', r.euro ? r.euro + ' (орієнтовно)' : '') +
         (r.vin_info ? row('Країна виробництва', [r.vin_info.country, r.vin_info.plant_city].filter(Boolean).join(', ')) + row('Виробник', r.vin_info.maker) + row('Модельний рік', r.vin_info.model_year) +
           row('Авто для ринку', r.vin_info.market) + row('Двигун (за VIN)', r.vin_info.engine ? r.vin_info.engine + (r.vin_info.power_hp ? ', ' + r.vin_info.power_hp + ' к.с.' : '') : '') + row('Привід', r.vin_info.drive) + row('Коробка передач', r.vin_info.transmission) : '') +
-        (r.ria && r.ria.ad ? row('Пробіг в оголошенні AUTO.RIA', r.ria.ad.mileage_k != null ? r.ria.ad.mileage_k + ' тис. км' : '') + row('Ціна в оголошенні', r.ria.ad.usd ? '$' + r.ria.ad.usd : '') + row('Оголошення від', r.ria.ad.added ? date(String(r.ria.ad.added).slice(0, 10)) : '') : '') + '</table>' +
+        (r.ria && r.ria.ad ? row('Пробіг в оголошенні AUTO.RIA', r.ria.ad.mileage_k != null ? r.ria.ad.mileage_k + ' тис. км' : '') + row('Ціна в оголошенні', r.ria.ad.usd ? '$' + r.ria.ad.usd : '') + row('Оголошення від', r.ria.ad.added ? date(String(r.ria.ad.added).slice(0, 10)) : '') : r.ria && r.ria.params ? row('Пробіг у попередньому оголошенні AUTO.RIA', r.ria.params.mileage) : '') + '</table>' +
       (hist ? '<div style="font-size:15px;font-weight:700;margin:16px 0 6px">Історія реєстраційних операцій</div><table style="width:100%;border-collapse:collapse">' + hist + '</table>' : '') +
       '<div style="margin-top:18px;padding-top:10px;border-top:1px solid #e5e7eb;color:#6b7280;font-size:10px;line-height:1.5">Джерело — відкриті дані Головного сервісного центру МВС (data.gov.ua): «Відомості про транспортні засоби та їх власників», «Транспортні засоби в розшуку». ' +
         'Імена, адреси й контакти власників не публікуються. Оригінал звіту: ' + esc(url) + '</div></div>';
