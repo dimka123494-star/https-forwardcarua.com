@@ -394,3 +394,7 @@ button.card{color:var(--text);font:inherit;-webkit-appearance:none;appearance:no
   background:var(--green);color:#06120c;font-weight:700;text-decoration:none;box-shadow:0 8px 24px rgba(0,0,0,.35);transition:opacity .2s,transform .2s}
 .vc-fab.hide{opacity:0;transform:translateY(20px);pointer-events:none}
 body.ap .vc-fab{bottom:calc(84px + env(safe-area-inset-bottom))}
+
+.vc-gal{display:flex;gap:8px;overflow-x:auto;scroll-snap-type:x mandatory;margin-bottom:8px;-webkit-overflow-scrolling:touch}
+.vc-gal a{flex:none;scroll-snap-align:start}
+.vc-gal img{display:block;height:170px;width:auto;border-radius:var(--r-sm);background:var(--surface)}

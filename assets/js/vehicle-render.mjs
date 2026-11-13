@@ -47,7 +47,7 @@ export function renderVehicle(r) {
   const ORIGIN = { import: ["Ввезено з-за кордону", "world"], new: ["Новим · перша реєстрація в Україні", "sparkles"], dealer: ["Куплено в автосалоні", "building-store"] };
   const o = ORIGIN[r.origin];
   const histTiles = [lock(r.history_partial ? "Перший запис з цим номером" : "Дата першої реєстрації", "12.03.2019", "calendar-event"), lock("Змін власника", "3", "users"),
-    o ? lock(o[0], "05.08.2018", o[1]) : "", r.locked && r.locked.euro ? lock("Екологічний стандарт", "Євро-5", "leaf") : ""].join("");
+    o ? lock(o[0], "05.08.2018", o[1]) : "", r.locked && r.locked.euro ? lock("Екологічний стандарт", "Євро-5", "leaf") : "", r.locked && r.locked.ria ? lock("Фото й пробіг з AUTO.RIA", "186 тис. км", "photo") : ""].join("");
   const vinTiles = [r.vin_masked ? `<a class="vc-tile vc-locked" href="#vcBuyMount"><span><i class="ti ti-barcode"></i>VIN</span><b>${esc(r.vin_masked)}<i class="ti ti-lock"></i></b></a>` : "",
     vi.country ? tile("Країна виробництва", [vi.country, vi.plant_city ? title(vi.plant_city) : ""].filter(Boolean).join(", "), "world") : "",
     vi.maker ? tile("Виробник", title(vi.maker), "building-factory") : "", vi.model_year ? tile("Модельний рік", vi.model_year, "calendar") : "",
