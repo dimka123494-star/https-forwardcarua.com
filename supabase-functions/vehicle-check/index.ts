@@ -298,6 +298,30 @@ async function riaParams(omni: string) {
   return { mileage: pick("mileage"), modification: pick("modificationId"), generation: pick("generationId"), gearbox: pick("gearBoxId"), drive: pick("driveId"),
     color: pick("colorId"), region: pick("stateId"), notice: d?.noticeData?.[0]?.noticeString ?? null, search_url: d?.chipsData?.link?.url ?? null };
 }
+// кожне оголошення, яке ми бачили, зберігаємо назавжди — так накопичується історія оголошень після їх зняття
+function adCompact(id: string, m: any, photos: string[] | null) {
+  return { id, url: m.linkToView ? "https://auto.ria.com/uk" + m.linkToView : null, title: m.title ?? null,
+    usd: m.USD ?? null, uah: m.UAH ?? null, mileage_k: m.autoData?.raceInt ?? null, added: m.addDate ?? null, updated: m.updateDate ?? null,
+    sold: m.soldDate || null, city: m.locationCityName ?? null, gearbox: m.autoData?.gearboxName ?? null, fuel: m.autoData?.fuelName ?? null,
+    photos: photos && photos.length ? photos : (m.photoData?.seoLinkF ? [m.photoData.seoLinkF] : []), main_photo: m.photoData?.seoLinkF ?? null,
+    photo_count: m.photoData?.count ?? null };
+}
+async function archiveAds(rows: { id: string; m: any; photos?: string[] | null }[]) {
+  const recs = rows.filter((r) => r && r.m).map(({ id, m, photos }) => ({
+    auto_id: String(id), vin: m.VIN ? String(m.VIN).toUpperCase() : null, plate: m.plateNumberData?.text ? normPlate(m.plateNumberData.text) : null,
+    data: adCompact(String(id), m, photos ?? null), last_seen: new Date().toISOString() }));
+  if (!recs.length) return;
+  // фото збереженого раніше оголошення не затираємо коротшим списком
+  const { data: old } = await sb().from("ria_ads_archive").select("auto_id, data").in("auto_id", recs.map((r) => r.auto_id));
+  for (const r of recs) { const o = (old ?? []).find((x: any) => x.auto_id === r.auto_id); if (o && (o.data?.photos?.length ?? 0) > r.data.photos.length) r.data.photos = o.data.photos; }
+  await sb().from("ria_ads_archive").upsert(recs, { onConflict: "auto_id" });
+}
+async function riaHistory(plate: string | null, vin: string | null) {
+  const or = [vin ? `vin.eq.${vin}` : null, plate ? `plate.eq.${normPlate(plate)}` : null].filter(Boolean).join(",");
+  if (!or) return [];
+  const { data } = await sb().from("ria_ads_archive").select("data, first_seen, last_seen").or(or).order("first_seen", { ascending: false }).limit(10);
+  return (data ?? []).map((x: any) => ({ ...x.data, first_seen: x.first_seen, last_seen: x.last_seen }));
+}
 async function riaFind(plate: string | null, vin: string | null, veh: any) {
   if (!RIA_KEY || (!plate && !vin)) return null;
   const ck = "ad:" + (vin || plate);
@@ -310,24 +334,32 @@ async function riaFind(plate: string | null, vin: string | null, veh: any) {
     const modelId = markId && veh.model ? await riaModelId(markId, veh.model) : null;
     const y = Number(veh.year) || 0;
     if (markId && modelId && y) {
-      const sr = await riaGet("/search", `category_id=1&marka_id[0]=${markId}&model_id[0]=${modelId}&s_yers[0]=${y - 1}&po_yers[0]=${y + 1}&countpage=100`);
-      const ids: string[] = (sr?.result?.search_result?.ids ?? []).slice(0, 25);
+      const base = `category_id=1&marka_id[0]=${markId}&model_id[0]=${modelId}&s_yers[0]=${y - 1}&po_yers[0]=${y + 1}&countpage=100`;
+      // якщо платний пошук за VIN дав область, коробку й обʼєм — спершу вузький пошук (кілька оголошень замість сотні)
+      let narrow = "";
+      const su = out.params?.search_url ? new URL(out.params.search_url) : null;
+      if (su) {
+        const q = (k: string) => su.searchParams.get(k);
+        if (q("region.id[0]")) narrow += `&state[0]=${q("region.id[0]")}&city[0]=0`;
+        if (q("gearbox.id[0]")) narrow += `&gearbox[0]=${q("gearbox.id[0]")}`;
+        if (q("engine.gte")) narrow += `&engineVolumeFrom=${q("engine.gte")}&engineVolumeTo=${q("engine.lte") || q("engine.gte")}`;
+      }
+      const lists = await Promise.all([narrow ? riaGet("/search", base + narrow).catch(() => null) : null, riaGet("/search", base)]);
+      const ids: string[] = [...new Set(lists.flatMap((r: any) => r?.result?.search_result?.ids ?? []))].slice(0, 30) as string[];
       const P = plate ? normPlate(plate) : null;
       // перебираємо оголошення: збіг за VIN або держномером
       for (let i = 0; i < ids.length && !out.ad; i += 5) {
         const infos = await Promise.all(ids.slice(i, i + 5).map((id) => riaGet("/info", `auto_id=${id}`).then((a: any) => a && { ...a, _id: id }).catch(() => null)));
         const m: any = infos.find((a: any) => a && ((vin && String(a.VIN || "").toUpperCase() === vin) || (P && a.plateNumberData?.text && normPlate(a.plateNumberData.text) === P)));
+        let photos: string[] | null = null;
         if (m) {
           const ph = await riaGet(`/fotos/${m._id}`).catch(() => null);
           const list = Object.values(ph?.data ?? {}).flatMap((x: any) => Object.values(x)) as any[];
           list.sort((a, b) => (b.isMain ? 1 : 0) - (a.isMain ? 1 : 0) || (a.sortingIndex ?? 0) - (b.sortingIndex ?? 0));
-          out.ad = { id: m._id, url: m.linkToView ? "https://auto.ria.com/uk" + m.linkToView : null, title: m.title ?? null,
-            usd: m.USD ?? null, uah: m.UAH ?? null, mileage_k: m.autoData?.raceInt ?? null, added: m.addDate ?? null, updated: m.updateDate ?? null,
-            sold: m.soldDate || null, city: m.locationCityName ?? null, gearbox: m.autoData?.gearboxName ?? null, fuel: m.autoData?.fuelName ?? null,
-            photos: list.map((x) => x.formats?.[0]).filter(Boolean).slice(0, 12),
-            main_photo: m.photoData?.seoLinkF ?? null };
-          if (!out.ad.photos.length && out.ad.main_photo) out.ad.photos = [out.ad.main_photo];
+          photos = list.map((x) => x.formats?.[0]).filter(Boolean).slice(0, 12);
+          out.ad = adCompact(m._id, m, photos);
         }
+        await archiveAds(infos.filter(Boolean).map((a: any) => ({ id: a._id, m: a, photos: m && a._id === m._id ? photos : null }))).catch((e) => console.error("archive:", String(e)));
       }
     }
     out.found = !!(out.ad || out.params);
@@ -378,6 +410,11 @@ async function buildReport(pq: { q: string; vin: boolean }, full: boolean) {
   if (!full) return summary;
   const [allPlates, ria] = await Promise.all([main.vin ? vplates(main.vin).catch(() => []) : Promise.resolve([]),
     riaFind(pq.vin ? null : pq.q, main.vin || (pq.vin ? pq.q : null), veh).catch(() => null)]);
+  if (ria) {
+    const hist = await riaHistory(pq.vin ? null : pq.q, main.vin || (pq.vin ? pq.q : null)).catch(() => []);
+    ria.history = hist.filter((h: any) => !ria.ad || h.id !== ria.ad.id);
+    if (ria.history.length) ria.found = true;
+  }
   delete summary.locked;
   return {
     ...summary, full: true, vin: main.vin || null, euro, euro_note: "орієнтовно, за роком випуску; у перехідні роки залежить від моделі",

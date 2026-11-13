@@ -91,7 +91,13 @@ const VehicleCheck = (() => {
   // оголошення про продаж на AUTO.RIA: фото, пробіг, ціна (лише в повному звіті)
   function riaBlock(r){
     const x = r.ria; if (!x) return '';
-    if (!x.found) return '<p class="text-xs text-muted" style="margin:1rem 0 0">На AUTO.RIA оголошень про продаж цього авто не знайдено.</p>';
+    if (!x.found && !(x.history || []).length) return '<p class="text-xs text-muted" style="margin:1rem 0 0">На AUTO.RIA оголошень про продаж цього авто не знайдено.</p>';
+    // попередні оголошення з нашого архіву (оголошення, які ми бачили раніше, навіть якщо їх уже зняли)
+    const hist = (x.history || []).map(h => '<a class="vc-adh" href="' + esc(h.url || '#') + '" target="_blank" rel="noopener">' +
+      (h.photos && h.photos[0] ? '<img src="' + esc(h.photos[0]) + '" loading="lazy" alt="">' : '<span class="vc-adh-ph"><i class="ti ti-photo-off"></i></span>') +
+      '<span><b>' + (h.usd ? '$' + Number(h.usd).toLocaleString('uk-UA') : 'Ціна —') + '</b>' + (h.mileage_k != null ? ' · ' + h.mileage_k + ' тис. км' : '') +
+      '<br><small>' + (h.added ? 'від ' + date(String(h.added).slice(0, 10)) : '') + (h.city ? ' · ' + esc(h.city) : '') + (h.sold ? ' · продано' : '') + '</small></span></a>').join('');
+    const histHtml = hist ? '<h4 class="vc-h">Попередні оголошення</h4><div class="vc-adhs">' + hist + '</div>' : '';
     const a = x.ad, p = x.params || {}, t = [];
     if (a){
       if (a.mileage_k != null) t.push(tile('Пробіг в оголошенні', a.mileage_k + ' тис. км', 'gauge'));
@@ -112,6 +118,7 @@ const VehicleCheck = (() => {
     const ph = a && a.photos && a.photos.length ? '<div class="vc-gal">' + a.photos.map(u => '<a href="' + esc(u) + '" target="_blank" rel="noopener"><img src="' + esc(u) + '" loading="lazy" alt=""></a>').join('') + '</div>' : '';
     return '<h4 class="vc-h">' + (a ? 'Оголошення на AUTO.RIA' : 'Авто продавали на AUTO.RIA') + '</h4>' + ph + '<div class="vc-tiles">' + t.join('') + '</div>' +
       (a && a.url ? '<a class="btn btn-ghost btn-sm" style="margin-top:.6rem" href="' + esc(a.url) + '" target="_blank" rel="noopener"><i class="ti ti-external-link"></i>Відкрити оголошення</a>' : '') +
+      histHtml +
       '<p class="text-xs text-muted" style="margin:.5rem 0 0">' + (a ? 'Дані й фото — з оголошення про продаж на AUTO.RIA.' : 'Дані з оголошення про продаж цього авто на AUTO.RIA за останній рік (саме оголошення вже зняте).') + ' Порівняйте пробіг із тим, що каже продавець.</p>';
   }
   function title(s){ return String(s || '').toLowerCase().replace(/(^|[\s\-,(])(\S)/g, (m, a, b) => a + b.toUpperCase()); }
