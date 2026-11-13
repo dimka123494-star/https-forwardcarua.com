@@ -158,7 +158,18 @@ const VehicleCheck = (() => {
   }
 
   async function prefill(){
-    try{ const u = await currentUser(); if (u){ const e = document.getElementById('vcEmail'); if (e && !e.value) e.value = u.email || ''; const b = await getMyBroker(); if (b) document.getElementById('vcCab').style.display = ''; } }catch(e){}
+    try{
+      const u = await currentUser(); if (!u) return;
+      const e = document.getElementById('vcEmail'); if (e && !e.value) e.value = u.email || '';
+      const b = await getMyBroker(); if (b) document.getElementById('vcCab').style.display = '';
+      // адміністратор: повний звіт без оплати (сервер теж не списує з адміна — vehicle_check_charge)
+      if (typeof isAdmin === 'function' && await isAdmin(u)){
+        const btn = document.getElementById('vcBtn');
+        if (btn) btn.innerHTML = '<i class="ti ti-shield-check"></i>Відкрити повний звіт · адмін, безкоштовно';
+        const card = document.getElementById('vcCard'); if (card) card.style.display = 'none';
+        const f = document.querySelector('.vc-fab'); if (f) f.innerHTML = '<i class="ti ti-shield-check"></i>Повний звіт · адмін';
+      }
+    }catch(e){}
   }
   // сторінка /avto/{номер}: довідка вже на сторінці — лише блок покупки повного звіту
   async function mountBuy(el, r){
