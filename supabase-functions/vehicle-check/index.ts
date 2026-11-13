@@ -247,8 +247,12 @@ function euroClass(fuel: string | null, year: number | null) {
   const f = String(fuel || "").toUpperCase();
   if (/ЕЛЕКТР/.test(f) && !/БЕНЗ|ДИЗ|ГАЗ/.test(f)) return "Без викидів (електро)";
   if (!year) return null;
-  const e = year >= 2015 ? 6 : year >= 2011 ? 5 : year >= 2006 ? 4 : year >= 2001 ? 3 : year >= 1997 ? 2 : year >= 1993 ? 1 : 0;
-  return "Євро-" + e;
+  // норми ЄС: спершу обовʼязкові для нових моделей, через 1–2 роки — для всіх нових авто;
+  // у перехідні роки клас залежить від моделі (напр. Євро-5: нові моделі з 09.2009, усі авто з 01.2011)
+  const T: [number, number, number][] = [[1, 1992, 1993], [2, 1996, 1997], [3, 2000, 2001], [4, 2005, 2006], [5, 2009, 2011], [6, 2014, 2016]];
+  let e = 0, mid = 0;
+  for (const [k, from, all] of T) { if (year >= all) e = k; else if (year >= from) mid = k; }
+  return mid > e ? `Євро-${e} або Євро-${mid}` : "Євро-" + e;
 }
 
 async function buildReport(pq: { q: string; vin: boolean }, full: boolean) {
@@ -291,7 +295,7 @@ async function buildReport(pq: { q: string; vin: boolean }, full: boolean) {
   const allPlates = main.vin ? await vplates(main.vin).catch(() => []) : [];
   delete summary.locked;
   return {
-    ...summary, full: true, vin: main.vin || null, euro, euro_note: "орієнтовно, за роком випуску",
+    ...summary, full: true, vin: main.vin || null, euro, euro_note: "орієнтовно, за роком випуску; у перехідні роки залежить від моделі",
     first_date: d8(evs[0][0]), owner_changes: owners,
     imported: imported ? d8(imported[0]) : null, new_in_ua: isNew ? d8(isNew[0]) : null, dealer: dealer ? d8(dealer[0]) : null, plates: allPlates.length ? allPlates : (pq.vin ? [] : [pq.q]),
     wanted: hits === null ? null : { found: hits.length > 0, items: hits.slice(0, 5) },
