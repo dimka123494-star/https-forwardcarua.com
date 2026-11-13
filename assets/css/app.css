@@ -377,3 +377,20 @@ button.card{color:var(--text);font:inherit;-webkit-appearance:none;appearance:no
 .app-promo-qr img{display:block;border-radius:8px;background:#fff}
 .app-promo-btn{display:none}
 @media (max-width:760px),(pointer:coarse){.app-promo-qr{display:none}.app-promo-btn{display:inline-flex}}
+
+/* картка авто: плитки, замки, плаваюча кнопка оплати */
+.vc-h{font-size:15px;margin:1.1rem 0 .5rem}
+.vc-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
+.vc-tile{display:block;background:var(--surface);border:.5px solid var(--border);border-radius:var(--r-sm);padding:9px 11px;color:inherit;text-decoration:none}
+.vc-tile span{display:flex;gap:6px;align-items:center;font-size:12px;color:var(--muted)}
+.vc-tile span i{font-size:15px;color:var(--green)}
+.vc-tile b{display:flex;gap:8px;align-items:center;justify-content:space-between;margin-top:3px;font-size:14px;word-break:break-word}
+.vc-locked{cursor:pointer}
+.vc-locked b em{font-style:normal;filter:blur(6px);user-select:none;-webkit-user-select:none;pointer-events:none}
+.vc-locked b>i{color:var(--red);font-size:18px;flex:none}
+.vc-locked:hover{border-color:var(--green)}
+.vc-histbtn{margin-top:1rem}
+.vc-fab{position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom));z-index:60;display:inline-flex;gap:8px;align-items:center;padding:12px 18px;border-radius:999px;
+  background:var(--green);color:#06120c;font-weight:700;text-decoration:none;box-shadow:0 8px 24px rgba(0,0,0,.35);transition:opacity .2s,transform .2s}
+.vc-fab.hide{opacity:0;transform:translateY(20px);pointer-events:none}
+body.ap .vc-fab{bottom:calc(84px + env(safe-area-inset-bottom))}

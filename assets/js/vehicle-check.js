@@ -64,29 +64,70 @@ const VehicleCheck = (() => {
   const wItem = x => '<div class="text-xs" style="margin-top:6px;line-height:1.6">' + Object.entries(x).filter(([k, v]) => v && W_KEYS[k]).map(([k, v]) =>
     W_KEYS[k] + ': <b>' + esc(/date$/.test(k) ? date(String(v).slice(0, 10)) : v) + '</b>').join(' · ') + '</div>';
   const wAlert = w => '<div class="msg show msg-err" style="margin:0 0 1rem"><b>Авто є в базі розшуку МВС</b> — не купуйте й не оформлюйте його без перевірки в сервісному центрі МВС' + (w.items || []).map(wItem).join('') + '</div>';
-function summary(r){
+  // плитки: відкрита й під замком (розмитий приклад — не справжні дані)
+  const tile = (l, v, ic) => '<div class="vc-tile"><span>' + (ic ? '<i class="ti ti-' + ic + '"></i>' : '') + l + '</span><b>' + esc(v) + '</b></div>';
+  const lockTile = (l, fake, ic) => '<a class="vc-tile vc-locked" href="#vcBuy" onclick="return VehicleCheck.toBuy()"><span>' + (ic ? '<i class="ti ti-' + ic + '"></i>' : '') + l + '</span><b><em>' + fake + '</em><i class="ti ti-lock"></i></b></a>';
+  const ORIGIN = { import: ['Ввезено з-за кордону', 'world'], new: ['Новим · перша реєстрація в Україні', 'sparkles'], dealer: ['Куплено в автосалоні', 'building-store'] };
+  function vinBlock(r, full){
+    const i = r.vin_info; if (!i && !r.vin_masked && !r.vin) return '';
+    const rows = [];
+    if (i){
+      if (i.country) rows.push(tile('Країна виробництва', [i.country, i.plant_city ? title(i.plant_city) : ''].filter(Boolean).join(', '), 'world'));
+      if (i.maker) rows.push(tile('Виробник', title(i.maker), 'building-factory'));
+      if (i.model_year) rows.push(tile('Модельний рік', i.model_year, 'calendar'));
+      if (full){
+        if (i.market) rows.push(tile('Авто для ринку', i.market, 'map-pin'));
+        if (i.model) rows.push(tile('Модель (за VIN)', [i.make, i.model, i.series && i.series.length < 20 ? i.series : '', i.trim].filter(Boolean).join(' '), 'car'));
+        if (i.engine) rows.push(tile('Двигун', i.engine + (i.power_hp ? ', ' + i.power_hp + ' к.с.' : ''), 'engine'));
+        if (i.drive) rows.push(tile('Привід', i.drive, 'steering-wheel'));
+        if (i.transmission) rows.push(tile('Коробка передач', i.transmission, 'manual-gearbox'));
+        if (i.body) rows.push(tile('Кузов (за VIN)', i.body, 'car-suv'));
+        if (i.plant) rows.push(tile('Завод', i.plant, 'building-factory-2'));
+      } else if (i.market_known) rows.push(lockTile('Авто для ринку', 'Північна Америка', 'map-pin'));
+    }
+    const vin = full && r.vin ? tile('VIN', r.vin, 'barcode') : r.vin_masked ? '<a class="vc-tile vc-locked" href="#vcBuy" onclick="return VehicleCheck.toBuy()"><span><i class="ti ti-barcode"></i>VIN</span><b>' + esc(r.vin_masked) + '<i class="ti ti-lock"></i></b></a>' : '';
+    return '<h4 class="vc-h">Розшифрування VIN</h4><div class="vc-tiles">' + vin + rows.join('') + '</div>';
+  }
+  function title(s){ return String(s || '').toLowerCase().replace(/(^|[\s\-,(])(\S)/g, (m, a, b) => a + b.toUpperCase()); }
+
+  function summary(r){
     if (!r.found && r.wanted && r.wanted.found) return wAlert(r.wanted) + '<p class="text-xs text-muted">У реєстраційних даних МВС за «' + esc(r.q) + '» записів немає — дані з бази транспорту в розшуку.</p>';
     if (!r.found) return '<div class="card"><h3 style="margin:0 0 .4rem">Нічого не знайдено</h3><p class="text-sm text-muted" style="margin:0">За «' + esc(r.q) + '» немає записів у реєстраційних даних МВС' +
       (r.data_until ? ' (2013–' + esc(r.data_until) + ')' : '') + '. Перевірте номер: у старих форматах і транзитних номерах бувають розбіжності. Для авто, ввезеного недавно, дані можуть ще не бути опубліковані.</p></div>';
-    const v = r.vehicle || {};
+    const v = r.vehicle || {}, L = r.locked || {};
     const flags = [];
-    flags.push(r.owner_changes ? '<span class="vc-flag">Змін власника: <b>' + r.owner_changes + '</b></span>' : '<span class="vc-flag ok">Змін власника не зафіксовано</span>');
-    if (r.imported) flags.push('<span class="vc-flag">Ввезено з-за кордону · ' + date(r.imported) + '</span>');
-    if (r.new_in_ua) flags.push('<span class="vc-flag ok">Новим · перша реєстрація ' + date(r.new_in_ua) + '</span>');
-    if (r.dealer) flags.push('<span class="vc-flag">Куплено в автосалоні · ' + date(r.dealer) + '</span>');
-    if (r.wanted_flag) flags.unshift('<span class="vc-flag bad"><b>У базі розшуку МВС</b></span>');
+    if (r.wanted_flag) flags.push('<span class="vc-flag bad"><b>У базі розшуку МВС</b></span>');
     else if (r.wanted_flag === false) flags.push('<span class="vc-flag ok">Не в розшуку</span>');
     if (r.deregistered) flags.push('<span class="vc-flag bad">Знято з обліку</span>');
     if (r.other_vehicles) flags.push('<span class="vc-flag">Цей номер мали ще ' + r.other_vehicles + ' авто</span>');
+    const o = ORIGIN[r.origin];
+    const hist = [
+      lockTile(r.history_partial ? 'Перший запис з цим номером' : 'Дата першої реєстрації', '12.03.2019', 'calendar-event'),
+      lockTile('Змін власника', '3', 'users'),
+      o ? lockTile(o[0], '05.08.2018', o[1]) : '',
+      L.euro ? lockTile('Екологічний стандарт', 'Євро-5', 'leaf') : '',
+    ].join('');
     return '<div class="card vc-card">' +
       '<div class="text-xs text-muted">' + (r.by === 'vin' ? 'VIN ' : 'Номер ') + esc(r.q) + '</div>' +
       photoSlot(v) +
-      '<h3 style="margin:.2rem 0 0;font-size:22px">' + (vline(v) || 'Транспортний засіб') + '</h3>' + (r.vin_masked ? '<div class="text-xs text-muted" style="margin-top:4px">VIN ' + esc(r.vin_masked) + '</div>' : '') +
-      '<div class="vc-meta">' + (r.history_partial ? 'Перший запис з цим номером: ' : 'В Україні з ') + date(r.first_date) + ' · операцій у реєстрі: <b style="color:var(--text)">' + r.events + '</b>' +
+      '<h3 style="margin:.2rem 0 0;font-size:22px">' + (vline(v) || 'Транспортний засіб') + '</h3>' +
+      '<div class="vc-meta">Операцій у реєстрі МВС: <b style="color:var(--text)">' + r.events + '</b>' +
         (r.by === 'plate' && /^[А-ЯІЇЄ]{2}\d{4}[А-ЯІЇЄZV][А-ЯІЇЄ]$/.test(r.q) ? ' · <a href="/avto/' + encodeURIComponent(r.q) + '">сторінка авто</a>' : '') + '</div>' +
-      '<div class="vc-flags">' + flags.join('') + '</div>' + specs(v) + (r.by === 'plate' ? '<div class="cp-mount" data-compact="1" data-plate="' + esc(r.q) + '"></div>' : '') +
-      '<div class="text-sm" style="margin-top:.75rem">Остання операція: <b>' + date(r.last.date) + '</b> — ' + esc(cap(r.last.op) || 'реєстраційна операція') + (r.last.region ? ' · ' + esc(r.last.region) : '') + (r.last.owner ? ' · власник — ' + esc(r.last.owner) : '') + '</div>' +
-      '</div>' + buyBox(r);
+      (flags.length ? '<div class="vc-flags">' + flags.join('') + '</div>' : '') + specs(v) +
+      '<h4 class="vc-h">Історія авто</h4><div class="vc-tiles">' + hist + '</div>' +
+      vinBlock(r, false) +
+      (r.by === 'plate' ? '<div class="cp-mount" data-compact="1" data-plate="' + esc(r.q) + '"></div>' : '') +
+      '<h4 class="vc-h">Останній запис</h4><div class="vc-tiles">' + tile('Дата', date(r.last.date), 'calendar') + tile('Операція', cap(r.last.op) || 'Реєстраційна операція', 'file-text') +
+        (r.last.region ? tile('Регіон', r.last.region, 'map-pin') : '') + (r.last.owner ? tile('Власник', cap(r.last.owner), 'user') : '') + '</div>' +
+      '<a class="btn btn-ghost btn-block vc-histbtn" href="#vcBuy" onclick="return VehicleCheck.toBuy()"><i class="ti ti-lock"></i>Історія реєстрацій · ' + (L.history || r.events) + ' ' + plural(L.history || r.events, 'запис', 'записи', 'записів') + '</a>' +
+      '</div>' + buyBox(r) + '<a class="vc-fab" href="#vcBuy" onclick="return VehicleCheck.toBuy()"><i class="ti ti-shopping-cart"></i>Придбати · ' + price + ' грн</a>';
+  }
+  const plural = (n, a, b, c) => { n = Math.abs(n) % 100; const m = n % 10; return n > 10 && n < 20 ? c : m === 1 ? a : m > 1 && m < 5 ? b : c; };
+  function toBuy(){ const b = document.getElementById('vcBuy'); if (b) b.scrollIntoView({ behavior: 'smooth', block: 'start' }); return false; }
+  // плаваюча кнопка «Придбати» ховається, коли блок оплати вже на екрані
+  function watchFab(){
+    const b = document.getElementById('vcBuy'), f = document.querySelector('.vc-fab'); if (!b || !f || !window.IntersectionObserver) return;
+    new IntersectionObserver(es => es.forEach(e => f.classList.toggle('hide', e.isIntersecting))).observe(b);
   }
 
   async function prefill(){
@@ -97,6 +138,7 @@ function summary(r){
     if (!el || !r || !r.found) return;
     await loadPrice(); last = r;
     el.innerHTML = buyBox(r); prefill();
+    if (!document.querySelector('.vc-fab')){ document.body.insertAdjacentHTML('beforeend', '<a class="vc-fab" href="#vcBuy" onclick="return VehicleCheck.toBuy()"><i class="ti ti-shopping-cart"></i>Придбати · ' + price + ' грн</a>'); watchFab(); }
   }
 
   function buyBox(r){
@@ -136,7 +178,9 @@ function summary(r){
       '<table style="width:100%;border-collapse:collapse;margin-top:8px">' + row('VIN', r.vin) + row('Номерні знаки', (r.plates || []).join(', ')) + row('Марка й модель', [v.brand, v.model].filter(Boolean).join(' ')) +
         row('Рік випуску', v.year) + row('Колір', cap(v.color)) + row('Пальне', cap(v.fuel)) + row('Обʼєм двигуна', v.capacity ? v.capacity + ' см³' : '') +
         row('Тип / кузов', [cap(v.kind), cap(v.body)].filter(Boolean).join(', ')) + row('Власна / повна маса', v.own_weight ? v.own_weight + ' / ' + (v.total_weight || '—') + ' кг' : '') +
-        row(r.history_partial ? 'Перший запис з цим номером' : 'В Україні з', date(r.first_date)) + row('Змін власника', r.owner_changes) + row('Ввезено з-за кордону', r.imported ? date(r.imported) : '') + '</table>' +
+        row(r.history_partial ? 'Перший запис з цим номером' : 'В Україні з', date(r.first_date)) + row('Змін власника', r.owner_changes) + row('Ввезено з-за кордону', r.imported ? date(r.imported) : '') + row('Екологічний стандарт', r.euro ? r.euro + ' (орієнтовно)' : '') +
+        (r.vin_info ? row('Країна виробництва', [r.vin_info.country, r.vin_info.plant_city].filter(Boolean).join(', ')) + row('Виробник', r.vin_info.maker) + row('Модельний рік', r.vin_info.model_year) +
+          row('Авто для ринку', r.vin_info.market) + row('Двигун (за VIN)', r.vin_info.engine ? r.vin_info.engine + (r.vin_info.power_hp ? ', ' + r.vin_info.power_hp + ' к.с.' : '') : '') + row('Привід', r.vin_info.drive) + row('Коробка передач', r.vin_info.transmission) : '') + '</table>' +
       (hist ? '<div style="font-size:15px;font-weight:700;margin:16px 0 6px">Історія реєстраційних операцій</div><table style="width:100%;border-collapse:collapse">' + hist + '</table>' : '') +
       '<div style="margin-top:18px;padding-top:10px;border-top:1px solid #e5e7eb;color:#6b7280;font-size:10px;line-height:1.5">Джерело — відкриті дані Головного сервісного центру МВС (data.gov.ua): «Відомості про транспортні засоби та їх власників», «Транспортні засоби в розшуку». ' +
         'Імена, адреси й контакти власників не публікуються. Оригінал звіту: ' + esc(url) + '</div></div>';
@@ -175,8 +219,8 @@ function summary(r){
       '<div class="modal-sub" style="margin-bottom:.75rem">' + vline(v) + '</div>' + photoSlot(v) + wBlock +
       '<div class="text-sm" style="line-height:1.8">' + (r.vin ? 'VIN: <b>' + esc(r.vin) + '</b><br>' : '') +
         ((r.plates || []).length ? 'Номерні знаки: <b>' + r.plates.map(esc).join(', ') + '</b><br>' : '') +
-        (r.history_partial ? 'Перший запис з цим номером: ' : 'В Україні з ') + date(r.first_date) + ' · змін власника: <b>' + r.owner_changes + '</b>' + (r.imported ? ' · ввезено ' + date(r.imported) : '') + '</div>' + specs(v) + ((r.by === 'plate' ? r.q : (r.plates || [])[0]) ? '<div class="cp-mount" data-compact="1" data-plate="' + esc(r.by === 'plate' ? r.q : r.plates[0]) + '"></div>' : '') +
-      '<h3 style="font-size:16px;margin:1.25rem 0 .5rem">Історія реєстраційних операцій (' + (r.history || []).length + ')</h3><div class="vc-hist">' + hist + '</div>' + prev +
+        (r.history_partial ? 'Перший запис з цим номером: ' : 'В Україні з ') + date(r.first_date) + ' · змін власника: <b>' + r.owner_changes + '</b>' + (r.imported ? ' · ввезено ' + date(r.imported) : r.new_in_ua ? ' · новим ' + date(r.new_in_ua) : r.dealer ? ' · з автосалону ' + date(r.dealer) : '') + '</div>' + specs(v) + ((r.by === 'plate' ? r.q : (r.plates || [])[0]) ? '<div class="cp-mount" data-compact="1" data-plate="' + esc(r.by === 'plate' ? r.q : r.plates[0]) + '"></div>' : '') +
+      (r.euro ? '<div class="vc-tiles" style="margin-top:.75rem">' + tile('Екологічний стандарт', r.euro + (r.euro_note ? ' (' + r.euro_note + ')' : ''), 'leaf') + '</div>' : '') + vinBlock(r, true) + '<h3 style="font-size:16px;margin:1.25rem 0 .5rem">Історія реєстраційних операцій (' + (r.history || []).length + ')</h3><div class="vc-hist">' + hist + '</div>' + prev +
       '<p class="text-xs text-muted" style="margin:1.25rem 0 0">Перевірено ' + date(r.checked_at) + '. Джерело — відкриті дані Головного сервісного центру МВС («Відомості про транспортні засоби та їх власників», «Транспортні засоби в розшуку») ' +
         (r.data_until ? 'за 2013–' + esc(r.data_until) + ' рр. ' : '') + 'Імена, адреси й контакти власників у відкритих даних не публікуються. ' +
         (r.token ? 'Оплачено карткою ' + r.price + ' грн. Збережіть посилання на цю сторінку.' : r.price > 0 ? 'Списано ' + r.price + ' грн з балансу.' : r.price === 0 ? 'Без оплати (повторний перегляд).' : '') + '</p>' +
@@ -208,7 +252,7 @@ function summary(r){
     try{
       const r = await call({ action: 'summary', q });
       last = r;
-      el.innerHTML = summary(r);
+      el.innerHTML = summary(r); watchFab();
       if (!r.found && !(r.wanted && r.wanted.found)) suggestInto(el, q);
       loadPhotos(el); if (typeof CarPhotos !== 'undefined') CarPhotos.scan(el);
       try{ track('vehicle_search', { found: r.found }); }catch(e){}
@@ -308,5 +352,5 @@ function summary(r){
   }
   function show(k){ const c = (window.__vcHist || [])[k]; if (c) openReport({ ...c.report, price: c.price }); }
 
-  return { mount, mountBuy, loadPhotos, pdf, search, run, payCard, report, summary, reopen, mountHistory, show, loadPrice };
+  return { toBuy, mount, mountBuy, loadPhotos, pdf, search, run, payCard, report, summary, reopen, mountHistory, show, loadPrice };
 })();

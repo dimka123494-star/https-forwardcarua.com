@@ -38,25 +38,32 @@ export function renderVehicle(r) {
     ["Марка й модель", name], ["Рік випуску", v.year], ["Колір", cap(v.color)], ["Пальне", cap(v.fuel)],
     ["Обʼєм двигуна", v.capacity ? v.capacity + " см³" : ""], ["Тип / кузов", [cap(v.kind), cap(v.body)].filter(Boolean).join(", ")],
     ["Власна / повна маса", v.own_weight ? v.own_weight + " / " + (v.total_weight || "—") + " кг" : ""],
-    ["VIN", r.vin_masked], [r.history_partial ? "Перший запис з цим номером" : "В Україні з", date(r.first_date)], ["Операцій у реєстрі МВС", r.events],
+    ["Операцій у реєстрі МВС", r.events],
   ].filter((f) => f[1] !== "" && f[1] != null);
+  const vi = r.vin_info || {};
+  const tile = (l, val, ic) => `<div class="vc-tile"><span><i class="ti ti-${ic}"></i>${esc(l)}</span><b>${esc(val)}</b></div>`;
+  // під замком — розмитий приклад (не справжні дані); клік веде до оплати повного звіту
+  const lock = (l, fake, ic) => `<a class="vc-tile vc-locked" href="#vcBuyMount"><span><i class="ti ti-${ic}"></i>${esc(l)}</span><b><em>${fake}</em><i class="ti ti-lock"></i></b></a>`;
+  const ORIGIN = { import: ["Ввезено з-за кордону", "world"], new: ["Новим · перша реєстрація в Україні", "sparkles"], dealer: ["Куплено в автосалоні", "building-store"] };
+  const o = ORIGIN[r.origin];
+  const histTiles = [lock(r.history_partial ? "Перший запис з цим номером" : "Дата першої реєстрації", "12.03.2019", "calendar-event"), lock("Змін власника", "3", "users"),
+    o ? lock(o[0], "05.08.2018", o[1]) : "", r.locked && r.locked.euro ? lock("Екологічний стандарт", "Євро-5", "leaf") : ""].join("");
+  const vinTiles = [r.vin_masked ? `<a class="vc-tile vc-locked" href="#vcBuyMount"><span><i class="ti ti-barcode"></i>VIN</span><b>${esc(r.vin_masked)}<i class="ti ti-lock"></i></b></a>` : "",
+    vi.country ? tile("Країна виробництва", [vi.country, vi.plant_city ? title(vi.plant_city) : ""].filter(Boolean).join(", "), "world") : "",
+    vi.maker ? tile("Виробник", title(vi.maker), "building-factory") : "", vi.model_year ? tile("Модельний рік", vi.model_year, "calendar") : "",
+    vi.market_known ? lock("Авто для ринку", "Північна Америка", "map-pin") : ""].join("");
   const flags = [];
   if (r.wanted_flag) flags.push('<span class="vc-flag bad"><b>У базі розшуку МВС</b></span>');
   else if (r.wanted_flag === false) flags.push('<span class="vc-flag ok">Не в розшуку</span>');
-  flags.push(r.owner_changes ? `<span class="vc-flag">Змін власника: <b>${r.owner_changes}</b></span>` : '<span class="vc-flag ok">Змін власника не зафіксовано</span>');
-  if (r.imported) flags.push(`<span class="vc-flag">Ввезено з-за кордону · ${date(r.imported)}</span>`);
-  if (r.new_in_ua) flags.push(`<span class="vc-flag ok">Новим · перша реєстрація ${date(r.new_in_ua)}</span>`);
-  if (r.dealer) flags.push(`<span class="vc-flag">Куплено в автосалоні · ${date(r.dealer)}</span>`);
   if (r.deregistered) flags.push('<span class="vc-flag bad">Знято з обліку</span>');
   if (r.other_vehicles) flags.push(`<span class="vc-flag">Цей номер мали ще ${r.other_vehicles} авто</span>`);
 
   // звʼязний опис — Google бачить унікальний текст, людина — коротку історію
   const story = [
     `Номерний знак <b>${esc(plate)}</b> належить авто <b>${esc(nameYear)}</b>${v.color ? ", колір — " + esc(cap(v.color).toLowerCase()) : ""}${v.fuel ? ", пальне — " + esc(cap(v.fuel).toLowerCase()) : ""}${v.capacity ? ", двигун " + esc(v.capacity) + " см³" : ""}.`,
-    r.imported ? `Авто ввезене з-за кордону й уперше зареєстроване в Україні ${date(r.imported)}.` : r.new_in_ua ? `Авто вперше зареєстроване новим ${date(r.new_in_ua)}.` :
-      r.dealer ? `Уперше зареєстроване в Україні ${date(r.dealer)} — придбане в автосалоні (торговельній організації).` :
-      r.history_partial ? `З цим номером авто зареєстроване ${date(r.first_date)} — після перереєстрації; раніше воно їздило під іншим номером.` : `Перший запис у реєстрі МВС — ${date(r.first_date)}.`,
-    r.owner_changes ? `Відтоді власник змінювався ${r.owner_changes} ${r.owner_changes === 1 ? "раз" : r.owner_changes < 5 ? "рази" : "разів"}.` : "Перереєстрацій на нового власника в реєстрі не зафіксовано.",
+    r.origin === "import" ? "Авто ввезене з-за кордону." : r.origin === "new" ? "Авто вперше зареєстроване в Україні новим." : r.origin === "dealer" ? "Авто придбане в автосалоні (торговельній організації)." : "",
+    vi.country ? `Країна виробництва за VIN — ${esc(vi.country)}${vi.maker ? " (" + esc(title(vi.maker)) + ")" : ""}${vi.model_year ? ", модельний рік — " + vi.model_year : ""}.` : "",
+    `У реєстрі МВС за цим авто ${r.events} ${r.events === 1 ? "операція" : r.events < 5 ? "операції" : "операцій"}; дати, кількість власників і повна історія — у звіті.`,
     r.last ? `Остання операція — ${date(r.last.date)}${r.last.op ? ": " + esc(cap(r.last.op).toLowerCase().replace(/(^|[\s(])тз(?=[\s,.)]|$)/g, "$1ТЗ")) : ""}${r.last.region ? " (" + esc(r.last.region) + ")" : ""}${r.last.owner ? ", власник — " + esc(r.last.owner) : ""}.` : "",
     reg ? `Серія ${esc(reg.series)} — номери, які видають у ${esc(reg.name === "м. Київ" ? "Києві" : reg.name === "м. Севастополь" ? "Севастополі" : reg.name.replace("ська область", "ській області").replace("цька область", "цькій області").replace("зька область", "зькій області"))}.` : "",
   ].filter(Boolean).join(" ");
@@ -69,6 +76,9 @@ export function renderVehicle(r) {
     `<p class="lead">${story}</p>` +
     `<div class="vc-flags">${flags.join("")}</div>` +
     `<div class="vc-specs" style="margin-top:1rem">${facts.map((f) => `<div><span>${esc(f[0])}</span><b>${esc(f[1])}</b></div>`).join("")}</div>` +
+    `<h2 class="vc-h">Історія авто</h2><div class="vc-tiles">${histTiles}</div>` +
+    (vinTiles ? `<h2 class="vc-h">Розшифрування VIN</h2><div class="vc-tiles">${vinTiles}</div>` : "") +
+    `<a class="btn btn-ghost btn-block vc-histbtn" href="#vcBuyMount"><i class="ti ti-lock"></i>Історія реєстрацій · ${r.events} ${r.events === 1 ? "запис" : r.events < 5 ? "записи" : "записів"}</a>` +
     `<div class="card" style="margin-top:1rem;display:flex;gap:.75rem;align-items:center;flex-wrap:wrap"><i class="ti ti-shield-check" style="font-size:28px;color:var(--green)"></i>` +
     `<div style="flex:1;min-width:200px"><b>Автоцивілка (ОСЦПВ)</b><div class="text-sm text-muted">Чинність поліса на ${esc(plate)} можна перевірити в базі МТСБУ — безкоштовно.</div></div>` +
     `<a class="btn btn-ghost" href="https://policy.mtsbu.ua/" target="_blank" rel="noopener">Перевірити в МТСБУ</a></div>` +
@@ -89,15 +99,14 @@ export function renderVehicle(r) {
     `</div><p class="text-xs text-muted" style="margin-top:1.5rem">Джерело — відкриті дані Головного сервісного центру МВС (data.gov.ua) станом на ${date(String(r.data_at || "").slice(0, 10))}. Імена й адреси власників у відкритих даних не публікуються.</p></section>`;
 
   const desc = `${plate}: ${nameYear}${v.color ? ", " + cap(v.color).toLowerCase() : ""}${v.fuel ? ", " + cap(v.fuel).toLowerCase() : ""}. ` +
-    (r.imported ? `Ввезено ${date(r.imported)}. ` : r.history_partial ? `З цим номером з ${date(r.first_date)}. ` : `В Україні з ${date(r.first_date)}. `) +
-    `Змін власника: ${r.owner_changes}. ${r.wanted_flag ? "У розшуку. " : ""}Історія реєстрацій МВС і перевірка розшуку.`;
+    (r.origin === "import" ? "Ввезене з-за кордону. " : "") + (vi.country ? `Країна виробництва — ${vi.country}. ` : "") +
+    `Операцій у реєстрі МВС: ${r.events}. ${r.wanted_flag ? "У розшуку. " : ""}Історія реєстрацій МВС і перевірка розшуку.`;
   const ld = {
     "@context": "https://schema.org", "@type": "Vehicle", name: nameYear, url: canonical,
     brand: v.brand ? { "@type": "Brand", name: title(v.brand) } : undefined, model: v.model || undefined,
     vehicleModelDate: v.year ? String(v.year) : undefined, color: v.color ? cap(v.color) : undefined,
     fuelType: v.fuel ? cap(v.fuel) : undefined, bodyType: v.body ? cap(v.body) : undefined,
     vehicleEngine: v.capacity ? { "@type": "EngineSpecification", engineDisplacement: { "@type": "QuantitativeValue", value: v.capacity, unitCode: "CMQ" } } : undefined,
-    numberOfPreviousOwners: r.owner_changes,
   };
   return { title: `${plate} — ${nameYear}: перевірка авто за номером | МитнийБрокер`, desc, html, ld, canonical, index: true };
 }

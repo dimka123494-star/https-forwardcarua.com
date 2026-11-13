@@ -188,6 +188,69 @@ function vehicleInfo(evs: Ev[]) {
     fuel: pickLast(12), capacity: pickLast(13), own_weight: pickLast(14), total_weight: pickLast(15), last_date: d8(last[0]) };
 }
 
+// ── розшифрування VIN: NHTSA vPIC (безкоштовно) + власна таблиця WMI ──
+const WMI: [RegExp, string][] = [
+  [/^1|^4|^5/, "США"], [/^2/, "Канада"], [/^3[A-W]/, "Мексика"], [/^J/, "Японія"], [/^K[L-R]/, "Південна Корея"], [/^L/, "Китай"],
+  [/^S[A-M]/, "Велика Британія"], [/^S[U-Z]/, "Польща"], [/^T[J-P]/, "Чехія"], [/^TM|^TN/, "Чехія"], [/^T[R-V]/, "Угорщина"], [/^T[W-Z1]/, "Португалія"],
+  [/^V[A-E]/, "Австрія"], [/^V[F-R]/, "Франція"], [/^V[S-W]/, "Іспанія"], [/^W/, "Німеччина"], [/^X[L-R]/, "Нідерланди"], [/^Y[A-E]/, "Бельгія"],
+  [/^Y[F-K]/, "Фінляндія"], [/^Y[S-W]/, "Швеція"], [/^Y[6-9]/, "Україна"], [/^Z/, "Італія"], [/^U[U-Z]|^U[1-7]/, "Румунія"], [/^T[A-H]/, "Швейцарія"],
+  [/^N[L-R]/, "Туреччина"], [/^9[A-E]/, "Бразилія"], [/^6/, "Австралія"], [/^M[A-E]/, "Індія"], [/^MM|^MP/, "Таїланд"],
+];
+const COUNTRY_UA: Record<string, string> = { "UNITED STATES (USA)": "США", JAPAN: "Японія", GERMANY: "Німеччина", CANADA: "Канада", MEXICO: "Мексика",
+  "SOUTH KOREA": "Південна Корея", "KOREA (SOUTH)": "Південна Корея", CHINA: "Китай", FRANCE: "Франція", ITALY: "Італія", SPAIN: "Іспанія", "UNITED KINGDOM (UK)": "Велика Британія",
+  SWEDEN: "Швеція", BELGIUM: "Бельгія", AUSTRIA: "Австрія", "CZECH REPUBLIC": "Чехія", CZECHIA: "Чехія", SLOVAKIA: "Словаччина", HUNGARY: "Угорщина", POLAND: "Польща",
+  TURKEY: "Туреччина", INDIA: "Індія", BRAZIL: "Бразилія", NETHERLANDS: "Нідерланди", PORTUGAL: "Португалія", THAILAND: "Таїланд", FINLAND: "Фінляндія", SLOVENIA: "Словенія", ROMANIA: "Румунія" };
+const YR = "ABCDEFGHJKLMNPRSTVWXY123456789";
+function vinYear(vin: string, near: number | null) {
+  const i = YR.indexOf(vin[9]); if (i < 0) return null;
+  const c = [1980 + i, 2010 + i, 2040 + i]; const t = near || new Date().getFullYear();
+  return c.reduce((a, b) => Math.abs(b - t) < Math.abs(a - t) ? b : a);
+}
+// контрольна цифра (9-й символ) обовʼязкова лише для авто ринку Північної Америки
+function vinCheckOk(vin: string) {
+  const T: Record<string, number> = { A: 1, B: 2, C: 3, D: 4, E: 5, F: 6, G: 7, H: 8, J: 1, K: 2, L: 3, M: 4, N: 5, P: 7, R: 9, S: 2, T: 3, U: 4, V: 5, W: 6, X: 7, Y: 8, Z: 9 };
+  const W = [8, 7, 6, 5, 4, 3, 2, 10, 0, 9, 8, 7, 6, 5, 4, 3, 2];
+  let sum = 0; for (let i = 0; i < 17; i++){ const ch = vin[i]; const v = /\d/.test(ch) ? +ch : T[ch]; if (v == null) return false; sum += v * W[i]; }
+  const r = sum % 11; return vin[8] === (r === 10 ? "X" : String(r));
+}
+const nhtsaCache = new Map<string, any>();
+async function nhtsa(vin: string) {
+  if (nhtsaCache.has(vin)) return nhtsaCache.get(vin);
+  let r: any = null;
+  try {
+    const res = await fetch(`https://vpic.nhtsa.dot.gov/api/vehicles/DecodeVinValues/${vin}?format=json`, { signal: AbortSignal.timeout(3500) });
+    if (res.ok) r = (await res.json())?.Results?.[0] ?? null;
+  } catch (_) { /* недоступно — працюємо з власною таблицею */ }
+  if (nhtsaCache.size > 500) nhtsaCache.clear();
+  nhtsaCache.set(vin, r); return r;
+}
+async function vinDecode(vin: string | null, regYear: number | null, full: boolean) {
+  if (!vin || vin.length !== 17) return null;
+  const n = await nhtsa(vin);
+  const g = (k: string) => (n && n[k] && String(n[k]).trim()) || null;
+  const wmiCountry = WMI.find(([re]) => re.test(vin))?.[1] ?? null;
+  const pc = g("PlantCountry");
+  const country = (pc && (COUNTRY_UA[pc.toUpperCase()] ?? pc)) || wmiCountry;
+  const ok = !!n && /^0\b|^0$/.test(String(n.ErrorCode ?? "")) && !!g("Model");
+  const usMarket = vinCheckOk(vin) && ok;   // повне розшифрування в базі США + правильна контрольна цифра → авто для ринку США/Канади
+  const base = { country, maker: g("Manufacturer") || g("Make"), plant_city: g("PlantCity"), model_year: Number(g("ModelYear")) || vinYear(vin, regYear) };
+  if (!full) return { ...base, market_known: usMarket };
+  const hp = g("EngineHP"), l = g("DisplacementL");
+  return { ...base, market: usMarket ? "Північна Америка (США / Канада)" : null, make: g("Make"), model: g("Model"), series: g("Series"), trim: g("Trim"),
+    body: g("BodyClass"), engine: [l ? Number(l).toFixed(1) + " л" : null, g("EngineCylinders") ? g("EngineCylinders") + " цил." : null, g("EngineConfiguration"), g("EngineModel")].filter(Boolean).join(", ") || null,
+    power_hp: hp ? Math.round(Number(hp)) : null, fuel: g("FuelTypePrimary"), electrification: g("ElectrificationLevel"), drive: g("DriveType"),
+    transmission: [g("TransmissionStyle"), g("TransmissionSpeeds") ? g("TransmissionSpeeds") + " ст." : null].filter(Boolean).join(", ") || null,
+    doors: g("Doors"), seats: g("Seats"), plant: g("PlantCompanyName"), wmi: vin.slice(0, 3) };
+}
+// екологічний клас — орієнтовно, за роком випуску (у реєстрі МВС його немає)
+function euroClass(fuel: string | null, year: number | null) {
+  const f = String(fuel || "").toUpperCase();
+  if (/ЕЛЕКТР/.test(f) && !/БЕНЗ|ДИЗ|ГАЗ/.test(f)) return "Без викидів (електро)";
+  if (!year) return null;
+  const e = year >= 2015 ? 6 : year >= 2011 ? 5 : year >= 2006 ? 4 : year >= 2001 ? 3 : year >= 1997 ? 2 : year >= 1993 ? 1 : 0;
+  return "Євро-" + e;
+}
+
 async function buildReport(pq: { q: string; vin: boolean }, full: boolean) {
   const [m, { main, other }] = await Promise.all([meta(), collect(pq)]);
   const ops = m?.ops ?? {};
@@ -206,22 +269,31 @@ async function buildReport(pq: { q: string; vin: boolean }, full: boolean) {
   const dealer = !isNew ? evs.find((e) => DEALER.has(String(e[1]))) : undefined;
   const last = evs.at(-1)!;
   const hits = await wantedFor([pq.q, main.vin]);   // факт розшуку показуємо всім, подробиці — у повному звіті
-  const summary = {
-    ...base, found: true, vehicle: vehicleInfo(evs),
-    vin_masked: main.vin ? main.vin.slice(0, 6) + "•••••" + main.vin.slice(-4) : null,
-    first_date: d8(evs[0][0]), events: evs.length, owner_changes: owners,
-    imported: imported ? d8(imported[0]) : null, new_in_ua: isNew ? d8(isNew[0]) : null, dealer: dealer ? d8(dealer[0]) : null,
+  const veh = vehicleInfo(evs);
+  const vi = await vinDecode(main.vin, Number(veh.year) || null, full);
+  const euro = euroClass(veh.fuel, Number(veh.year) || vi?.model_year || null);
+  const origin = imported ? "import" : isNew ? "new" : dealer ? "dealer" : null;
+  // безкоштовна довідка: дати, кількість власників, екоклас і звідки ввезено — під замком (видно, що вони є)
+  const summary: any = {
+    ...base, found: true, vehicle: veh,
+    vin_masked: main.vin ? main.vin.slice(0, 4) + "•••••••••" + main.vin.slice(-5) : null,
+    vin_info: vi,
+    events: evs.length, origin,
     last: { date: d8(last[0]), op: opName(last), region: REGIONS[last[3]] ?? null, owner: last[2] === "J" ? "юридична особа" : last[2] === "P" ? "фізична особа" : null },
     deregistered: isDereg(String(last[1])),
     other_vehicles: other.length,
     // історія починається з перереєстрації — перша реєстрація була раніше під іншим номером, у записах без VIN (до 2021 р.)
     history_partial: !evs.filter((e) => e[0] === evs[0][0]).some((e) => FIRST.has(String(e[1]))),   // у перший день може бути кілька операцій
     wanted_flag: hits === null ? null : hits.length > 0,
+    locked: { first_date: true, owner_changes: true, euro: !!euro, market: !!vi?.market_known, history: evs.length },
   };
   if (!full) return summary;
   const allPlates = main.vin ? await vplates(main.vin).catch(() => []) : [];
+  delete summary.locked;
   return {
-    ...summary, full: true, vin: main.vin || null, plates: allPlates.length ? allPlates : (pq.vin ? [] : [pq.q]),
+    ...summary, full: true, vin: main.vin || null, euro, euro_note: "орієнтовно, за роком випуску",
+    first_date: d8(evs[0][0]), owner_changes: owners,
+    imported: imported ? d8(imported[0]) : null, new_in_ua: isNew ? d8(isNew[0]) : null, dealer: dealer ? d8(dealer[0]) : null, plates: allPlates.length ? allPlates : (pq.vin ? [] : [pq.q]),
     wanted: hits === null ? null : { found: hits.length > 0, items: hits.slice(0, 5) },
     history: evs.map((e) => ({ date: d8(e[0]), op: opName(e), code: e[1], owner: e[2] === "J" ? "юридична особа" : e[2] === "P" ? "фізична особа" : null,
       region: REGIONS[e[3]] ?? null, tsc: /^ТСЦ/.test(String(e[4] ?? "")) ? e[4] : null, color: e[8] || null, fuel: e[12] || null, capacity: e[13] ?? null, vin: e[16] || null })),
