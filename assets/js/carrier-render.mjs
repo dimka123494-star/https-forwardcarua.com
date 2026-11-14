@@ -117,6 +117,7 @@ export function renderCarrier(d){
         row('Джерело', '<a href="https://www.dsbt.gov.ua/" target="_blank" rel="noopener nofollow">Ліцензійний реєстр Укртрансбезпеки</a>') +
       '</table></div>' +
       edr +
+      '<div data-sanctions-code="' + esc(code) + '"' + (d.is_fop ? ' data-anon="1"' : '') + '></div>' +
       (d.is_fop ? '' : '<div class="card" style="margin-top:1rem;border-color:rgba(245,166,35,.35)"><div class="spread" style="gap:12px;flex-wrap:wrap"><div style="flex:1;min-width:220px">' +
         '<h2 style="font-size:18px;margin:0 0 .35rem"><i class="ti ti-shield-search"></i> Боржник? Банкрутство? Суди?</h2>' +
         '<p class="text-sm text-muted" style="margin:0">Виконавчі провадження (Єдиний реєстр боржників), справи про банкрутство й судові справи — перед тим, як віддати вантаж.</p></div>' +

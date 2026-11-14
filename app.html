@@ -60,12 +60,13 @@
 
   <section class="ap-pane" id="pane-company">
     <h1 class="ap-h">Перевірка компанії</h1>
-    <p class="ap-sub">За кодом ЄДРПОУ: виконавчі провадження, банкрутство, судові справи й рішення, санкції, статус у ЄДР.</p>
+    <p class="ap-sub">Санкції РНБО — безкоштовно за ЄДРПОУ, РНОКПП, назвою чи ПІБ. За ЄДРПОУ — ще й повний звіт: виконавчі провадження, банкрутство, суди, статус у ЄДР.</p>
     <div class="row" style="gap:8px">
-      <input class="input" id="ccQ" inputmode="numeric" maxlength="8" placeholder="Код ЄДРПОУ, 8 цифр" style="flex:1;min-width:0">
+      <input class="input" id="ccQ" maxlength="120" placeholder="ЄДРПОУ, РНОКПП, назва або ПІБ" style="flex:1;min-width:0" autocomplete="off">
       <button class="btn btn-primary" type="button" id="ccGo"><i class="ti ti-shield-search"></i>Перевірити</button>
     </div>
     <div class="msg" id="ccMsg" style="margin-top:10px"></div>
+    <div id="ccSanc" style="margin-top:10px"></div>
   </section>
 
   <section class="ap-pane" id="pane-carrier">
@@ -100,6 +101,7 @@
 <script src="/assets/js/config.js"></script>
 <script src="/assets/js/db.js"></script>
 <script src="/assets/js/company-check.js"></script>
+<script src="/assets/js/sanctions.js"></script>
 <script src="/assets/js/car-photos.js"></script>
 <script src="/assets/js/vehicle-check.js"></script>
 <script type="module">
@@ -150,11 +152,16 @@ $('vcGo').addEventListener('click', vcRemember);
 $('vcQ').addEventListener('keydown', e => { if (e.key === 'Enter') vcRemember(); });
 
 // ---- компанія ----
-function companyGo(){
-  const q = $('ccQ').value.replace(/\D/g, ''), m = $('ccMsg');
-  if (!/^\d{8}$/.test(q)){ m.className = 'msg show msg-err'; m.textContent = 'Код ЄДРПОУ — 8 цифр'; return; }
-  m.className = 'msg'; remember('company', q);
-  CompanyCheck.open(q);
+async function companyGo(){
+  const raw = $('ccQ').value.trim(), dg = raw.replace(/\s/g, ''), m = $('ccMsg'), out = $('ccSanc');
+  const isCode = /^\d+$/.test(dg);
+  if (isCode ? !/^\d{8}$|^\d{10}$/.test(dg) : raw.length < 3){ m.className = 'msg show msg-err'; m.textContent = 'ЄДРПОУ — 8 цифр, РНОКПП — 10 цифр, назва чи ПІБ — від 3 літер'; return; }
+  m.className = 'msg'; remember('company', isCode ? dg : raw);
+  const paid = dg.length === 8 && isCode ? '<div class="card" style="margin-top:12px;border-color:rgba(245,166,35,.35)"><b>Повний звіт про компанію</b><p class="text-sm text-muted" style="margin:.35rem 0 .75rem">Виконавчі провадження, банкрутство, судові справи й рішення, статус у ЄДР, AEO.</p>' +
+    '<button class="btn btn-primary btn-block" type="button" onclick="CompanyCheck.open(\'' + dg + '\')"><i class="ti ti-shield-search"></i>Отримати звіт</button></div>' : '';
+  out.innerHTML = '<p class="text-sm text-muted">Перевіряємо реєстр санкцій…</p>';
+  try{ const d = await Sanctions.search(isCode ? dg : raw); out.innerHTML = Sanctions.html(d, isCode ? dg : raw) + paid; }
+  catch(e){ out.innerHTML = '<p class="text-sm" style="color:var(--red)">Реєстр санкцій тимчасово недоступний.</p>' + paid; }
 }
 $('ccGo').onclick = companyGo;
 $('ccQ').addEventListener('keydown', e => { if (e.key === 'Enter') companyGo(); });
@@ -169,12 +176,15 @@ async function carrierSearch(){
     const list = await rpc('carrier_search', { q });
     remember('carrier', q, list.length === 1 ? prettyName(list[0].name) : '');
     if (/^\d{8,10}$/.test(q) && !list.length){
-      out.innerHTML = '<div class="card"><b>' + esc(q) + '</b> — немає в ліцензійному реєстрі перевізників.' + (q.length === 8 ? '<p class="text-sm text-muted" style="margin:.5rem 0">Перевірити цю компанію на борги, банкрутство й суди:</p><button class="btn btn-primary btn-sm" onclick="CompanyCheck.open(\'' + q + '\')"><i class="ti ti-shield-search"></i>Перевірити компанію</button>' : '') + '</div>';
+      out.innerHTML = '<div class="card"><b>' + esc(q) + '</b> — немає в ліцензійному реєстрі перевізників.' + (q.length === 8 ? '<p class="text-sm text-muted" style="margin:.5rem 0">Перевірити цю компанію на борги, банкрутство й суди:</p><button class="btn btn-primary btn-sm" onclick="CompanyCheck.open(\'' + q + '\')"><i class="ti ti-shield-search"></i>Перевірити компанію</button>' : '') + '</div>' +
+        '<div data-sanctions-code="' + esc(q) + '"></div>';
+      Sanctions.auto();
       return;
     }
     out.innerHTML = list.length ? list.map(r => '<a class="card cp-item" href="/perevizhnyk/' + esc(r.code) + '"><div><div style="font-weight:600">' + esc(r.is_fop ? 'ФОП' : prettyName(r.name)) + '</div><div class="text-xs text-muted">ЄДРПОУ ' + esc(r.code) + '</div></div>' +
       '<span class="st" style="color:' + (r.status === 'Чинна' ? 'var(--green)' : 'var(--red)') + '">' + (r.status === 'Чинна' ? (r.intl_cargo ? '✓ міжнародні' : '✓ чинна') : 'немає ліцензії') + '</span></a>').join('')
       : '<p class="text-sm text-muted">Нічого не знайшли. Перевірте назву або введіть код ЄДРПОУ.</p>';
+    if (list.length) Sanctions.markList(out);
   }catch(e){ out.innerHTML = '<p class="text-sm" style="color:var(--red)">Пошук тимчасово не працює — спробуйте пізніше.</p>'; }
 }
 $('cpGo').onclick = carrierSearch;

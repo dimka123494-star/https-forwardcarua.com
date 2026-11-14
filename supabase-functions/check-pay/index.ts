@@ -45,12 +45,27 @@ async function buildReport(db: any, code: string) {
   };
 }
 
-// Санкції РНБО (таблиця sanctions_legal, наповнює sanctions-sync) — лише якщо реєстр уже синхронізовано
+// Санкції РНБО: таблиця sanctions_legal (наповнює sanctions-sync через API, коли є ключ NSDC_API_KEY);
+// поки її немає — індекс із CSV-експорту drs.nsdc.gov.ua (data/sanctions.json у репозиторії, tools/sanctions_import.py)
+const SANC_URL = "https://raw.githubusercontent.com/dimka123494-star/https-forwardcarua.com/main/data/sanctions.json";
+let sancIdx: any = null, sancAt = 0;
 async function sanctionsFor(db: any, code: string) {
   const { data: run } = await db.from("sanctions_runs").select("at").eq("ok", true).gt("subjects", 0).order("id", { ascending: false }).limit(1).maybeSingle();
-  if (!run) return null;
-  const { data } = await db.from("sanctions_legal").select("name, status, data").contains("codes", [code]);
-  return { at: run.at, items: (data ?? []).map((x: any) => ({ name: x.name, status: x.status })) };
+  if (run) {
+    const { data } = await db.from("sanctions_legal").select("name, status, data").contains("codes", [code]);
+    return { at: run.at, items: (data ?? []).map((x: any) => ({ name: x.name, status: x.status })) };
+  }
+  if (!sancIdx || Date.now() - sancAt > 6 * 3600e3) {
+    const r = await fetch(SANC_URL);
+    if (!r.ok) return null;
+    sancIdx = await r.json(); sancAt = Date.now();
+  }
+  const today = new Date().toISOString().slice(0, 10);
+  const items = (sancIdx.codes?.[code] ?? []).map((x: any) => ({
+    name: x.n, status: x.s === "active" && x.e && x.e < today ? "expired" : x.s,
+    kind: x.k, decree: x.d, decree_date: x.dd, term: x.t, end_date: x.e,
+  }));
+  return { at: sancIdx._at, source: "csv", items };
 }
 async function aeoFor(code: string) {
   const r = await fetch(RAW + "aeo.json");

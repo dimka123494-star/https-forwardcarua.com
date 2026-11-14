@@ -136,6 +136,7 @@
 <script src="/assets/js/config.js"></script>
 <script src="/assets/js/db.js"></script>
 <script src="/assets/js/company-check.js"></script>
+<script src="/assets/js/sanctions.js"></script>
 <script type="module">
 import { renderCarrier, prettyName, esc } from '/assets/js/carrier-render.mjs';
 const $ = id => document.getElementById(id);
@@ -187,7 +188,9 @@ async function search(){
     if (r && r.length){ location.href = '/perevizhnyk/' + q; return; }
     out.innerHTML = '<div class="card"><b>' + esc(q) + '</b> — немає в ліцензійному реєстрі перевізників.' +
       (q.length === 8 ? '<p class="text-sm text-muted" style="margin:.5rem 0">Перевірте будь-яку компанію (відправника, клієнта): виконавчі провадження, банкрутство, судові справи:</p>' +
-        '<button class="btn btn-primary btn-sm" onclick="CompanyCheck.open(\'' + q + '\')"><i class="ti ti-shield-search"></i>Перевірити компанію · 50 грн</button>' : '') + '</div>';
+        '<button class="btn btn-primary btn-sm" onclick="CompanyCheck.open(\'' + q + '\')"><i class="ti ti-shield-search"></i>Перевірити компанію · 50 грн</button>' : '') + '</div>' +
+      '<div data-sanctions-code="' + esc(q) + '"></div>';
+    Sanctions.auto();
     return;
   }
   if (q.length < 3){ out.innerHTML = '<p class="text-sm text-muted">Введіть щонайменше 3 літери назви або код ЄДРПОУ.</p>'; return; }
@@ -199,6 +202,7 @@ async function search(){
         '<span class="st" style="color:' + (r.status === 'Чинна' ? 'var(--green)' : 'var(--red)') + '">' + (r.status === 'Чинна' ? (r.intl_cargo ? '✓ міжнародні' : '✓ чинна') : 'немає ліцензії') + '</span></a>').join('') +
         (list.length === 20 ? '<p class="text-xs text-muted">Показано перші 20 — уточніть назву.</p>' : '')
       : '<p class="text-sm text-muted">Нічого не знайшли. Перевірте назву або введіть код ЄДРПОУ. ФОП шукайте лише за кодом.</p>';
+    if (list.length) Sanctions.markList(out);
   }catch(e){ out.innerHTML = '<p class="text-sm" style="color:var(--red)">Пошук тимчасово не працює — спробуйте пізніше.</p>'; }
 }
 $('cpGo').addEventListener('click', search);
@@ -212,7 +216,7 @@ $('cpQ').addEventListener('keydown', e => { if (e.key === 'Enter') search(); });
     try{
       const d = await rpc('carrier_public', { code });
       if (!d || !d.found){ main.innerHTML = '<section class="container-narrow page-hero"><h1 class="h-lg">Перевізника не знайдено</h1><p class="lead">Коду ' + esc(code) + ' немає в ліцензійному реєстрі. Перевірте код або знайдіть перевізника за назвою.</p></section>'; return; }
-      const r = renderCarrier(d); main.innerHTML = r.html; document.title = r.title;
+      const r = renderCarrier(d); main.innerHTML = r.html; document.title = r.title; Sanctions.auto();
     }catch(e){ main.innerHTML = '<section class="container-narrow page-hero"><p class="lead">Не вдалося завантажити дані — оновіть сторінку.</p></section>'; return; }
   }
   claimBox();
