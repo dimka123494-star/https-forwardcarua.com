@@ -411,7 +411,13 @@ async function buildReport(pq: { q: string; vin: boolean }, full: boolean) {
     wanted_flag: hits === null ? null : hits.length > 0,
     locked: { first_date: true, owner_changes: true, euro: !!euro, market: !!vi?.market_known, history: evs.length, ria: !!RIA_KEY },
   };
-  if (!full) return summary;
+  if (!full) {
+    // тизер: справжнє фото з нашого архіву оголошень AUTO.RIA (лише база, без запитів до RIA) — показується розмитим
+    const th = await riaHistory(pq.vin ? null : pq.q, main.vin || (pq.vin ? pq.q : null)).catch(() => []);
+    const withPhoto = th.find((h: any) => h.photos && h.photos.length);
+    if (withPhoto) summary.ria_teaser = { photo: withPhoto.photos[0], ads: th.length };
+    return summary;
+  }
   const [allPlates, ria] = await Promise.all([main.vin ? vplates(main.vin).catch(() => []) : Promise.resolve([]),
     riaFind(pq.vin ? null : pq.q, main.vin || (pq.vin ? pq.q : null), veh).catch(() => null)]);
   if (ria) {

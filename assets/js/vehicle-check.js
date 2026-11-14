@@ -9,6 +9,16 @@ const VehicleCheck = (() => {
   const cap = s => s ? String(s).charAt(0) + String(s).slice(1).toLowerCase() : '';
 
   // ілюстрація моделі — вільне фото з Вікіпедії (Wikimedia Commons), не фото саме цього авто
+  // справжнє фото авто: з оголошення AUTO.RIA (у повному звіті — чітке, у безкоштовній довідці — розмите під замком)
+  function realPhoto(r, locked){
+    const x = r.ria || {}, src = locked ? (r.ria_teaser && r.ria_teaser.photo) :
+      ((x.ad && x.ad.photos && x.ad.photos[0]) || ((x.history || []).find(h => h.photos && h.photos.length) || { photos: [] }).photos[0]);
+    if (!src) return '';
+    const ad = !locked && (x.ad || (x.history || [])[0]);
+    return locked
+      ? '<a class="vc-photo vc-real vc-real-locked" data-done="1" href="#vcBuy" onclick="return VehicleCheck.toBuy()"><img src="' + esc(src) + '" alt="" loading="lazy"><span><i class="ti ti-lock"></i>Справжнє фото з оголошення — у повному звіті</span></a>'
+      : '<figure class="vc-photo vc-real" data-done="1"><img src="' + esc(src) + '" alt="" loading="lazy"><figcaption>Фото з оголошення AUTO.RIA' + (ad && ad.added ? ' від ' + date(String(ad.added).slice(0, 10)) : '') + '</figcaption></figure>';
+  }
   const photoSlot = v => v && v.brand ? '<figure class="vc-photo" data-b="' + esc(v.brand) + '" data-m="' + esc(String(v.model || '').split(/[\s\-]/)[0]) + '"></figure>' : '';
   function loadPhotos(root){
     (root || document).querySelectorAll('.vc-photo:not([data-done])').forEach(async f => {
@@ -143,7 +153,7 @@ const VehicleCheck = (() => {
     ].join('');
     return '<div class="card vc-card">' +
       '<div class="text-xs text-muted">' + (r.by === 'vin' ? 'VIN ' : 'Номер ') + esc(r.q) + '</div>' +
-      photoSlot(v) +
+      (realPhoto(r, true) || photoSlot(v)) +
       '<h3 style="margin:.2rem 0 0;font-size:22px">' + (vline(v) || 'Транспортний засіб') + '</h3>' +
       '<div class="vc-meta">Операцій у реєстрі МВС: <b style="color:var(--text)">' + r.events + '</b>' +
         (r.by === 'plate' && /^[А-ЯІЇЄ]{2}\d{4}[А-ЯІЇЄZV][А-ЯІЇЄ]$/.test(r.q) ? ' · <a href="/avto/' + encodeURIComponent(r.q) + '">сторінка авто</a>' : '') + '</div>' +
@@ -262,7 +272,7 @@ const VehicleCheck = (() => {
     const prev = (r.previous_on_plate || []).length ? '<h3 style="font-size:16px;margin:1.25rem 0 .5rem">Інші авто з цим номером раніше</h3>' +
       r.previous_on_plate.map(p => '<div class="card" style="padding:10px 12px;margin-top:8px;font-size:13px"><b>' + vline(p.vehicle || {}) + '</b><div class="text-xs text-muted">' + date(p.from) + ' — ' + date(p.to) + ' · операцій: ' + p.events + '</div></div>').join('') : '';
     return '<div class="modal-title">Звіт про авто</div>' +
-      '<div class="modal-sub" style="margin-bottom:.75rem">' + vline(v) + '</div>' + photoSlot(v) + wBlock +
+      '<div class="modal-sub" style="margin-bottom:.75rem">' + vline(v) + '</div>' + (realPhoto(r, false) || photoSlot(v)) + wBlock +
       '<div class="text-sm" style="line-height:1.8">' + (r.vin ? 'VIN: <b>' + esc(r.vin) + '</b><br>' : '') +
         ((r.plates || []).length ? 'Номерні знаки: <b>' + r.plates.map(esc).join(', ') + '</b><br>' : '') +
         (r.history_partial ? 'Перший запис з цим номером: ' : 'В Україні з ') + date(r.first_date) + ' · змін власника: <b>' + r.owner_changes + '</b>' + (r.imported ? ' · ввезено ' + date(r.imported) : r.new_in_ua ? ' · новим ' + date(r.new_in_ua) : r.dealer ? ' · з автосалону ' + date(r.dealer) : '') + '</div>' + specs(v) + ((r.by === 'plate' ? r.q : (r.plates || [])[0]) ? '<div class="cp-mount" data-compact="1" data-plate="' + esc(r.by === 'plate' ? r.q : r.plates[0]) + '"></div>' : '') +
