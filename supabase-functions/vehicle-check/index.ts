@@ -233,7 +233,11 @@ async function vinDecode(vin: string | null, regYear: number | null, full: boole
   const country = (pc && (COUNTRY_UA[pc.toUpperCase()] ?? pc)) || wmiCountry;
   const ok = !!n && /^0\b|^0$/.test(String(n.ErrorCode ?? "")) && !!g("Model");
   const usMarket = vinCheckOk(vin) && ok;   // повне розшифрування в базі США + правильна контрольна цифра → авто для ринку США/Канади
-  const base = { country, maker: g("Manufacturer") || g("Make"), plant_city: g("PlantCity"), model_year: Number(g("ModelYear")) || vinYear(vin, regYear) };
+  // 10-й символ VIN означає модельний рік лише для авто ринку Північної Америки; у європейських VIN (Renault, Peugeot…)
+  // там довільний символ — тож рік з VIN беремо, тільки якщо це авто для США/Канади або він збігається з роком у реєстрі МВС
+  const vy = Number(g("ModelYear")) || vinYear(vin, regYear);
+  const model_year = vy && (usMarket || !regYear || Math.abs(vy - regYear) <= 1) ? vy : null;
+  const base = { country, maker: g("Manufacturer") || g("Make"), plant_city: g("PlantCity"), model_year };
   if (!full) return { ...base, market_known: usMarket };
   const hp = g("EngineHP"), l = g("DisplacementL");
   return { ...base, market: usMarket ? "Північна Америка (США / Канада)" : null, make: g("Make"), model: g("Model"), series: g("Series"), trim: g("Trim"),
