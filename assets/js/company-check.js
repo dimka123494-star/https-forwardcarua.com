@@ -130,9 +130,13 @@ const CompanyCheck = (() => {
       : ok('<b>Судових справ не знайдено</b>');
     // Санкції РНБО (якщо реєстр підключено) і AEO
     const sn = r.sanctions;
+    const SN_ST = { active: 'Під чинними санкціями РНБО', expired: 'Строк санкцій закінчився', excluded: 'Санкції скасовано' };
     const snBlock = !sn ? '' : '<h3 style="font-size:16px;margin:1.25rem 0 .5rem">Санкції РНБО</h3>' + (sn.items && sn.items.length
-      ? sn.items.map(i => (i.status === 'active' ? bad : ok)('<b>' + (i.status === 'active' ? 'Під чинними санкціями' : 'Санкції припинено / виключено') + '</b> — ' + esc(i.name || '') + (i.status && i.status !== 'active' ? ' (' + esc(i.status) + ')' : ''))).join('')
-      : ok('<b>У Державному реєстрі санкцій не значиться</b>'));
+      ? sn.items.map(i => (i.status === 'active' ? bad : ok)('<b>' + (SN_ST[i.status] || esc(i.status || 'Є в реєстрі')) + '</b> — ' + esc(i.name || '') +
+          (i.decree ? '<div class="text-xs" style="margin-top:4px">Указ Президента № ' + esc(i.decree) + (i.decree_date ? ' від ' + date(i.decree_date) : '') +
+            (i.term ? ' · строк: ' + esc(i.term) : '') + (i.end_date ? ' · до ' + date(i.end_date) : '') + (i.kind === 'P' ? ' · як фізична особа' : '') + '</div>' : ''))).join('')
+      : ok('<b>У Державному реєстрі санкцій не значиться</b>')) +
+      (sn.at ? '<p class="text-xs text-muted">Державний реєстр санкцій РНБО (drs.nsdc.gov.ua), дані на ' + date(String(sn.at).slice(0, 10)) + '.</p>' : '');
     const aeo = r.aeo;
     const AEO_T = { 'АЕО-С': 'спрощення митних формальностей', 'АЕО-В': 'безпека та надійність', 'AEO-C': 'спрощення митних формальностей', 'AEO-S': 'безпека та надійність' };
     const aeoBlock = aeo && aeo.length ? '<h3 style="font-size:16px;margin:1.25rem 0 .5rem">Авторизований економічний оператор (AEO)</h3>' +
