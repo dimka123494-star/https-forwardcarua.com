@@ -60,7 +60,7 @@
 
   <section class="ap-pane" id="pane-company">
     <h1 class="ap-h">Перевірка компанії</h1>
-    <p class="ap-sub">Санкції РНБО — безкоштовно за ЄДРПОУ, РНОКПП, назвою чи ПІБ. За ЄДРПОУ — ще й повний звіт: виконавчі провадження, банкрутство, суди, статус у ЄДР.</p>
+    <p class="ap-sub">Санкції РНБО й реєстр боржників — безкоштовно за ЄДРПОУ, назвою чи ПІБ. За ЄДРПОУ — ще й повний звіт: виконавчі провадження, банкрутство, суди, статус у ЄДР.</p>
     <div class="row" style="gap:8px">
       <input class="input" id="ccQ" maxlength="120" placeholder="ЄДРПОУ, РНОКПП, назва або ПІБ" style="flex:1;min-width:0" autocomplete="off">
       <button class="btn btn-primary" type="button" id="ccGo"><i class="ti ti-shield-search"></i>Перевірити</button>
@@ -102,6 +102,7 @@
 <script src="/assets/js/db.js"></script>
 <script src="/assets/js/company-check.js"></script>
 <script src="/assets/js/sanctions.js"></script>
+<script src="/assets/js/erb.js"></script>
 <script src="/assets/js/car-photos.js"></script>
 <script src="/assets/js/vehicle-check.js"></script>
 <script type="module">
@@ -159,9 +160,15 @@ async function companyGo(){
   m.className = 'msg'; remember('company', isCode ? dg : raw);
   const paid = dg.length === 8 && isCode ? '<div class="card" style="margin-top:12px;border-color:rgba(245,166,35,.35)"><b>Повний звіт про компанію</b><p class="text-sm text-muted" style="margin:.35rem 0 .75rem">Виконавчі провадження, банкрутство, судові справи й рішення, статус у ЄДР, AEO.</p>' +
     '<button class="btn btn-primary btn-block" type="button" onclick="CompanyCheck.open(\'' + dg + '\')"><i class="ti ti-shield-search"></i>Отримати звіт</button></div>' : '';
-  out.innerHTML = '<p class="text-sm text-muted">Перевіряємо реєстр санкцій…</p>';
-  try{ const d = await Sanctions.search(isCode ? dg : raw); out.innerHTML = Sanctions.html(d, isCode ? dg : raw) + paid; }
-  catch(e){ out.innerHTML = '<p class="text-sm" style="color:var(--red)">Реєстр санкцій тимчасово недоступний.</p>' + paid; }
+  out.innerHTML = '<p class="text-sm text-muted">Перевіряємо реєстри санкцій і боржників…</p>';
+  const H = (ic, t) => '<h2 style="font-size:16px;margin:1rem 0 .4rem"><i class="ti ' + ic + '"></i> ' + t + '</h2>';
+  const fullName = !isCode && raw.trim().split(/\s+/).length >= 2;
+  const [sn, erb] = await Promise.all([
+    Sanctions.search(isCode ? dg : raw).then(d => Sanctions.html(d, isCode ? dg : raw)).catch(() => '<p class="text-sm" style="color:var(--red)">Реєстр санкцій тимчасово недоступний.</p>'),
+    (dg.length === 8 && isCode ? Erb.byCode(dg) : fullName ? Erb.byName(raw) : Promise.resolve(null)).then(d => d ? Erb.html(d) : '')
+      .catch(() => '<p class="text-sm text-muted">Реєстр боржників тимчасово недоступний.</p>')]);
+  const erbNote = isCode && dg.length === 10 ? '<p class="text-xs text-muted">Реєстр боржників не містить РНОКПП фізосіб — для перевірки людини чи ФОП введіть ПІБ.</p>' : '';
+  out.innerHTML = H('ti-gavel', 'Санкції РНБО') + sn + (erb || erbNote ? H('ti-file-alert', 'Реєстр боржників') + erb + erbNote : '') + paid;
 }
 $('ccGo').onclick = companyGo;
 $('ccQ').addEventListener('keydown', e => { if (e.key === 'Enter') companyGo(); });
@@ -177,8 +184,8 @@ async function carrierSearch(){
     remember('carrier', q, list.length === 1 ? prettyName(list[0].name) : '');
     if (/^\d{8,10}$/.test(q) && !list.length){
       out.innerHTML = '<div class="card"><b>' + esc(q) + '</b> — немає в ліцензійному реєстрі перевізників.' + (q.length === 8 ? '<p class="text-sm text-muted" style="margin:.5rem 0">Перевірити цю компанію на борги, банкрутство й суди:</p><button class="btn btn-primary btn-sm" onclick="CompanyCheck.open(\'' + q + '\')"><i class="ti ti-shield-search"></i>Перевірити компанію</button>' : '') + '</div>' +
-        '<div data-sanctions-code="' + esc(q) + '"></div>';
-      Sanctions.auto();
+        '<div data-sanctions-code="' + esc(q) + '"></div>' + (q.length === 8 ? '<div data-erb-code="' + esc(q) + '"></div>' : '');
+      Sanctions.auto(); Erb.auto();
       return;
     }
     out.innerHTML = list.length ? list.map(r => '<a class="card cp-item" href="/perevizhnyk/' + esc(r.code) + '"><div><div style="font-weight:600">' + esc(r.is_fop ? 'ФОП' : prettyName(r.name)) + '</div><div class="text-xs text-muted">ЄДРПОУ ' + esc(r.code) + '</div></div>' +

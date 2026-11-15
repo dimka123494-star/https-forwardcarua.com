@@ -117,6 +117,32 @@ def edr_index():
     return idx
 
 
+# ---------- фізособи в ЄРБ: ключ — нормалізований ПІБ, шард — FNV-1a (так само в edge-функції erb-search) ----------
+ERB_PERSONS = {}   # (ПІБ-ключ, дата народження) → {індекс категорії: кількість}
+PCATS = {}         # категорія стягнення → індекс (список — erbp/cats.json)
+PSHARDS = 2048
+def person_key(name):
+    n = (name or '').lower().replace('ё', 'е').replace('(не діє)', '')
+    n = re.sub(r"[ʼ'’`\"«»]", '', n)
+    n = re.sub(r'[^0-9a-zа-яіїєґ]+', ' ', n).strip()
+    return n if len(n.split()) >= 2 else ''
+def fnv(s):
+    h = 0x811c9dc5
+    for b in s.encode('utf-8'):
+        h = ((h ^ b) * 0x01000193) & 0xffffffff
+    return h
+def write_persons(data):
+    os.makedirs(f'{OUT}/erbp', exist_ok=True)
+    shards = [dict() for _ in range(PSHARDS)]
+    # формат шарду: {ПІБ-ключ: [[дата народження, кількість, {індекс категорії: кількість}], ...]}
+    for (k, bd), c in data.items():
+        shards[fnv(k) % PSHARDS].setdefault(k, []).append([bd, sum(c.values()), c])
+    json.dump([c for c, _ in sorted(PCATS.items(), key=lambda x: x[1])], open(f'{OUT}/erbp/cats.json', 'w', encoding='utf-8'), ensure_ascii=False)
+    for i, sh in enumerate(shards):
+        with open(f'{OUT}/erbp/{i:03d}.json', 'w', encoding='utf-8') as f:
+            json.dump(sh, f, ensure_ascii=False, separators=(',', ':'))
+
+
 # ---------- джерела ----------
 def erb():
     fetch(ERB, 'erb.zip')
@@ -124,9 +150,20 @@ def erb():
     f = io.TextIOWrapper(p.stdout, encoding='cp1251', errors='replace', newline='')
     f.readline()  # заголовок (через ';', а дані — через ',')
     agg, rows = {}, 0
+    global ERB_PERSONS
+    ERB_PERSONS = {}
     for r in csv.reader(f, delimiter=','):
         rows += 1
-        if len(r) < 11 or not is_firm(r[2].strip()):
+        if len(r) < 11:
+            continue
+        if not is_firm(r[2].strip()):
+            # фізособи й ФОП: у відкритих даних лише ПІБ і (не завжди) дата народження — без РНОКПП
+            k = person_key(r[0])
+            if k:
+                bd = clean(r[1])[:10]
+                ci = PCATS.setdefault(clean(r[10]) or 'інше', len(PCATS))
+                a = ERB_PERSONS.setdefault((k, bd), {})
+                a[ci] = a.get(ci, 0) + 1
             continue
         code = r[2].strip()
         a = agg.setdefault(code, {'name': clean(r[0]), 'n': 0, 'cats': collections.Counter(), 'items': []})
@@ -299,6 +336,7 @@ def write(name, data):
 
 def main():
     e = erb(); write('erb', e)
+    write_persons(ERB_PERSONS); np_ = len(ERB_PERSONS); ERB_PERSONS.clear()
     b = bankrupt(); write('bankrupt', b)
     c = merge_prev(courts(edr_index()))
     cases = {i['case'] for v in c.values() for i in v['items']} | {i['case'] for v in b.values() for i in v['items']}
@@ -315,7 +353,7 @@ def main():
     except Exception as e:   # AEO — додаткове джерело: його збій не зупиняє оновлення решти
         print('AEO failed', e, flush=True); a = {}
     meta = {'generated': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()), 'erb_firms': len(e), 'bankrupt_firms': len(b),
-            'court_firms': len(c), 'decision_firms': len(dec), 'aeo_firms': len(a), 'shards': SHARDS}
+            'court_firms': len(c), 'decision_firms': len(dec), 'aeo_firms': len(a), 'shards': SHARDS, 'erb_persons': np_, 'pshards': PSHARDS}
     json.dump(meta, open(f'{OUT}/meta.json', 'w'))
     print(meta)
 
