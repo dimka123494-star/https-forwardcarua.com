@@ -156,7 +156,7 @@ const VehicleCheck = (() => {
       (realPhoto(r, true) || photoSlot(v)) +
       '<h3 style="margin:.2rem 0 0;font-size:22px">' + (vline(v) || 'Транспортний засіб') + '</h3>' +
       '<div class="vc-meta">Операцій у реєстрі МВС: <b style="color:var(--text)">' + r.events + '</b>' +
-        (r.by === 'plate' && /^[А-ЯІЇЄ]{2}\d{4}[А-ЯІЇЄZV][А-ЯІЇЄ]$/.test(r.q) ? ' · <a href="/avto/' + encodeURIComponent(r.q) + '">сторінка авто</a>' : '') + '</div>' +
+        (r.by === 'plate' && /^[А-ЯІЇЄ]{2}\d{4}[А-ЯІЇЄA-Z]{2}$/.test(r.q) ? ' · <a href="/avto/' + encodeURIComponent(r.q) + '">сторінка авто</a>' : '') + '</div>' +
       (flags.length ? '<div class="vc-flags">' + flags.join('') + '</div>' : '') + specs(v) +
       '<h4 class="vc-h">Історія авто</h4><div class="vc-tiles">' + hist + '</div>' +
       vinBlock(r, false) +
@@ -294,7 +294,7 @@ const VehicleCheck = (() => {
         '<button type="button" class="btn btn-ghost btn-sm" style="margin:0 6px 6px 0" data-q="' + esc(x.q) + '"><b>' + esc(x.q) + '</b>&nbsp;<span class="text-xs text-muted">' +
         esc([x.brand, x.model, x.year].filter(Boolean).join(' ')) + '</span></button>').join('');
       box.querySelectorAll('[data-q]').forEach(b => b.onclick = () => { const i = document.getElementById('vcQ'); if (i) i.value = b.dataset.q; search(b.dataset.q, el); });
-      if (replace){ const m = el.querySelector('.msg'); if (m) m.innerHTML = 'Такого номера в українському форматі немає. На номерах бувають літери А, В, Е, І, К, М, Н, О, Р, С, Т, Х, а в електромобілів друга пара літер починається з Z, V або Y.'; }
+      if (replace){ const m = el.querySelector('.msg'); if (m) m.innerHTML = 'Такого номера в українському форматі немає. На номерах бувають літери А, В, Е, І, К, М, Н, О, Р, С, Т, Х, а на електромобілях і причепах в останній парі бувають і латинські (Z, V, F тощо).'; }
       el.appendChild(box);
     }catch(e){}
   }

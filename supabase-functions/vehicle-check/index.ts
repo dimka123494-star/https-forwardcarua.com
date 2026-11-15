@@ -46,9 +46,9 @@ function parseQ(raw: string): { q: string; vin: boolean } | null {
   if (/^[A-HJ-NPR-Z0-9]{17}$/.test(asVin) && /\d/.test(asVin) && /[A-Z]/.test(asVin)) return { q: asVin, vin: true };
   let p = tr(s, LAT, CYR);
   // формат АА1234ВВ: у цифровому блоці літеру О часто вводять замість нуля
-  if (p.length === 8 && /^[А-ЯІЇЄ]{2}.{4}[А-ЯІЇЄZV]{2}$/.test(p)) p = p.slice(0, 2) + p.slice(2, 6).replace(/О/g, "0") + p.slice(6);
-  // електромобілі: друга пара літер з латинською Z або V (ВК0997ZА); Y уже перетворено на У
-  if (/^[0-9А-ЯІЇЄZV]{4,10}$/.test(p) && /\d/.test(p)) return { q: p, vin: false };
+  if (p.length === 8 && /^[А-ЯІЇЄ]{2}.{4}[А-ЯІЇЄA-Z]{2}$/.test(p)) p = p.slice(0, 2) + p.slice(2, 6).replace(/О/g, "0") + p.slice(6);
+  // електромобілі (ВК0997ZА) і причепи (АМ2464ХF): в останній парі бувають латинські літери без кириличного двійника
+  if (/^[0-9А-ЯІЇЄA-Z]{4,10}$/.test(p) && /\d/.test(p)) return { q: p, vin: false };
   return null;
 }
 // «Можливо, ви мали на увазі»: номер АА1234ВВ з однією нестандартною або сплутаною літерою —

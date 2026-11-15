@@ -25,8 +25,9 @@ const PlateScan = (() => {
       const w = s.slice(i, i + 8).split('');
       let ok = true, fix = 0;
       const toL = k => { if (TO_L[w[k]]) { w[k] = TO_L[w[k]]; fix++; } };
-      for (const k of [0, 1, 7]) { toL(k); if (!L_OK.includes(w[k])) ok = false; }
-      toL(6); if (!(L_OK + 'ZVY').includes(w[6])) ok = false;
+      for (const k of [0, 1]) { toL(k); if (!L_OK.includes(w[k])) ok = false; }
+      // остання пара: на електромобілях і причепах бувають інші латинські літери (ZA, XF) — дозволяємо, але як менш імовірні
+      for (const k of [6, 7]) { toL(k); if (!/[A-Z]/.test(w[k])) ok = false; else if (!(L_OK + (k === 6 ? 'ZVY' : '')).includes(w[k])) fix++; }
       for (const k of [2, 3, 4, 5]) { if (TO_D[w[k]]) { w[k] = TO_D[w[k]]; fix++; } if (!/\d/.test(w[k])) ok = false; }
       if (!ok) continue;
       const p = toCyr(w.join(''));

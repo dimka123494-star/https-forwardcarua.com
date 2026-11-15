@@ -23,7 +23,7 @@ export default async (req: Request, ctx: Context) => {
   if (/^[A-HJ-NPR-Z0-9]{17}$/.test(clean)) return Response.redirect(`${url.origin}/perevirka-avto?q=${clean}`, 302);
   let plate = toCyr(clean);
   // АА1234ВВ: літеру О в цифровому блоці виправляємо на нуль (ВКО997ZА → ВК0997ZА)
-  if (plate.length === 8 && /^[А-ЯІЇЄ]{2}.{4}[А-ЯІЇЄZV]{2}$/.test(plate)) plate = plate.slice(0, 2) + plate.slice(2, 6).replace(/О/g, "0") + plate.slice(6);
+  if (plate.length === 8 && /^[А-ЯІЇЄ]{2}.{4}[А-ЯІЇЄA-Z]{2}$/.test(plate)) plate = plate.slice(0, 2) + plate.slice(2, 6).replace(/О/g, "0") + plate.slice(6);
   if (plate && plate !== raw) return Response.redirect(`${url.origin}/avto/${encodeURIComponent(plate)}`, 301);
 
   const res = await ctx.next();
@@ -32,7 +32,7 @@ export default async (req: Request, ctx: Context) => {
     let html = await res.text();
     const headers = new Headers(res.headers);
     headers.delete("content-length");
-    if (!/^[0-9А-ЯІЇЄZV]{4,10}$/.test(plate)) return new Response(setMeta(html, "name", "robots", "noindex,follow"), { status: 404, headers });
+    if (!/^[0-9А-ЯІЇЄA-Z]{4,10}$/.test(plate)) return new Response(setMeta(html, "name", "robots", "noindex,follow"), { status: 404, headers });
     const r = await fetch(`${SB}/functions/v1/vehicle-check`, {
       method: "POST", body: JSON.stringify({ action: "summary", q: plate }),
       headers: { apikey: ANON, Authorization: `Bearer ${ANON}`, "Content-Type": "application/json" },
