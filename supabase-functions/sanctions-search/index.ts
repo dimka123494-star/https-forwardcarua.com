@@ -47,7 +47,9 @@ Deno.serve(async (req) => {
       const t = norm(q).split(" ").filter((w) => w.length >= 2);
       if (norm(q).length < 3 || !t.length) return json({ error: "short" }, 400);
       hits = [];
-      for (let i = 0; i < rows!.length && hits.length < 200; i++) if (t.every((w) => keys[i].includes(w))) hits.push(rows![i]);
+      // цілі слова; останнє — як початок слова (щоб «Іванов» не знаходив «Катав-Івановський», а «Ельте» — знаходив «Ельтекс»)
+      const pats = t.map((w, j) => " " + w + (j === t.length - 1 ? "" : " "));
+      for (let i = 0; i < rows!.length && hits.length < 200; i++) if (pats.every((p) => keys[i].includes(p))) hits.push(rows![i]);
     }
     const items = hits.map(view).sort((a, b) => RANK[a.status] - RANK[b.status]);
     return json({ q, at, total: items.length, items: items.slice(0, 20) });

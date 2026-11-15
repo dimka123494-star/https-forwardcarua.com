@@ -20,7 +20,7 @@ const Sanctions = (() => {
   function html(d, q, anon){
     const src = '<p class="text-xs text-muted" style="margin:.5rem 0 0">Державний реєстр санкцій РНБО (drs.nsdc.gov.ua)' + (d.at ? ', дані на ' + dt(d.at) : '') + '. Збіг назви чи ПІБ — ще не доказ, що це та сама особа: звіряйте код, дату народження, країну.</p>';
     if (!d.items || !d.items.length) return '<div class="card" style="padding:10px 12px;border-color:rgba(16,185,129,.4)"><div style="color:var(--green);font-weight:600"><i class="ti ti-shield-check"></i> У реєстрі санкцій РНБО не значиться</div><div class="text-xs text-muted">за запитом «' + esc(q) + '»</div></div>' + src;
-    return '<div class="text-sm" style="font-weight:600">Знайдено в реєстрі санкцій: ' + d.total + (d.total > d.items.length ? ' (показано ' + d.items.length + ')' : '') + '</div>' + d.items.map(i => item(i, anon)).join('') + src;
+    return '<div class="text-sm" style="font-weight:600">Знайдено в реєстрі санкцій: ' + d.total + (d.total >= 200 ? '+' : '') + (d.total > d.items.length ? ' (показано ' + d.items.length + ')' : '') + '</div>' + d.items.map(i => item(i, anon)).join('') + src;
   }
   async function mount(el){
     const code = el.dataset.sanctionsCode; if (!code) return;
