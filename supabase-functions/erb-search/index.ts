@@ -14,7 +14,7 @@ async function get(path: string) {
   if (r.status === 404) return null;
   if (!r.ok) throw new Error(path + " " + r.status);
   const v = await r.json();
-  if (cache.size > 40) cache.delete(cache.keys().next().value!);
+  if (cache.size > 16) cache.delete(cache.keys().next().value!);
   cache.set(path, { at: Date.now(), v });
   return v;
 }
