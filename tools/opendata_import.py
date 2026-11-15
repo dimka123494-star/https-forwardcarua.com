@@ -36,8 +36,9 @@ def text_stream(path):
         head = f.read(200000)
     try:
         head.decode('utf-8'); enc = 'utf-8-sig'
-    except UnicodeDecodeError:
-        enc = 'cp1251'
+    except UnicodeDecodeError as e:
+        # символ, розрізаний межею 200 КБ, — ще не ознака cp1251
+        enc = 'utf-8-sig' if e.start >= len(head) - 4 else 'cp1251'
     return open(path, encoding=enc, errors='replace', newline='')
 
 
