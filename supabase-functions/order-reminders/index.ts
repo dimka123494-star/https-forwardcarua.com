@@ -1,11 +1,12 @@
 // Supabase Edge Function «order-reminders»: один лист-нагадування тим, хто почав оплату звіту про авто карткою, але не завершив.
 // Викликає pg_cron кожні 15 хв. Беремо замовлення 1–24 год тому, без оплати й без нагадування, і пропускаємо, якщо та сама
-// людина (email) потім оплатила той самий номер. Лист — через Resend (секрет RESEND_API_KEY, домен forwardcarua.com підтверджений у Resend).
+// людина (email) потім оплатила той самий номер. Лист — через Resend (домен mail.forwardcarua.com підтверджений у Resend).
 // Повторний виклик безпечний: кожне замовлення позначається reminded_at і більше не отримує листів. Деплой без verify_jwt.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const KEY = Deno.env.get("RESEND_API_KEY") ?? "";
-const FROM = Deno.env.get("REMINDER_FROM") ?? "НомерОК <noreply@forwardcarua.com>";
+// ключ Resend лише для відправки з mail.forwardcarua.com: секрет RESEND_API_KEY або таблиця app_secrets (лише service role)
+let KEY = Deno.env.get("RESEND_API_KEY") ?? "";
+const FROM = Deno.env.get("REMINDER_FROM") ?? "НомерОК <noreply@mail.forwardcarua.com>";
 const REPLY = Deno.env.get("REMINDER_REPLY_TO") ?? "custom@forwardcarua.com";
 const SITE = "https://forwardcarua.com";
 const json = (b: unknown, s = 200) => new Response(JSON.stringify(b), { status: s, headers: { "Content-Type": "application/json" } });
@@ -48,8 +49,9 @@ ${mp}
 }
 
 Deno.serve(async () => {
-  if (!KEY) return json({ skipped: "no_resend_key" });
   const db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+  if (!KEY) KEY = (await db.from("app_secrets").select("value").eq("name", "RESEND_API_KEY").maybeSingle()).data?.value ?? "";
+  if (!KEY) return json({ skipped: "no_resend_key" });
   const now = Date.now();
   const { data: pend, error } = await db.from("vehicle_orders").select("id, q, email, amount, created_at")
     .neq("status", "paid").is("reminded_at", null)
