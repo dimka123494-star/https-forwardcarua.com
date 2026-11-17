@@ -1,6 +1,7 @@
 // Supabase Edge Function «order-reminders»: один лист-нагадування тим, хто почав оплату звіту про авто карткою, але не завершив.
 // Викликає pg_cron кожні 15 хв. Беремо замовлення 1–24 год тому, без оплати й без нагадування, і пропускаємо, якщо та сама
 // людина (email) потім оплатила той самий номер. Лист — через Resend (домен mail.forwardcarua.com підтверджений у Resend).
+// Також (POST {paid: 'vehicle_orders'|'check_orders', id} від тригера order_paid_notify) — лист із посиланням на оплачений звіт.
 // Повторний виклик безпечний: кожне замовлення позначається reminded_at і більше не отримує листів. Деплой без verify_jwt.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -48,10 +49,46 @@ ${mp}
   return { subject, html, text };
 }
 
-Deno.serve(async () => {
+// лист після оплати: посилання на звіт (доступ — за випадковим токеном замовлення)
+async function paidMail(db: any, table: string, id: string) {
+  if (table !== "vehicle_orders" && table !== "check_orders") return { error: "bad_table" };
+  // emailed_at ставимо атомарно — другий виклик нічого не надішле
+  const { data: o } = await db.from(table).update({ emailed_at: new Date().toISOString() }).eq("id", id).eq("status", "paid").is("emailed_at", null).select("*").maybeSingle();
+  if (!o) return { skipped: "already_or_not_paid" };
+  const veh = table === "vehicle_orders";
+  const url = `${SITE}/${veh ? "zvit-avto" : "zvit"}?t=${o.token}`;
+  let subject: string, what: string;
+  if (veh) {
+    const s = await summary(o.q);
+    const v = s?.vehicle ?? {};
+    const name = [v.brand, v.model].filter(Boolean).join(" ") + (v.year ? ", " + v.year : "");
+    what = `авто ${toLat(o.q)}${name ? " — " + name : ""}`;
+    subject = `Звіт про ${name || "авто"} (${toLat(o.q)}) готовий`;
+  } else {
+    what = `компанію з кодом ЄДРПОУ ${o.code}`;
+    subject = `Звіт про компанію ${o.code} готовий`;
+  }
+  const html = `<div style="font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;font-size:15px;line-height:1.55;color:#111;max-width:520px">
+<p style="margin:0 0 12px">Дякуємо за оплату!</p>
+<p style="margin:0 0 16px">Ваш повний звіт про ${esc(what)} готовий. Посилання постійне — звіт можна відкрити будь-коли й завантажити в PDF.</p>
+<p style="margin:0 0 20px"><a href="${url}" style="display:inline-block;background:#10b981;color:#fff;text-decoration:none;font-weight:600;padding:12px 22px;border-radius:10px">Відкрити звіт</a></p>
+<p style="margin:0 0 20px;color:#444">Оплачено ${esc(o.amount)} грн. Не пересилайте посилання стороннім: будь-хто з ним може переглянути звіт. Питання — просто дайте відповідь на цей лист.</p>
+<p style="margin:0;color:#888;font-size:12px">НомерОК · forwardcarua.com</p></div>`;
+  const text = `Дякуємо за оплату!\n\nВаш повний звіт про ${what} готовий: ${url}\nПосилання постійне — звіт можна відкрити будь-коли й завантажити в PDF.\n\nОплачено ${o.amount} грн. Не пересилайте посилання стороннім.\n\nНомерОК · forwardcarua.com`;
+  const r = await fetch("https://api.resend.com/emails", {
+    method: "POST", headers: { Authorization: `Bearer ${KEY}`, "Content-Type": "application/json", "Idempotency-Key": `paid-${table}-${id}` },
+    body: JSON.stringify({ from: FROM, to: [o.email], reply_to: REPLY, subject, html, text, tags: [{ name: "type", value: "report_paid" }] }),
+  });
+  if (!r.ok) { console.error("resend paid:", r.status, await r.text()); await db.from(table).update({ emailed_at: null }).eq("id", id); return { error: r.status }; }
+  return { sent: 1 };
+}
+
+Deno.serve(async (req) => {
   const db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
   if (!KEY) KEY = (await db.from("app_secrets").select("value").eq("name", "RESEND_API_KEY").maybeSingle()).data?.value ?? "";
   if (!KEY) return json({ skipped: "no_resend_key" });
+  const body = await req.json().catch(() => ({}));
+  if (body?.paid) return json(await paidMail(db, String(body.paid), String(body.id ?? "")));
   const now = Date.now();
   const { data: pend, error } = await db.from("vehicle_orders").select("id, q, email, amount, created_at")
     .neq("status", "paid").is("reminded_at", null)
