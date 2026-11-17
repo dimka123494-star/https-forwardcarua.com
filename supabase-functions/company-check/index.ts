@@ -63,11 +63,11 @@ Deno.serve(async (req) => {
     if (!/^\d{8}$/.test(code)) return json({ error: "bad_code" }, 400);
 
     // спершу дані — гроші списуємо, лише якщо звіт зібрано
-    let meta: any, erb: any, bankrupt: any, courts: any, decisions: any;
+    let meta: any, erb: any, bankrupt: any, courts: any, decisions: any, licenses: any;
     try {
-      [meta, erb, bankrupt, courts, decisions] = await Promise.all([
+      [meta, erb, bankrupt, courts, decisions, licenses] = await Promise.all([
         fetch(RAW + "meta.json").then((r) => r.json()), shard("erb", code), shard("bankrupt", code), shard("courts", code),
-        shard("decisions", code, true)]);
+        shard("decisions", code, true), shard("lic", code, true).catch(() => null)]);
     } catch (e) {
       console.error("sources:", e);
       return json({ error: "unavailable" }, 503);
@@ -82,7 +82,7 @@ Deno.serve(async (req) => {
       erb, bankrupt: bankrupt?.items ?? null, courts, decisions: decisions ?? null,
       edr: edr?.data ?? null,
       license: lic ? { status: lic.status, intl_cargo: lic.intl_cargo, dangerous: lic.dangerous } : null,
-      sanctions, aeo,
+      sanctions, aeo, licenses: licenses ?? [],
     };
     const { data: ch, error } = await sb.rpc("company_check_charge", { p_user: user.id, p_code: code, p_report: report });
     if (error) {

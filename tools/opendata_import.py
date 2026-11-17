@@ -256,6 +256,79 @@ def aeo():
     return out
 
 
+# ---------- ліцензії й дозволи з відкритих даних (Єдиного ліцензійного реєстру ДРС у відкритих даних немає — беремо реєстри органів) ----------
+LIC_SETS = [   # (набір data.gov.ua, підказка в назві ресурсу, орган)
+    ('c38266a0-049c-4f96-8a8b-d657a88632cd', '', 'Держмитслужба'),        # митна брокерська діяльність
+    ('4725d7d2-95aa-4239-a832-7f1d484c4120', 'lits-reestr', 'НКРЕКП'),      # енергетика й комунальні послуги
+    ('9cc77e6e-7f9e-4f6b-aac0-2a671ca1e2dd', '', 'Держлікслужба'),        # обіг наркотичних засобів і прекурсорів
+    ('e133fa58-97f6-4cb7-9a4c-b2d7da71d639', 'touroperator', 'ДАРТ'),       # туроператорська діяльність
+]
+
+
+def latest_csv(ds, hint):
+    j = json.loads(urllib.request.urlopen(urllib.request.Request(
+        'https://data.gov.ua/api/3/action/package_show?id=' + ds, headers={'User-Agent': UA}), timeout=60).read())['result']
+    rs = [r for r in j['resources'] if 'csv' in (r.get('format') or '').lower() and hint in (r.get('url') or '') + (r.get('name') or '')]
+    rs.sort(key=lambda r: r.get('last_modified') or r.get('created') or '')
+    return rs[-1]['url']
+
+
+def lic_rows(ds, hint):
+    path = f'lic-{ds[:8]}.csv'
+    fetch(latest_csv(ds, hint), path)
+    with text_stream(path) as f:
+        head = f.readline(); f.seek(0)
+        delim = max([',', ';', '\t'], key=head.count)
+        return [{clean(k): ('' if clean(v) == 'null' else clean(v)) for k, v in r.items() if k} for r in csv.DictReader(f, delimiter=delim)]
+
+
+def iso(d):
+    d = d[:10]
+    if re.match(r'^\d{2}\.\d{2}\.\d{4}$', d): return d[6:] + '-' + d[3:5] + '-' + d[:2]
+    return d if re.match(r'^\d{4}-\d{2}-\d{2}$', d) else ''
+
+
+def licenses():
+    """ЄДРПОУ → [{org, kind, status, ok, from, to, num}] — лише юрособи (8 цифр), ФОП не показуємо"""
+    out, today = {}, time.strftime('%Y-%m-%d')
+    add = lambda code, it: is_firm(code) and out.setdefault(code, []).append(it)
+    for ds, hint, org in LIC_SETS:
+        try:
+            rows = lic_rows(ds, hint)
+        except Exception as e:   # кожне джерело необовʼязкове
+            print('licenses', org, 'failed', e, flush=True); continue
+        n0 = sum(len(v) for v in out.values())
+        if org == 'Держмитслужба':
+            for r in rows:
+                st = r.get('authorizationStatus', '')
+                add(r.get('enterpriseId', ''), {'org': org, 'kind': 'Митна брокерська діяльність', 'status': st, 'ok': st.lower() == 'чинна',
+                    'from': iso(r.get('authorizationStartDate', '')), 'to': iso(r.get('cancellationDate') or r.get('annulmentDate') or ''), 'num': r.get('authorizationNumber', '')})
+        elif org == 'НКРЕКП':
+            last = {}   # рядок на кожне рішення — беремо найсвіжіше по ліцензії
+            for r in rows:
+                k = (r.get('Код згідно з ЄДРПОУ', ''), r.get('Сфера діяльності', ''), r.get('Вид діяльності', ''))
+                if k not in last or r.get('Дата рішення', '') >= last[k].get('Дата рішення', ''): last[k] = r
+            for (code, sphere, kind), r in last.items():
+                st = r.get('Статус ліцензії', '')
+                add(code, {'org': org, 'kind': kind or sphere, 'status': st, 'ok': st == 'Чинна', 'from': iso(r.get('Дата початку дії ліцензії', '')),
+                    'to': iso(r.get('Дата закінчення дії ліцензії', '')), 'num': ''})
+        elif org == 'Держлікслужба':
+            for r in rows:
+                to = iso(r.get('licenseExpirationDate', ''))
+                add(r.get('codeUSREOU', ''), {'org': org, 'kind': 'Обіг наркотичних засобів, психотропних речовин і прекурсорів' +
+                    (' (' + r['activities'] + ')' if r.get('activities') else ''), 'status': 'Чинна' if not to or to >= today else 'Строк дії минув',
+                    'ok': not to or to >= today, 'from': iso(r.get('licenseIssueDate', '')), 'to': to, 'num': ''})
+        else:
+            for r in rows:
+                bad = r.get('cancellationOfLicense') or r.get('licenseSuspended')
+                add(r.get('idOfEnterpreneur', ''), {'org': org, 'kind': r.get('kindOfEconomicActivity') or 'Туроператорська діяльність',
+                    'status': 'Анульована / зупинена' if bad else 'Чинна', 'ok': not bad, 'from': '', 'to': '', 'num': r.get('orderOfLicenseIssuance', '')})
+        print('licenses', org, 'rows', len(rows), 'items', sum(len(v) for v in out.values()) - n0, flush=True)
+    for v in out.values():
+        v.sort(key=lambda x: (not x['ok'], x['org']))
+    return out
+
+
 def merge_prev(new):
     """Справи накопичуються: додаємо до збереженої історії нові, зберігаючи найсвіжіший запис кожної справи"""
     old = {}
@@ -353,8 +426,12 @@ def main():
         json.dump(a, open(f'{OUT}/aeo.json', 'w', encoding='utf-8'), ensure_ascii=False)
     except Exception as e:   # AEO — додаткове джерело: його збій не зупиняє оновлення решти
         print('AEO failed', e, flush=True); a = {}
+    try:
+        lic = licenses(); write('lic', lic)
+    except Exception as e:
+        print('licenses failed', e, flush=True); lic = {}
     meta = {'generated': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()), 'erb_firms': len(e), 'bankrupt_firms': len(b),
-            'court_firms': len(c), 'decision_firms': len(dec), 'aeo_firms': len(a), 'shards': SHARDS, 'erb_persons': np_, 'pshards': PSHARDS}
+            'court_firms': len(c), 'decision_firms': len(dec), 'aeo_firms': len(a), 'lic_firms': len(lic), 'shards': SHARDS, 'erb_persons': np_, 'pshards': PSHARDS}
     json.dump(meta, open(f'{OUT}/meta.json', 'w'))
     print(meta)
 

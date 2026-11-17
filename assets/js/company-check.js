@@ -145,9 +145,18 @@ const CompanyCheck = (() => {
         (a.cancellationDate ? ' · скасовано ' + date(a.cancellationDate) : '') + (a.annulmentDate ? ' · анульовано ' + date(a.annulmentDate) : '') + '</div>')).join('') : '';
     const edr = r.edr ? '<div class="text-sm" style="margin-top:.5rem">Стан за ЄДР: <b>' + esc(r.edr.state || '—') + '</b>' + (r.edr.reg_date ? ' · зареєстровано ' + date(r.edr.reg_date) : '') + '</div>' : '';
     const lic = r.license ? '<div class="text-sm">Ліцензія Укртрансбезпеки: <b>' + esc(r.license.status) + '</b>' + (r.license.intl_cargo ? ', міжнародні перевезення' : '') + '</div>' : '';
+    // ліцензії й дозволи з відкритих реєстрів органів (Держмитслужба, НКРЕКП, Держлікслужба, ДАРТ) + Укртрансбезпека
+    const L = (r.licenses || []).slice(0, 15);
+    const licItems = (r.license ? [(r.license.status === 'Чинна' ? ok : bad)('<b>Перевезення вантажів автомобільним транспортом</b> — ' + esc(String(r.license.status).toLowerCase()) +
+        '<div class="text-xs" style="margin-top:4px">Укртрансбезпека' + (r.license.intl_cargo ? ' · міжнародні перевезення' : '') + (r.license.dangerous ? ' · небезпечні вантажі' : '') + '</div>')] : [])
+      .concat(L.map(l => (l.ok ? ok : bad)('<b>' + esc(l.kind) + '</b> — ' + esc(String(l.status || '').toLowerCase()) +
+        '<div class="text-xs" style="margin-top:4px">' + esc(l.org) + (l.num ? ' · № ' + esc(l.num) : '') + (l.from ? ' · з ' + date(l.from) : '') + (l.to ? ' · до ' + date(l.to) : '') + '</div>')));
+    const licBlock = r.licenses === undefined ? '' : '<h3 style="font-size:16px;margin:1.25rem 0 .5rem">Ліцензії та дозволи</h3>' +
+      (licItems.length ? licItems.join('') : '<div class="text-sm text-muted">У відкритих ліцензійних реєстрах не знайдено.</div>') +
+      '<p class="text-xs text-muted">Реєстри Держмитслужби (митні брокери), НКРЕКП (енергетика, комунальні послуги), Держлікслужби (наркотичні засоби й прекурсори), ДАРТ (туроператори), Укртрансбезпеки (перевезення). Єдиний ліцензійний реєстр ДРС у відкритих даних не публікується, тож інші види ліцензій (медична практика, будівництво, охорона тощо) тут не перевіряються.</p>';
     return '<div class="modal-title">Звіт перевірки</div>' +
-      '<div class="modal-sub" style="margin-bottom:.75rem">' + esc(r.name || '') + ' · ЄДРПОУ ' + esc(r.code) + '</div>' + edr + lic +
-      snBlock +
+      '<div class="modal-sub" style="margin-bottom:.75rem">' + esc(r.name || '') + ' · ЄДРПОУ ' + esc(r.code) + '</div>' + edr + (r.licenses === undefined ? lic : '') +
+      snBlock + licBlock +
       '<h3 style="font-size:16px;margin:1.25rem 0 .5rem">Виконавчі провадження</h3>' + erbBlock +
       '<h3 style="font-size:16px;margin:1.25rem 0 .5rem">Банкрутство</h3>' + bkBlock +
       '<h3 style="font-size:16px;margin:1.25rem 0 .5rem">Судові справи</h3>' + crBlock + aeoBlock +
