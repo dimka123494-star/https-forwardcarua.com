@@ -220,8 +220,9 @@ const VehicleCheck = (() => {
       '<h4 class="vc-h">Історія авто</h4><div class="vc-tiles">' + hist + '</div>' + adTeaser(r) +
       vinBlock(r, false) +
       (r.by === 'plate' ? '<div class="cp-mount" data-compact="1" data-plate="' + esc(r.q) + '"></div>' : '') +
-      '<h4 class="vc-h">Останній запис</h4><div class="vc-tiles">' + tile('Дата', date(r.last.date), 'calendar') + tile('Операція', cap(r.last.op) || 'Реєстраційна операція', 'file-text') +
-        (r.last.region ? tile('Регіон', r.last.region, 'map-pin') : '') + (r.last.owner ? tile('Власник', cap(r.last.owner), 'user') : '') + '</div>' +
+      // останній запис — у повному звіті (у безкоштовній довідці лише замок)
+      '<h4 class="vc-h">Останній запис</h4><div class="vc-tiles">' + lockTile('Дата', '14.06.2023', 'calendar') + lockTile('Операція', 'Перереєстрація на нового власника', 'file-text') +
+        lockTile('Регіон', 'Київська обл.', 'map-pin') + lockTile('Власник', 'Фізична особа', 'user') + '</div>' +
       '<a class="btn btn-ghost btn-block vc-histbtn" href="#vcBuy" onclick="return VehicleCheck.toBuy()"><i class="ti ti-lock"></i>Історія реєстрацій · ' + (L.history || r.events) + ' ' + plural(L.history || r.events, 'запис', 'записи', 'записів') + '</a>' +
       '</div>' + buyBox(r) + '<a class="vc-fab" href="#vcBuy" onclick="return VehicleCheck.toBuy()"><i class="ti ti-shopping-cart"></i>Повний звіт · від ' + Math.min(...Object.keys(PACKS).map(n => Math.round(PACKS[n] / n))) + ' грн</a>';
   }

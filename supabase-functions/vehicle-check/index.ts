@@ -450,6 +450,7 @@ async function buildReport(pq: { q: string; vin: boolean }, full: boolean) {
     locked: { first_date: true, owner_changes: true, euro: !!euro, market: !!vi?.market_known, history: evs.length, ria: !!RIA_KEY },
   };
   if (!full) {
+    summary.last = null;   // дата, операція, регіон і тип власника останнього запису — лише в повному звіті
     // тизер: справжнє фото з нашого архіву оголошень AUTO.RIA (лише база, без запитів до RIA) — показується розмитим
     const th = await riaHistory(pq.vin ? null : pq.q, main.vin || (pq.vin ? pq.q : null)).catch(() => []);
     const withPhoto = th.find((h: any) => h.photos && h.photos.length);
