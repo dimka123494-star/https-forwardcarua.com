@@ -286,9 +286,14 @@ async function riaModelId(markId: number, model: string) {
   let models = await cacheGet(`models:${markId}`, 90);
   if (!models) { models = await riaGet(`/categories/1/marks/${markId}/models`); await cacheSet(`models:${markId}`, models); }
   // «RX 350» у МВС ↔ «RX» на AUTO.RIA: найдовша назва моделі, з якої починається назва в реєстрі
-  const m = normName(model);
-  const c = (models as any[]).filter((x) => m.startsWith(normName(x.name)) || normName(x.name).startsWith(m)).sort((a, b) => b.name.length - a.name.length);
-  return c[0]?.value ?? null;
+  // спершу точний збіг, потім найдовша назва-префікс («RX 350» → «RX»), і лише тоді найкоротша довша («A6» → не «A6 Allroad», якщо є «A6»)
+  const m = normName(model), L = models as any[];
+  const exact = L.find((x) => normName(x.name) === m);
+  if (exact) return exact.value;
+  const pre = L.filter((x) => m.startsWith(normName(x.name))).sort((a, b) => b.name.length - a.name.length)[0];
+  if (pre) return pre.value;
+  const longer = L.filter((x) => normName(x.name).startsWith(m)).sort((a, b) => a.name.length - b.name.length)[0];
+  return longer?.value ?? null;
 }
 async function riaParams(omni: string) {
   if (!RIA_USER) return null;
@@ -375,6 +380,35 @@ async function riaFind(plate: string | null, vin: string | null, veh: any) {
   return out;
 }
 
+// ринкова ціна: середня ціна оголошень AUTO.RIA для тієї ж марки, моделі й року (безкоштовно у довідці, кеш 30 днів;
+// нових запитів до RIA — не більше 300 на добу, щоб відкриті сторінки не з'їли ліміт API)
+async function riaAvgPrice(veh: any) {
+  const y = Number(veh.year) || 0;
+  if (!RIA_KEY || !veh.brand || !veh.model || !y) return null;
+  const markId = await riaMarkId(veh.brand).catch(() => null);
+  const modelId = markId ? await riaModelId(markId, veh.model).catch(() => null) : null;
+  if (!markId || !modelId) return null;
+  const ck = `avg:${markId}:${modelId}:${y}`;
+  const hit = await cacheGet(ck, 30);
+  if (hit !== undefined) return hit;
+  const dk = "avgq:" + new Date().toISOString().slice(0, 10);
+  const used = Number(await cacheGet(dk, 2) ?? 0);
+  if (used >= 300) return null;
+  await cacheSet(dk, used + 1);
+  try {
+    const d: any = await riaGet("/average_price", `main_category=1&marka_id=${markId}&model_id=${modelId}&yers=${y}`);
+    const pc = d?.percentiles ?? {};
+    const n = Number(d?.total) || 0;
+    const r = (x: any) => x ? Math.round(Number(x) / 100) * 100 : null;
+    const out = n >= 3 ? { usd: r(d.interQuartileMean || d.arithmeticMean), low: r(pc["25.0"] ?? pc["25"]), high: r(pc["75.0"] ?? pc["75"]), n } : null;
+    await cacheSet(ck, out);
+    return out;
+  } catch (e) {
+    console.error("avg:", String(e));
+    return null;
+  }
+}
+
 async function buildReport(pq: { q: string; vin: boolean }, full: boolean) {
   const [m, { main, other }] = await Promise.all([meta(), collect(pq)]);
   const ops = m?.ops ?? {};
@@ -415,7 +449,14 @@ async function buildReport(pq: { q: string; vin: boolean }, full: boolean) {
     // тизер: справжнє фото з нашого архіву оголошень AUTO.RIA (лише база, без запитів до RIA) — показується розмитим
     const th = await riaHistory(pq.vin ? null : pq.q, main.vin || (pq.vin ? pq.q : null)).catch(() => []);
     const withPhoto = th.find((h: any) => h.photos && h.photos.length);
-    if (withPhoto) summary.ria_teaser = { photo: withPhoto.photos[0], ads: th.length };
+    const ad0: any = withPhoto || th[0];
+    if (ad0) summary.ria_teaser = {
+      photo: withPhoto ? withPhoto.photos[0] : null, photos: (withPhoto?.photos ?? []).slice(0, 3),
+      photo_count: Math.max(withPhoto?.photo_count ?? 0, withPhoto?.photos?.length ?? 0), ads: th.length,
+      // які поля відкриються в повному звіті (самі значення — ні)
+      has: { usd: !!ad0.usd, mileage: ad0.mileage_k != null, gearbox: !!ad0.gearbox, fuel: !!ad0.fuel, city: !!ad0.city, date: !!ad0.added, sold: !!ad0.sold },
+    };
+    summary.market_price = await riaAvgPrice(veh).catch(() => null);
     return summary;
   }
   const [allPlates, ria] = await Promise.all([main.vin ? vplates(main.vin).catch(() => []) : Promise.resolve([]),
@@ -426,6 +467,7 @@ async function buildReport(pq: { q: string; vin: boolean }, full: boolean) {
     if (ria.history.length) ria.found = true;
   }
   delete summary.locked;
+  summary.market_price = await riaAvgPrice(veh).catch(() => null);
   return {
     ...summary, full: true, vin: main.vin || null, euro, euro_note: "орієнтовно, за роком випуску; у перехідні роки залежить від моделі",
     first_date: d8(evs[0][0]), owner_changes: owners, ria,
