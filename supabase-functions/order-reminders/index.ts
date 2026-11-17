@@ -68,13 +68,29 @@ async function paidMail(db: any, table: string, id: string) {
     what = `компанію з кодом ЄДРПОУ ${o.code}`;
     subject = `Звіт про компанію ${o.code} готовий`;
   }
+  // пакет звітів: скільки лишилось і посилання, що відкриває пакет у будь-якому браузері
+  let packHtml = "", packText = "";
+  // пакет: або щойно куплений (pack > 1), або звіт, відкритий з пакета (credit_id)
+  let cr: any = null;
+  if (veh && Number(o.pack) > 1) cr = (await db.rpc("vehicle_credit_left", { p_token: o.token })).data;
+  else if (veh && o.credit_id) cr = (await db.from("vehicle_credits").select("token, total, used").eq("id", o.credit_id).maybeSingle()).data;
+  if (cr && cr.total > 1) {
+    const left = cr.left ?? Math.max(0, cr.total - cr.used);
+    const pu = `${SITE}/perevirka-avto?credit=${cr.token ?? o.token}`;
+    packHtml = left > 0
+      ? `<p style="margin:0 0 16px;padding:12px 14px;background:#ecfdf5;border-radius:10px">У вашому пакеті ще <b>${left}</b> з ${esc(cr.total)} звітів. Щоб перевірити інше авто з пакета — відкрийте <a href="${pu}">це посилання</a> на будь-якому пристрої й введіть номер.</p>`
+      : `<p style="margin:0 0 16px;padding:12px 14px;background:#f3f4f6;border-radius:10px">Це був останній звіт з вашого пакета на ${esc(cr.total)} перевірок.</p>`;
+    packText = left > 0 ? `\n\nУ вашому пакеті ще ${left} з ${cr.total} звітів. Перевірити інше авто з пакета: ${pu}` : `\n\nЦе був останній звіт з вашого пакета.`;
+  }
+  const paidLine = Number(o.amount) > 0 ? `Оплачено ${esc(o.amount)} грн. ` : "Звіт з вашого пакета. ";
   const html = `<div style="font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;font-size:15px;line-height:1.55;color:#111;max-width:520px">
-<p style="margin:0 0 12px">Дякуємо за оплату!</p>
+<p style="margin:0 0 12px">${Number(o.amount) > 0 ? "Дякуємо за оплату!" : "Добрий день!"}</p>
 <p style="margin:0 0 16px">Ваш повний звіт про ${esc(what)} готовий. Посилання постійне — звіт можна відкрити будь-коли й завантажити в PDF.</p>
 <p style="margin:0 0 20px"><a href="${url}" style="display:inline-block;background:#10b981;color:#fff;text-decoration:none;font-weight:600;padding:12px 22px;border-radius:10px">Відкрити звіт</a></p>
-<p style="margin:0 0 20px;color:#444">Оплачено ${esc(o.amount)} грн. Не пересилайте посилання стороннім: будь-хто з ним може переглянути звіт. Питання — просто дайте відповідь на цей лист.</p>
+${packHtml}
+<p style="margin:0 0 20px;color:#444">${paidLine}Не пересилайте посилання стороннім: будь-хто з ним може переглянути звіт. Питання — просто дайте відповідь на цей лист.</p>
 <p style="margin:0;color:#888;font-size:12px">НомерОК · forwardcarua.com</p></div>`;
-  const text = `Дякуємо за оплату!\n\nВаш повний звіт про ${what} готовий: ${url}\nПосилання постійне — звіт можна відкрити будь-коли й завантажити в PDF.\n\nОплачено ${o.amount} грн. Не пересилайте посилання стороннім.\n\nНомерОК · forwardcarua.com`;
+  const text = `${Number(o.amount) > 0 ? "Дякуємо за оплату!" : "Добрий день!"}\n\nВаш повний звіт про ${what} готовий: ${url}\nПосилання постійне — звіт можна відкрити будь-коли й завантажити в PDF.${packText}\n\n${paidLine}Не пересилайте посилання стороннім.\n\nНомерОК · forwardcarua.com`;
   const r = await fetch("https://api.resend.com/emails", {
     method: "POST", headers: { Authorization: `Bearer ${KEY}`, "Content-Type": "application/json", "Idempotency-Key": `paid-${table}-${id}` },
     body: JSON.stringify({ from: FROM, to: [o.email], reply_to: REPLY, subject, html, text, tags: [{ name: "type", value: "report_paid" }] }),

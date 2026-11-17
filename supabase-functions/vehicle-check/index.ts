@@ -7,7 +7,11 @@
 //  POST {action:"checkout", q, email}    → замовлення (vehicle_orders) + поля форми WayForPay
 //  POST від WayForPay (serviceUrl)       → позначає замовлення оплаченим
 //  GET  ?return=<token>                  → 303 на https://forwardcarua.com/zvit-avto?t=<token>
-//  POST {action:"report", token}         → повний звіт за оплаченим замовленням (збирається один раз)
+//  POST {action:"report", token}         → повний звіт за оплаченим замовленням (збирається один раз) + залишок пакета
+//  checkout з pack 5|10|50                → пакет звітів: перший — на цей номер, решта — залишок за токеном (vehicle_credits)
+//  POST {action:"credits", credit}        → скільки звітів лишилось у картковому пакеті
+//  POST {action:"redeem", credit, q}      → відкрити звіт з пакета (нове оплачене замовлення з новим токеном)
+//  POST {action:"buy_pack", pack} + JWT   → купити пакет з балансу кабінету (далі «full» списує з пакета)
 // Деплой без verify_jwt: функція сама перевіряє JWT там, де він потрібен.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { createHmac } from "node:crypto";
@@ -545,16 +549,17 @@ Deno.serve(async (req) => {
       if (!pq) return json({ error: "bad_query" }, 400);
       if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return json({ error: "bad_email" }, 400);
       if (!(await buildReport(pq, false)).found) return json({ error: "not_found" }, 404);   // не беремо гроші за порожній звіт
-      const { data: sp } = await db.from("service_prices").select("price, active").eq("code", "vehicle_check").maybeSingle();
+      const pack = [5, 10, 50].includes(Number(p.pack)) ? Number(p.pack) : 1;
+      const { data: sp } = await db.from("service_prices").select("price, active").eq("code", pack > 1 ? "vehicle_pack" + pack : "vehicle_check").maybeSingle();
       if (!sp?.active) return json({ error: "unavailable" }, 503);
       const amount = Number(sp.price);
       const { count } = await db.from("vehicle_orders").select("id", { count: "exact", head: true }).eq("email", email).gt("created_at", new Date(Date.now() - 3600e3).toISOString());
       if ((count ?? 0) >= 10) return json({ error: "too_many" }, 429);
       const token = crypto.randomUUID().replace(/-/g, "") + crypto.randomUUID().replace(/-/g, "").slice(0, 8);
       const orderReference = `veh-${Date.now()}-${token.slice(0, 6)}`;
-      const { error } = await db.from("vehicle_orders").insert({ token, q: pq.q, email, amount, order_reference: orderReference });
+      const { error } = await db.from("vehicle_orders").insert({ token, q: pq.q, email, amount, order_reference: orderReference, pack });
       if (error) { console.error("order insert:", error); return json({ error: "server_error" }, 500); }
-      const productName = `Перевірка авто ${pq.q}`;
+      const productName = pack > 1 ? `Пакет ${pack} перевірок авто (перша — ${pq.q})` : `Перевірка авто ${pq.q}`;
       const orderDate = Math.floor(Date.now() / 1000);
       const sig = hmac([MERCHANT, DOMAIN, orderReference, orderDate, amount, "UAH", productName, 1, amount].join(";"));
       const base = Deno.env.get("SUPABASE_URL");
@@ -576,7 +581,40 @@ Deno.serve(async (req) => {
         o.report = { ...await buildReport(pq, true), price: Number(o.amount), token: true };
         await db.from("vehicle_orders").update({ report: o.report }).eq("id", o.id);
       }
-      return json({ status: "paid", report: o.report });
+      const { data: cr } = await db.rpc("vehicle_credit_left", { p_token: token });
+      return json({ status: "paid", report: o.report, credits: cr && cr.total > 0 ? cr : null });
+    }
+
+    // ---- пакети звітів ----
+    if (p.action === "credits") {
+      const t = String(p.credit ?? "");
+      if (!/^[a-f0-9]{40}$/.test(t)) return json({ left: 0 });
+      const { data: cr } = await db.rpc("vehicle_credit_left", { p_token: t });
+      return json({ left: cr?.left ?? 0, total: cr?.total ?? 0 });
+    }
+    if (p.action === "redeem") {
+      const t = String(p.credit ?? "");
+      const pq = parseQ(p.q);
+      if (!/^[a-f0-9]{40}$/.test(t)) return json({ error: "no_credits" }, 400);
+      if (!pq) return json({ error: "bad_query" }, 400);
+      if (!(await buildReport(pq, false)).found) return json({ error: "not_found" }, 404);   // не списуємо звіт за порожній номер
+      const nt = crypto.randomUUID().replace(/-/g, "") + crypto.randomUUID().replace(/-/g, "").slice(0, 8);
+      const { data, error } = await db.rpc("vehicle_credit_redeem", { p_token: t, p_q: pq.q, p_new_token: nt });
+      if (error) return json({ error: String(error.message).includes("no_credits") ? "no_credits" : "server_error" }, 400);
+      return json(data);
+    }
+    if (p.action === "buy_pack") {
+      const jwt = req.headers.get("Authorization")?.replace("Bearer ", "") ?? "";
+      const { data: { user } } = await db.auth.getUser(jwt);
+      if (!user) return json({ error: "unauthorized" }, 401);
+      const { data, error } = await db.rpc("vehicle_pack_buy", { p_user: user.id, p_pack: Number(p.pack) });
+      if (error) {
+        const m = String(error.message || "");
+        const k = ["no_cabinet", "balance", "unavailable", "bad_pack"].find((x) => m.includes(x));
+        if (!k) console.error("pack:", error);
+        return json({ error: k || "server_error" }, k === "balance" ? 402 : 400);
+      }
+      return json(data);
     }
     return json({ error: "bad_request" }, 400);
   } catch (e) {

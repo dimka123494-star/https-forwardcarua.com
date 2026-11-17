@@ -5,7 +5,18 @@ const VehicleCheck = (() => {
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
   const date = d => !d ? '—' : /^\d{4}-\d{2}-\d{2}$/.test(String(d)) ? String(d).split('-').reverse().join('.') : new Date(d).toLocaleDateString('uk-UA');
   const FN = () => SUPABASE_URL + '/functions/v1/vehicle-check';
-  let price = 50, last = null;
+  let price = 69, last = null;
+  // пакети звітів: ціна за весь пакет (з service_prices); 5 — вибраний за замовчуванням
+  const PACKS = { 1: 69, 5: 245, 10: 390, 50: 1450 };
+  let pack = 5;
+  // залишок карткового пакета: токен приходить у листі (?credit=…) або зі сторінки звіту
+  const CR_KEY = 'nkCredit';
+  const crGet = () => { try{ return JSON.parse(localStorage.getItem(CR_KEY) || 'null'); }catch(e){ return null; } };
+  const crSet = v => { try{ v ? localStorage.setItem(CR_KEY, JSON.stringify(v)) : localStorage.removeItem(CR_KEY); }catch(e){} };
+  try{
+    const u = new URL(location.href), c = u.searchParams.get('credit');
+    if (c && /^[a-f0-9]{40}$/.test(c)){ crSet({ t: c }); u.searchParams.delete('credit'); history.replaceState(null, '', u.pathname + (u.search || '') + u.hash); }
+  }catch(e){}
   const cap = s => s ? String(s).charAt(0) + String(s).slice(1).toLowerCase() : '';
 
   // ілюстрація моделі — вільне фото з Вікіпедії (Wikimedia Commons), не фото саме цього авто
@@ -48,7 +59,12 @@ const VehicleCheck = (() => {
   }
 
   async function loadPrice(){
-    try{ const sb = await sbReady(); const { data } = await sb.from('service_prices').select('price').eq('code', 'vehicle_check').maybeSingle(); if (data) price = Number(data.price); }catch(e){}
+    try{
+      const sb = await sbReady();
+      const { data } = await sb.from('service_prices').select('code, price, active').in('code', ['vehicle_check', 'vehicle_pack5', 'vehicle_pack10', 'vehicle_pack50']);
+      (data || []).forEach(x => { const n = x.code === 'vehicle_check' ? 1 : Number(x.code.replace('vehicle_pack', '')); if (x.active) PACKS[n] = Number(x.price); else if (n > 1) delete PACKS[n]; });
+      price = PACKS[1]; if (!PACKS[pack]) pack = 1;
+    }catch(e){}
     return price;
   }
   async function call(body, auth){
@@ -207,7 +223,7 @@ const VehicleCheck = (() => {
       '<h4 class="vc-h">Останній запис</h4><div class="vc-tiles">' + tile('Дата', date(r.last.date), 'calendar') + tile('Операція', cap(r.last.op) || 'Реєстраційна операція', 'file-text') +
         (r.last.region ? tile('Регіон', r.last.region, 'map-pin') : '') + (r.last.owner ? tile('Власник', cap(r.last.owner), 'user') : '') + '</div>' +
       '<a class="btn btn-ghost btn-block vc-histbtn" href="#vcBuy" onclick="return VehicleCheck.toBuy()"><i class="ti ti-lock"></i>Історія реєстрацій · ' + (L.history || r.events) + ' ' + plural(L.history || r.events, 'запис', 'записи', 'записів') + '</a>' +
-      '</div>' + buyBox(r) + '<a class="vc-fab" href="#vcBuy" onclick="return VehicleCheck.toBuy()"><i class="ti ti-shopping-cart"></i>Придбати · ' + price + ' грн</a>';
+      '</div>' + buyBox(r) + '<a class="vc-fab" href="#vcBuy" onclick="return VehicleCheck.toBuy()"><i class="ti ti-shopping-cart"></i>Повний звіт · від ' + Math.min(...Object.keys(PACKS).map(n => Math.round(PACKS[n] / n))) + ' грн</a>';
   }
   const plural = (n, a, b, c) => { n = Math.abs(n) % 100; const m = n % 10; return n > 10 && n < 20 ? c : m === 1 ? a : m > 1 && m < 5 ? b : c; };
   function toBuy(){ const b = document.getElementById('vcBuy'); if (b) b.scrollIntoView({ behavior: 'smooth', block: 'start' }); return false; }
@@ -221,11 +237,17 @@ const VehicleCheck = (() => {
     try{
       const u = await currentUser(); if (!u) return;
       const e = document.getElementById('vcEmail'); if (e && !e.value) e.value = u.email || '';
-      const b = await getMyBroker(); if (b) document.getElementById('vcCab').style.display = '';
+      const b = await getMyBroker();
+      if (b){
+        document.getElementById('vcCab').style.display = '';
+        try{ const sb = await sbReady(); const { data } = await sb.from('vehicle_credits').select('total, used'); cabLeft = (data || []).reduce((a, x) => a + x.total - x.used, 0); }catch(e){}
+        cabButton();
+      }
       // адміністратор: повний звіт без оплати (сервер теж не списує з адміна — vehicle_check_charge)
       if (typeof isAdmin === 'function' && await isAdmin(u)){
         const btn = document.getElementById('vcBtn');
-        if (btn) btn.innerHTML = '<i class="ti ti-shield-check"></i>Відкрити повний звіт · адмін, безкоштовно';
+        if (btn){ btn.dataset.admin = '1'; btn.innerHTML = '<i class="ti ti-shield-check"></i>Відкрити повний звіт · адмін, безкоштовно'; }
+        const o = document.getElementById('vcBuyOpts'); if (o) o.style.display = 'none';
         const card = document.getElementById('vcCard'); if (card) card.style.display = 'none';
         const f = document.querySelector('.vc-fab'); if (f) f.innerHTML = '<i class="ti ti-shield-check"></i>Повний звіт · адмін';
       }
@@ -235,21 +257,76 @@ const VehicleCheck = (() => {
   async function mountBuy(el, r){
     if (!el || !r || !r.found) return;
     await loadPrice(); last = r;
-    el.innerHTML = buyBox(r); prefill();
-    if (!document.querySelector('.vc-fab')){ document.body.insertAdjacentHTML('beforeend', '<a class="vc-fab" href="#vcBuy" onclick="return VehicleCheck.toBuy()"><i class="ti ti-shopping-cart"></i>Придбати · ' + price + ' грн</a>'); watchFab(); }
+    el.innerHTML = buyBox(r); prefill(); creditBox();
+    if (!document.querySelector('.vc-fab')){ document.body.insertAdjacentHTML('beforeend', '<a class="vc-fab" href="#vcBuy" onclick="return VehicleCheck.toBuy()"><i class="ti ti-shopping-cart"></i>Повний звіт · від ' + Math.min(...Object.keys(PACKS).map(n => Math.round(PACKS[n] / n))) + ' грн</a>'); watchFab(); }
   }
 
+  const per = n => Math.round(PACKS[n] / n);
+  const off = n => Math.round((1 - PACKS[n] / n / PACKS[1]) * 100);
+  function packList(){
+    const ns = [50, 10, 5, 1].filter(n => PACKS[n]);
+    return '<div class="vc-packs" role="radiogroup" aria-label="Кількість звітів">' + ns.map(n =>
+      '<label class="vc-pk' + (n === pack ? ' on' : '') + '"><input type="radio" name="vcPack" value="' + n + '"' + (n === pack ? ' checked' : '') + ' onchange="VehicleCheck.setPack(' + n + ')">' +
+      '<span class="vc-pk-n"><b>' + (n === 1 ? '1 звіт' : n + ' звітів') + '</b>' + (n === 5 ? '<small>Найпопулярніший · перевірте кілька авто</small>' : n === 50 ? '<small>Для автопідбору й брокерів</small>' : n === 1 ? '<small>Лише це авто</small>' : '') + '</span>' +
+      '<span class="vc-pk-p"><b>' + per(n) + ' грн</b>' + (n > 1 ? '<small><em>−' + off(n) + '%</em> <s>' + PACKS[1] + ' грн</s></small>' : '<small>за звіт</small>') + '</span></label>').join('') + '</div>' +
+      '<p class="text-xs text-muted" style="margin:.4rem 0 0">Пакет: перший звіт — на це авто, решту використаєте для будь-яких інших авто будь-коли.</p>';
+  }
+  const payLabel = () => (pack > 1 ? 'Оплатити ' + PACKS[pack] + ' грн · ' + pack + ' звітів' : 'Оплатити карткою ' + PACKS[1] + ' грн');
   function buyBox(r){
-    return '<div class="card vc-buy" id="vcBuy"><div class="spread" style="gap:12px;flex-wrap:wrap;align-items:center"><div><h3 style="margin:0 0 .35rem;font-size:18px">Повний звіт · ' + price + ' грн</h3>' +
+    return '<div class="card vc-buy" id="vcBuy"><div><h3 style="margin:0 0 .35rem;font-size:18px">Повний звіт про це авто</h3>' +
       '<ul class="text-sm" style="margin:0;padding-left:18px;line-height:1.7"><li>Уся історія: кожна реєстрація, перереєстрація й зняття з обліку з датою, областю й ТСЦ</li>' +
       '<li>Повний VIN і номерні знаки авто</li><li>Тип власника на кожному етапі (фізична чи юридична особа), зміни кольору, пального, перереєстрації</li>' +
       '<li>Подробиці з бази розшуку МВС: дата, орган поліції, номери кузова й двигуна</li>' +
-      (r.ria_teaser ? '<li>Оголошення з AUTO.RIA: ' + (r.ria_teaser.photo_count ? r.ria_teaser.photo_count + ' фото, ' : 'фото, ') + 'ціна, пробіг, місто</li>' : '<li>Пошук оголошень про продаж на AUTO.RIA: фото, ціна, пробіг</li>') + (r.other_vehicles ? '<li>Які інші авто раніше їздили з цим номером</li>' : '') + '</ul></div></div>' +
+      (r.ria_teaser ? '<li>Оголошення з AUTO.RIA: ' + (r.ria_teaser.photo_count ? r.ria_teaser.photo_count + ' фото, ' : 'фото, ') + 'ціна, пробіг, місто</li>' : '<li>Пошук оголошень про продаж на AUTO.RIA: фото, ціна, пробіг</li>') + (r.other_vehicles ? '<li>Які інші авто раніше їздили з цим номером</li>' : '') + '</ul></div>' +
+      '<div id="vcCredit" style="display:none;margin-top:.9rem"></div>' +
+      '<div id="vcBuyOpts" style="margin-top:.9rem">' + packList() + '</div>' +
       '<div class="msg" id="vcMsg" style="margin-top:.75rem"></div>' +
-      '<div id="vcCab" style="display:none;margin-top:.75rem"><button class="btn btn-primary btn-block" id="vcBtn" onclick="VehicleCheck.run()"><i class="ti ti-wallet"></i>Списати ' + price + ' грн з балансу кабінету</button></div>' +
+      '<div id="vcCab" style="display:none;margin-top:.75rem"><button class="btn btn-primary btn-block" id="vcBtn" onclick="VehicleCheck.run()"></button><div class="text-xs text-muted" id="vcCabNote" style="margin-top:.4rem"></div></div>' +
       '<div id="vcCard" style="margin-top:.75rem"><div class="field"><label class="label" for="vcEmail">Email для чека й посилання на звіт</label><input class="input" id="vcEmail" type="email" autocomplete="email" placeholder="you@example.com"></div>' +
-      '<button class="btn btn-block" id="vcPay" style="background:var(--green);color:#06120c;font-weight:600" onclick="VehicleCheck.payCard()"><i class="ti ti-credit-card"></i>Оплатити карткою ' + price + ' грн</button>' +
-      '<p class="text-xs text-muted" style="margin:.5rem 0 0">WayForPay: Visa, Mastercard, Apple Pay, Google Pay. Звіт відкриється одразу після оплати.</p></div></div>';
+      '<button class="btn btn-block" id="vcPay" style="background:var(--green);color:#06120c;font-weight:600" onclick="VehicleCheck.payCard()"><i class="ti ti-credit-card"></i>' + payLabel() + '</button>' +
+      '<p class="text-xs text-muted" style="margin:.5rem 0 0">WayForPay: Visa, Mastercard, Apple Pay, Google Pay. Звіт відкриється одразу після оплати й прийде на email.</p></div></div>';
+  }
+  // кабінет: кнопка залежить від залишку пакета й вибраної кількості
+  let cabLeft = 0;
+  function cabButton(){
+    const btn = document.getElementById('vcBtn'), note = document.getElementById('vcCabNote'); if (!btn) return;
+    if (btn.dataset.admin) return;
+    if (cabLeft > 0){ btn.innerHTML = '<i class="ti ti-ticket"></i>Відкрити звіт · з пакета (залишок ' + cabLeft + ')'; note.textContent = ''; }
+    else if (pack > 1){ btn.innerHTML = '<i class="ti ti-wallet"></i>Купити пакет ' + pack + ' звітів з балансу · ' + PACKS[pack] + ' грн'; note.textContent = 'Перший звіт відкриється одразу, решта — на балансі пакета в кабінеті.'; }
+    else { btn.innerHTML = '<i class="ti ti-wallet"></i>Списати ' + PACKS[1] + ' грн з балансу кабінету'; note.textContent = ''; }
+  }
+  function setPack(n){
+    pack = n;
+    document.querySelectorAll('.vc-pk').forEach(l => l.classList.toggle('on', Number(l.querySelector('input').value) === n));
+    const b = document.getElementById('vcPay'); if (b) b.innerHTML = '<i class="ti ti-credit-card"></i>' + payLabel();
+    cabButton();
+  }
+  // картковий пакет у цьому браузері: показуємо залишок і кнопку «з пакета»
+  async function creditBox(){
+    const c = crGet(), box = document.getElementById('vcCredit'); if (!c || !box) return;
+    try{
+      const d = await call({ action: 'credits', credit: c.t });
+      if (!d.left){ crSet(null); return; }
+      box.style.display = '';
+      box.innerHTML = '<div class="vc-credit"><div><b>У вашому пакеті ще ' + d.left + ' ' + (d.left === 1 ? 'звіт' : d.left < 5 ? 'звіти' : 'звітів') + '</b><div class="text-xs text-muted">Оплачено раніше — для цього авто нічого платити не треба</div></div>' +
+        '<button class="btn btn-primary" id="vcRedeem" onclick="VehicleCheck.redeem()"><i class="ti ti-ticket"></i>Відкрити звіт</button></div>';
+      const o = document.getElementById('vcBuyOpts'); if (o) o.style.display = 'none';
+      const card = document.getElementById('vcCard'); if (card) card.style.display = 'none';
+    }catch(e){}
+  }
+  async function redeem(){
+    const c = crGet(), btn = document.getElementById('vcRedeem'), m = document.getElementById('vcMsg'); if (!c || !last) return;
+    btn.disabled = true; btn.textContent = 'Відкриваємо…';
+    try{
+      const d = await call({ action: 'redeem', credit: c.t, q: last.q });
+      try{ const l = JSON.parse(localStorage.getItem('vcOrders') || '[]'); l.unshift({ t: d.token, q: last.q, at: Date.now() }); localStorage.setItem('vcOrders', JSON.stringify(l.slice(0, 30))); }catch(e){}
+      if (!d.left) crSet(null);
+      location.href = '/zvit-avto?t=' + d.token;
+    }catch(e){
+      btn.disabled = false; btn.innerHTML = '<i class="ti ti-ticket"></i>Відкрити звіт';
+      m.className = 'msg show msg-err'; m.textContent = e.message === 'no_credits' ? 'У пакеті не лишилось звітів — оберіть новий пакет нижче.' : 'Не вдалося відкрити звіт. Спробуйте ще раз.';
+      if (e.message === 'no_credits'){ crSet(null); const o = document.getElementById('vcBuyOpts'); if (o) o.style.display = ''; const card = document.getElementById('vcCard'); if (card) card.style.display = ''; }
+    }
   }
 
   // ---- PDF звіту з QR-кодом: QR веде на оригінал звіту на forwardcarua.com (перевірка справжності) ----
@@ -324,7 +401,7 @@ const VehicleCheck = (() => {
       (r.euro ? '<div class="vc-tiles" style="margin-top:.75rem">' + tile('Екологічний стандарт', r.euro + (r.euro_note ? ' (' + r.euro_note + ')' : ''), 'leaf') + '</div>' : '') + vinBlock(r, true) + riaBlock(r) + '<h3 style="font-size:16px;margin:1.25rem 0 .5rem">Історія реєстраційних операцій (' + (r.history || []).length + ')</h3><div class="vc-hist">' + hist + '</div>' + prev +
       '<p class="text-xs text-muted" style="margin:1.25rem 0 0">Перевірено ' + date(r.checked_at) + '. Джерело — відкриті дані Головного сервісного центру МВС («Відомості про транспортні засоби та їх власників», «Транспортні засоби в розшуку») ' +
         (r.data_until ? 'за 2013–' + esc(r.data_until) + ' рр. ' : '') + 'Імена, адреси й контакти власників у відкритих даних не публікуються. ' +
-        (r.token ? 'Оплачено карткою ' + r.price + ' грн. Збережіть посилання на цю сторінку.' : r.price > 0 ? 'Списано ' + r.price + ' грн з балансу.' : r.price === 0 ? 'Без оплати (повторний перегляд).' : '') + '</p>' +
+        (r.token ? (Number(r.price) > 0 ? 'Оплачено карткою ' + r.price + ' грн. ' : 'Звіт з пакета. ') + 'Збережіть посилання на цю сторінку.' : r.price > 0 ? 'Списано ' + r.price + ' грн з балансу.' : r.price === 0 ? 'Без оплати (повторний перегляд).' : '') + '</p>' +
       '<div class="row no-print" style="gap:8px;margin-top:1rem"><button class="btn btn-primary" id="vcPdfBtn" onclick="VehicleCheck.pdf()"><i class="ti ti-file-download"></i>Завантажити PDF</button></div>';
   }
 
@@ -358,7 +435,7 @@ const VehicleCheck = (() => {
       loadPhotos(el); if (typeof CarPhotos !== 'undefined') CarPhotos.scan(el);
       try{ track('vehicle_search', { found: r.found }); }catch(e){}
       try{ history.replaceState(null, '', location.pathname + '?q=' + encodeURIComponent(r.q)); }catch(e){}
-      if (r.found) prefill();
+      if (r.found){ prefill(); creditBox(); }
     }catch(e){
       if (e.message === 'bad_query') suggestInto(el, q, true);
       el.innerHTML = '<div class="msg show msg-err">' + (e.message === 'bad_query' ? 'Введіть номерний знак (наприклад, АА1234ВВ) або VIN із 17 символів.' : e.message === 'unavailable' ? 'Дані оновлюються — спробуйте за кілька хвилин.' : 'Не вдалося виконати пошук. Спробуйте ще раз.') + '</div>';
@@ -367,13 +444,19 @@ const VehicleCheck = (() => {
 
   async function run(){
     const btn = document.getElementById('vcBtn'), m = document.getElementById('vcMsg');
-    const fail = html => { m.className = 'msg show msg-err'; m.innerHTML = html; btn.disabled = false; btn.innerHTML = '<i class="ti ti-wallet"></i>Списати ' + price + ' грн з балансу кабінету'; };
+    const fail = html => { m.className = 'msg show msg-err'; m.innerHTML = html; btn.disabled = false; cabButton(); };
     btn.disabled = true; btn.textContent = 'Формуємо звіт…';
     try{
+      if (!btn.dataset.admin && cabLeft <= 0 && pack > 1){
+        const pb = await call({ action: 'buy_pack', pack }, true);
+        cabLeft = pb.left;
+        try{ track('purchase', { value: pb.price, currency: 'UAH', items: [{ item_name: 'vehicle_pack' + pack }] }); }catch(e){}
+      }
       const d = await call({ action: 'full', q: last.q }, true);
+      if (d.credits_left != null) cabLeft = d.credits_left;
       try{ track('vehicle_check', { value: d.price, currency: 'UAH', repeat: d.repeat }); }catch(e){}
       openReport(d);
-      document.getElementById('vcBuy').innerHTML = '<p class="text-sm" style="margin:0">Звіт відкрито й збережено в кабінеті → «Перевірка авто». <a href="#" onclick="VehicleCheck.reopen();return false">Відкрити ще раз</a></p>';
+      document.getElementById('vcBuy').innerHTML = '<p class="text-sm" style="margin:0">Звіт відкрито й збережено в кабінеті → «Перевірка авто». <a href="#" onclick="VehicleCheck.reopen();return false">Відкрити ще раз</a>' + (cabLeft > 0 ? ' · у пакеті лишилось <b>' + cabLeft + '</b>' : '') + '</p>';
       window.__vcLast = d;
     }catch(e){
       const t = e.message;
@@ -388,13 +471,13 @@ const VehicleCheck = (() => {
   async function payCard(){
     const btn = document.getElementById('vcPay'), m = document.getElementById('vcMsg');
     const email = (document.getElementById('vcEmail').value || '').trim();
-    const fail = t => { m.className = 'msg show msg-err'; m.textContent = t; btn.disabled = false; btn.innerHTML = '<i class="ti ti-credit-card"></i>Оплатити карткою ' + price + ' грн'; };
+    const fail = t => { m.className = 'msg show msg-err'; m.textContent = t; btn.disabled = false; btn.innerHTML = '<i class="ti ti-credit-card"></i>' + payLabel(); };
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return fail('Вкажіть email — на нього прийде чек, а звіт буде за посиланням');
     btn.disabled = true; btn.textContent = 'Переходимо до оплати…';
     try{
-      const d = await call({ action: 'checkout', q: last.q, email });
+      const d = await call({ action: 'checkout', q: last.q, email, pack });
       try{ const l = JSON.parse(localStorage.getItem('vcOrders') || '[]'); l.unshift({ t: d.token, q: last.q, at: Date.now() }); localStorage.setItem('vcOrders', JSON.stringify(l.slice(0, 30))); }catch(e){}
-      try{ track('begin_checkout', { value: price, currency: 'UAH', items: [{ item_name: 'vehicle_check' }] }); }catch(e){}
+      try{ track('begin_checkout', { value: PACKS[pack], currency: 'UAH', items: [{ item_name: pack > 1 ? 'vehicle_pack' + pack : 'vehicle_check' }] }); }catch(e){}
       const form = document.createElement('form');
       form.method = 'POST'; form.action = 'https://secure.wayforpay.com/pay'; form.acceptCharset = 'utf-8';
       Object.entries(d.form).forEach(([k, v]) => (Array.isArray(v) ? v : [v]).forEach(val => {
@@ -453,5 +536,5 @@ const VehicleCheck = (() => {
   }
   function show(k){ const c = (window.__vcHist || [])[k]; if (c) openReport({ ...c.report, price: c.price }); }
 
-  return { toBuy, mount, mountBuy, loadPhotos, pdf, search, run, payCard, report, summary, reopen, mountHistory, show, loadPrice };
+  return { setPack, redeem, crSet, toBuy, mount, mountBuy, loadPhotos, pdf, search, run, payCard, report, summary, reopen, mountHistory, show, loadPrice };
 })();

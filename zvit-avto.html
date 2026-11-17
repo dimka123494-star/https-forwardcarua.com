@@ -60,6 +60,11 @@
       if (d.status === 'paid' && d.report){
         box.innerHTML = VehicleCheck.report(Object.assign({}, d.report, { token: t })); VehicleCheck.loadPhotos(box); CarPhotos.scan(box);
         document.title = 'Звіт про авто ' + d.report.q + ' | МитнийБрокер';
+        // пакет: запамʼятовуємо залишок у цьому браузері й пропонуємо перевірити інше авто
+        if (d.credits && d.credits.token){
+          try{ localStorage.setItem('nkCredit', JSON.stringify({ t: d.credits.token })); }catch(e){}
+          if (d.credits.left > 0) box.insertAdjacentHTML('afterbegin', '<div class="card" style="border-color:var(--green);margin-bottom:1rem"><b>У вашому пакеті ще ' + d.credits.left + ' з ' + d.credits.total + ' звітів.</b> <a href="/perevirka-avto">Перевірити інше авто →</a><div class="text-xs text-muted" style="margin-top:4px">Пакет збережено в цьому браузері; посилання для інших пристроїв — у листі після оплати.</div></div>');
+        }
         if (tries === 1 || sessionStorage.getItem('vcTracked') !== t){ try{ track('purchase', { value: d.report.price, currency: 'UAH', transaction_id: t.slice(0, 12), items: [{ item_name: 'vehicle_check' }] }); sessionStorage.setItem('vcTracked', t); }catch(e){} }
         return;
       }
