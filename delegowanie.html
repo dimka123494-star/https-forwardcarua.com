@@ -63,7 +63,6 @@ const TYPES_PL = { goods_intl: 'przewóz rzeczy, przewóz międzynarodowy / carr
   pass_intl: 'przewóz osób, przewóz międzynarodowy / carriage of passengers, international carriage', pass_cabotage: 'przewóz osób, przewóz kabotażowy / carriage of passengers, cabotage operation' };
 const CN = { UA: 'Ukraina / Ukraine', MD: 'Mołdawia / Moldova', GE: 'Gruzja / Georgia', TR: 'Turcja / Türkiye', KZ: 'Kazachstan / Kazakhstan', PL: 'Polska / Poland' };
 let r = null, doc = 'confirm';
-const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' })[c]);
 const dmy = d => d && /^\d{4}-\d{2}-\d{2}/.test(d) ? d.slice(8, 10) + '/' + d.slice(5, 7) + '/' + d.slice(0, 4) : (d || '');
 const f = (n, pl, en, val, cls = '') => '<div class="f ' + cls + '"><div class="l">' + (n === '' ? '' : '<b>' + n + '.</b>') + pl + ' / ' + en + '</div><div class="val">' + esc(val) + '</div></div>';
 

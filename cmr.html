@@ -111,7 +111,6 @@ const L = {
   24: ['Вантаж отримано: місце, дата, підпис і печатка одержувача', 'Przesyłkę otrzymano: miejscowość, data, podpis i stempel odbiorcy', 'Goods received: place, date, signature and stamp of the consignee']
 };
 let doc = null;
-const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' })[c]);
 const dmy = d => d && /^\d{4}-\d{2}-\d{2}/.test(d) ? d.slice(8, 10) + '.' + d.slice(5, 7) + '.' + d.slice(0, 4) : (d || '');
 const lb = n => '<span class="no">' + n + '</span><div class="lb">' + L[n].join(' · ') + '</div>';
 const box = (n, v, cls = '', vcls = '') => '<div class="b ' + cls + '">' + lb(n) + '<div class="v ' + vcls + '">' + v + '</div></div>';
