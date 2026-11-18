@@ -100,13 +100,34 @@ function poaPage(){
     '<p>Pełnomocnictwo udzielone jest na czas nieokreślony, do odwołania.</p>' +
     '<p class="ua">' + esc(r.carrier_name) + ' в особі <span class="line"></span> (ПІБ, посада) уповноважує <b>' + esc(ATTORNEY.name) + '</b> подавати від імені перевізника повідомлення про відрядження водіїв на територію Республіки Польща до Державної інспекції праці (PIP) через портал Biznes.gov.pl, підписувати їх і вчиняти всі пов’язані з цим дії. Довіреність безстрокова, діє до відкликання.</p>' +
     '<div class="row3" style="margin-top:22mm">' + f('', 'Podpis i pieczęć mocodawcy', 'Підпис і печатка', '', 'sig') + f('', 'Imię, nazwisko, funkcja', 'ПІБ, посада', '', 'sig') + '</div>' +
-    '<div class="notes">Opłata skarbowa od pełnomocnictwa: 17 zł (art. 1 ust. 1 pkt 2 ustawy o opłacie skarbowej). / Державне мито за довіреність у Польщі — 17 zł, сплачуємо ми під час першої подачі.</div>' +
+    '<div class="notes">Opłata skarbowa od pełnomocnictwa: 17 zł (art. 1 ust. 1 pkt 2 ustawy o opłacie skarbowej). / Державне мито за довіреність у Польщі — 17 zł, сплачує довіритель один раз (реквізити — у кабінеті, «Мито за довіреність»).</div>' +
+    '<div class="foot"><span>forwardcarua.com</span><span>' + (r.is_test ? 'DOKUMENT TESTOWY · ' : '') + 'ID ' + esc(String(r.id).slice(0, 8)) + '</span></div></div>';
+}
+// Реквізити для сплати мита за довіреність (opłata skarbowa 17 zł) — платить сам перевізник (mocodawca), один раз.
+// Рахунок — єдиний рахунок Urzędu m.st. Warszawy для opłaty skarbowej (warszawa19115.pl: «opłata skarbowa — pytania»); SWIFT — за кодом банку 1030.
+const FEE = { amount: '17,00 PLN', odbiorca: 'Urząd m.st. Warszawy, Centrum Obsługi Podatnika, pl. Bankowy 2, 00-095 Warszawa',
+  nrb: '21 1030 1508 0000 0005 5000 0070', iban: 'PL21 1030 1508 0000 0005 5000 0070', swift: 'CITIPLPX (Bank Handlowy w Warszawie S.A.)' };
+function feePage(){
+  const addr = [r.carrier_street, [r.carrier_postcode, r.carrier_city].filter(Boolean).join(' '), CN[r.carrier_country] || r.carrier_country].filter(Boolean).join(', ');
+  const title = 'Opłata skarbowa od pełnomocnictwa – zgłoszenie delegowania kierowców do GIP, mocodawca: ' + r.carrier_name;
+  return '<div class="page poa"><h1>DANE DO PRZELEWU — OPŁATA SKARBOWA<small>РЕКВІЗИТИ ДЛЯ СПЛАТИ ДЕРЖАВНОГО МИТА ЗА ДОВІРЕНІСТЬ</small></h1>' +
+    '<p class="ua">Щоб ми подавали повідомлення про відрядження водіїв до Державної інспекції праці Польщі (PIP) від вашого імені, за довіреність сплачується державне мито <b>17 zł</b> (art. 1 ust. 1 pkt 2 ustawy o opłacie skarbowej). Довіреність безстрокова — мито сплачується <b>один раз</b>. Якщо ви вже сплачували його для цього перевізника, повторно не потрібно.</p>' +
+    f('', 'Odbiorca', 'Отримувач', FEE.odbiorca) +
+    f('', 'Numer rachunku', 'Номер рахунку', FEE.nrb) +
+    f('', 'IBAN (przelew z zagranicy)', 'IBAN (переказ з-за кордону)', FEE.iban) +
+    f('', 'SWIFT / BIC', 'SWIFT / BIC', FEE.swift) +
+    f('', 'Kwota', 'Сума', FEE.amount) +
+    f('', 'Tytuł przelewu', 'Призначення платежу', title) +
+    f('', 'Wpłacający', 'Платник', r.carrier_name + ', ' + addr) +
+    '<p class="ua" style="margin-top:6mm"><b>Як оплатити.</b> З українського банку — SWIFT-переказ у злотих (PLN), комісія <b>OUR</b>, щоб отримувач отримав рівно 17 zł. З польського банку або картки — звичайний przelew на номер рахунку вище.</p>' +
+    '<p class="ua"><b>Після оплати</b> надішліть нам квитанцію (PDF або скріншот з датою, сумою й реквізитами) разом зі скан-копією підписаної довіреності — у Telegram або на пошту. Вони додаються до повідомлення в PIP. Повідомлення подається не пізніше першого дня відрядження.</p>' +
+    '<div class="notes">Źródło numeru rachunku: Urząd m.st. Warszawy (warszawa19115.pl) — wspólny rachunek dla opłaty skarbowej od 1.01.2020. Opłatę wnosi się na rachunek gminy właściwej dla siedziby organu (Główny Inspektorat Pracy, Warszawa).</div>' +
     '<div class="foot"><span>forwardcarua.com</span><span>' + (r.is_test ? 'DOKUMENT TESTOWY · ' : '') + 'ID ' + esc(String(r.id).slice(0, 8)) + '</span></div></div>';
 }
 function render(){
   if (!r) return;
-  const n = doc === 'poa' ? 1 : Number(document.getElementById('copies').value) || 1;
-  document.getElementById('sheets').innerHTML = Array.from({ length: n }, () => doc === 'poa' ? poaPage() : confirmPage()).join('');
+  const n = doc !== 'confirm' ? 1 : Number(document.getElementById('copies').value) || 1;
+  document.getElementById('sheets').innerHTML = Array.from({ length: n }, () => doc === 'poa' ? poaPage() : doc === 'fee' ? feePage() : confirmPage()).join('');
   fit();
 }
 function fit(){
@@ -122,7 +143,7 @@ window.addEventListener('afterprint', fit);
 
 (async () => {
   const msg = document.getElementById('msg'), q = new URLSearchParams(location.search), id = q.get('id');
-  doc = q.get('doc') === 'poa' ? 'poa' : 'confirm';
+  doc = ['poa', 'fee'].includes(q.get('doc')) ? q.get('doc') : 'confirm';
   if (!id){ msg.textContent = 'Не вказано документ. Відкрийте його з кабінету.'; return; }
   const user = await currentUser();
   if (!user){ location.href = '/vhid?next=' + encodeURIComponent(location.pathname + location.search); return; }
@@ -130,11 +151,14 @@ window.addEventListener('afterprint', fit);
   if (!r){ msg.textContent = 'Документ не знайдено або він належить іншому акаунту.'; return; }
   msg.remove();
   const note = document.getElementById('note'); note.hidden = false;
-  if (doc === 'poa'){
+  if (doc === 'fee'){
+    document.getElementById('barT').textContent = 'Opłata skarbowa — 17 zł'; document.getElementById('copies').style.display = 'none';
+    note.textContent = 'Реквізити для сплати мита за довіреність. Оплатіть і надішліть нам квитанцію разом зі сканом підписаної довіреності.';
+  } else if (doc === 'poa'){
     document.getElementById('barT').textContent = 'Pełnomocnictwo'; document.getElementById('copies').style.display = 'none';
     note.textContent = 'Довіреність підписує керівник перевізника (з печаткою, якщо є). Надішліть нам фото або скан — вона безстрокова, тож потрібна один раз для всіх наступних відряджень.';
   } else note.textContent = 'Роздрукуйте, підпишіть (графи 14 і 15) до початку рейсу й покладіть у кабіну разом із CMR і записами тахографа. Щоб зберегти PDF на iPhone: «Друкувати / PDF» → «Поділитися» → «Зберегти у Файли».';
-  document.title = (doc === 'poa' ? 'Pełnomocnictwo — ' : 'Potwierdzenie delegowania — ') + r.driver_last;
+  document.title = (doc === 'poa' ? 'Pełnomocnictwo — ' : doc === 'fee' ? 'Opłata skarbowa — ' + r.carrier_name + ' — ' : 'Potwierdzenie delegowania — ') + (doc === 'fee' ? '' : r.driver_last);
   render();
 })();
 </script>

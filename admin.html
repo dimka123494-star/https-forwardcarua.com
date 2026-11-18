@@ -869,7 +869,7 @@ function renderDelegAdm(){
         Deleg.sections(r).map(([t, rows]) => '<div><div class="card-title" style="margin:10px 0 6px">' + t + '</div>' + rows.map(x => rmRow(x[0], x[1])).join('') + '</div>').join('') + '</div>' +
       (r.client_note ? '<div class="rv-reply text-sm" style="margin-top:8px;white-space:pre-line">💬 ' + esc(r.client_note) + '</div>' : '') +
       '<div style="margin:10px 0;display:flex;gap:6px;flex-wrap:wrap"><button class="btn btn-ghost btn-sm" onclick="dlCopyAll(\'' + r.id + '\')"><i class="ti ti-clipboard-text"></i> Скопіювати все текстом</button>' +
-        '<a class="btn btn-ghost btn-sm" target="_blank" rel="noopener" href="/delegowanie?id=' + r.id + '">Бланк</a><a class="btn btn-ghost btn-sm" target="_blank" rel="noopener" href="/delegowanie?id=' + r.id + '&doc=poa">Довіреність</a></div>' +
+        '<a class="btn btn-ghost btn-sm" target="_blank" rel="noopener" href="/delegowanie?id=' + r.id + '">Бланк</a><a class="btn btn-ghost btn-sm" target="_blank" rel="noopener" href="/delegowanie?id=' + r.id + '&doc=poa">Довіреність</a><a class="btn btn-ghost btn-sm" target="_blank" rel="noopener" href="/delegowanie?id=' + r.id + '&doc=fee">Мито 17 zł</a></div>' +
       '<div class="field"><label class="label">Статус</label><select class="input" id="dl-st-' + r.id + '">' +
         Object.entries(Deleg.STATUS).map(([k, s]) => '<option value="' + k + '"' + (r.status === k ? ' selected' : '') + '>' + s.label + '</option>').join('') + '</select></div>' +
       '<div class="field"><label class="label">Коментар клієнту</label><textarea class="input" id="dl-note-' + r.id + '" style="min-height:60px">' + esc(r.admin_note || '') + '</textarea></div>' +
