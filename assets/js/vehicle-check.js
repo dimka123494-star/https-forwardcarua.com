@@ -8,7 +8,7 @@ const VehicleCheck = (() => {
   let price = 69, last = null;
   // пакети звітів: ціна за весь пакет (з service_prices); 5 — вибраний за замовчуванням
   const PACKS = { 1: 69, 5: 245, 10: 390, 50: 1450 };
-  let pack = 5;
+  let pack = 1;   // за замовчуванням один звіт (69 грн), пакети — нижче як вигідніша опція
   // залишок карткового пакета: токен приходить у листі (?credit=…) або зі сторінки звіту
   const CR_KEY = 'nkCredit';
   const crGet = () => { try{ return JSON.parse(localStorage.getItem(CR_KEY) || 'null'); }catch(e){ return null; } };
@@ -224,7 +224,7 @@ const VehicleCheck = (() => {
       '<h4 class="vc-h">Останній запис</h4><div class="vc-tiles">' + lockTile('Дата', '14.06.2023', 'calendar') + lockTile('Операція', 'Перереєстрація на нового власника', 'file-text') +
         lockTile('Регіон', 'Київська обл.', 'map-pin') + lockTile('Власник', 'Фізична особа', 'user') + '</div>' +
       '<a class="btn btn-ghost btn-block vc-histbtn" href="#vcBuy" onclick="return VehicleCheck.toBuy()"><i class="ti ti-lock"></i>Історія реєстрацій · ' + (L.history || r.events) + ' ' + plural(L.history || r.events, 'запис', 'записи', 'записів') + '</a>' +
-      '</div>' + buyBox(r) + '<a class="vc-fab" href="#vcBuy" onclick="return VehicleCheck.toBuy()"><i class="ti ti-shopping-cart"></i>Повний звіт · від ' + Math.min(...Object.keys(PACKS).map(n => Math.round(PACKS[n] / n))) + ' грн</a>';
+      '</div>' + buyBox(r) + '<a class="vc-fab" href="#vcBuy" onclick="return VehicleCheck.toBuy()"><i class="ti ti-shopping-cart"></i>Повний звіт · ' + PACKS[1] + ' грн</a>';
   }
   const plural = (n, a, b, c) => { n = Math.abs(n) % 100; const m = n % 10; return n > 10 && n < 20 ? c : m === 1 ? a : m > 1 && m < 5 ? b : c; };
   function toBuy(){ const b = document.getElementById('vcBuy'); if (b) b.scrollIntoView({ behavior: 'smooth', block: 'start' }); return false; }
@@ -259,16 +259,16 @@ const VehicleCheck = (() => {
     if (!el || !r || !r.found) return;
     await loadPrice(); last = r;
     el.innerHTML = buyBox(r); prefill(); creditBox();
-    if (!document.querySelector('.vc-fab')){ document.body.insertAdjacentHTML('beforeend', '<a class="vc-fab" href="#vcBuy" onclick="return VehicleCheck.toBuy()"><i class="ti ti-shopping-cart"></i>Повний звіт · від ' + Math.min(...Object.keys(PACKS).map(n => Math.round(PACKS[n] / n))) + ' грн</a>'); watchFab(); }
+    if (!document.querySelector('.vc-fab')){ document.body.insertAdjacentHTML('beforeend', '<a class="vc-fab" href="#vcBuy" onclick="return VehicleCheck.toBuy()"><i class="ti ti-shopping-cart"></i>Повний звіт · ' + PACKS[1] + ' грн</a>'); watchFab(); }
   }
 
   const per = n => Math.round(PACKS[n] / n);
   const off = n => Math.round((1 - PACKS[n] / n / PACKS[1]) * 100);
   function packList(){
-    const ns = [50, 10, 5, 1].filter(n => PACKS[n]);
+    const ns = [1, 5, 10, 50].filter(n => PACKS[n]);
     return '<div class="vc-packs" role="radiogroup" aria-label="Кількість звітів">' + ns.map(n =>
       '<label class="vc-pk' + (n === pack ? ' on' : '') + '"><input type="radio" name="vcPack" value="' + n + '"' + (n === pack ? ' checked' : '') + ' onchange="VehicleCheck.setPack(' + n + ')">' +
-      '<span class="vc-pk-n"><b>' + (n === 1 ? '1 звіт' : n + ' звітів') + '</b>' + (n === 5 ? '<small>Найпопулярніший · перевірте кілька авто</small>' : n === 50 ? '<small>Для автопідбору й брокерів</small>' : n === 1 ? '<small>Лише це авто</small>' : '') + '</span>' +
+      '<span class="vc-pk-n"><b>' + (n === 1 ? '1 звіт' : 'Пакет ' + n + ' звітів') + '</b>' + (n === 5 ? '<small>Вигідніше, якщо дивитеся кілька авто</small>' : n === 50 ? '<small>Для автопідбору й брокерів</small>' : n === 1 ? '<small>Лише це авто</small>' : '') + '</span>' +
       '<span class="vc-pk-p"><b>' + per(n) + ' грн</b>' + (n > 1 ? '<small><em>−' + off(n) + '%</em> <s>' + PACKS[1] + ' грн</s></small>' : '<small>за звіт</small>') + '</span></label>').join('') + '</div>' +
       '<p class="text-xs text-muted" style="margin:.4rem 0 0">Пакет: перший звіт — на це авто, решту використаєте для будь-яких інших авто будь-коли.</p>';
   }
