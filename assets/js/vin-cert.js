@@ -267,7 +267,7 @@ const VinCert = (() => {
   async function usdEur(){
     if (st.usdEur) return st.usdEur;
     try{
-      const r = await (await fetch('https://bank.gov.ua/NBUStatService/v1/statdirectory/exchange?json')).json();
+      const r = await (await fetch('/api/nbu-rates')).json();
       const usd = r.find(x => x.cc === 'USD').rate, eur = r.find(x => x.cc === 'EUR').rate;
       st.usdEur = usd / eur;
     }catch(e){ st.usdEur = null; }

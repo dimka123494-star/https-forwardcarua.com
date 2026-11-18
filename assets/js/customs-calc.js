@@ -25,7 +25,7 @@
 
   async function loadRates(){
     try{
-      const r = await fetch('https://bank.gov.ua/NBUStatService/v1/statdirectory/exchange?json');
+      const r = await fetch('/api/nbu-rates');
       const d = await r.json();
       const eur = d.find(x => x.cc === 'EUR'), usd = d.find(x => x.cc === 'USD');
       if (eur){ $('cc-eur').value = eur.rate.toFixed(4); st.rateDate = eur.exchangedate; }
