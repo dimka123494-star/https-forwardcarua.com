@@ -62,7 +62,7 @@ async function edrFor(code: string) {
   };
 }
 // Розширені дані для «Витягу з ЄДР» (засновники з частками, бенефіціари, представники, номер запису, філії):
-// зашифровані шарди edrx-NNN.bin в окремому релізі edrx-data (tools/edr_shards.py). Приватний ключ — app_secrets.EDRX_PRIVATE_KEY.
+// зашифровані шарди edrx-NN.bin (код % 64) в окремому релізі edrx-data (tools/edr_shards.py). Приватний ключ — app_secrets.EDRX_PRIVATE_KEY.
 const EDRX = "https://github.com/dimka123494-star/https-forwardcarua.com/releases/download/edrx-data/";
 let edrxKey: CryptoKey | null = null;
 async function extFor(db: any, code: string) {
@@ -72,7 +72,7 @@ async function extFor(db: any, code: string) {
     const der = Uint8Array.from(atob(String(data.value).replace(/-----[^-]+-----|\s/g, "")), (c) => c.charCodeAt(0));
     edrxKey = await crypto.subtle.importKey("pkcs8", der, { name: "RSA-OAEP", hash: "SHA-256" }, false, ["decrypt"]);
   }
-  const r = await fetch(`${EDRX}edrx-${String(Number(code) % 512).padStart(3, "0")}.bin`);
+  const r = await fetch(`${EDRX}edrx-${String(Number(code) % 64).padStart(2, "0")}.bin`);   // 64 файли
   if (!r.ok) return null;
   const b = new Uint8Array(await r.arrayBuffer());
   const wl = (b[0] << 8) | b[1];

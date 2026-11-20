@@ -13,7 +13,7 @@ Netlify Edge (company-page.ts) та Supabase Edge (company-check) на запи�
 Імена засновників-фізосіб, бенефіціарів і представників не беремо (як і в edr_import.py) — лише керівника.
 
 Розширені дані для платного «Витягу з ЄДР» (лише чинні юрособи) — окремо, у релізі edrx-data, ЗАШИФРОВАНІ, бо містять імена фізосіб:
-  edrx-NNN.bin = AES-256-GCM(gzip(json)), ключ AES загорнутий RSA-OAEP-SHA256 публічним ключем tools/edrx_public.pem.
+  edrx-NN.bin (NN = int(код) % 64) = AES-256-GCM(gzip(json)), ключ AES загорнутий RSA-OAEP-SHA256 публічним ключем tools/edrx_public.pem.
   Приватний ключ — лише в Supabase (app_secrets.EDRX_PRIVATE_KEY), розшифровують функції company-check / check-pay.
   Формат файлу: 2 байти довжини загорнутого ключа (big-endian) + загорнутий ключ + 12 байт nonce + шифротекст.
   Запис: rn — номер запису, rd — дата запису, m — органи управління, sg — [[ПІБ, роль]] (керівник і представники),
@@ -27,6 +27,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from edr_import import download, todict, pick, uo_files, kids, iso  # noqa: E402
 
 SHARDS = 512
+XSHARDS = 64   # розширені дані — 64 файли (≈1,5 МБ): GitHub дає workflow ~1000 запитів/год, 512+512 файлів не влазять
 OUT = 'out-edr'
 MIN_CODES = 1_500_000   # у ЄДР ≈2 млн кодів юросіб; набагато менше — битий архів, не публікуємо
 
@@ -145,12 +146,12 @@ def main():
     try:
         from cryptography.hazmat.primitives import serialization
         pub = serialization.load_pem_public_key(open(pem, 'rb').read())
-        xsh = [dict() for _ in range(SHARDS)]
+        xsh = [dict() for _ in range(XSHARDS)]
         for code, v in ext.items():
-            xsh[int(code) % SHARDS][code] = v
+            xsh[int(code) % XSHARDS][code] = v
         for i, sh in enumerate(xsh):
             b = encrypt(pub, gzip.compress(json.dumps(sh, ensure_ascii=False, separators=(',', ':'), sort_keys=True).encode('utf-8'), 6, mtime=0))
-            with open(f'{OUT}/edrx-{i:03d}.bin', 'wb') as f:
+            with open(f'{OUT}/edrx-{i:02d}.bin', 'wb') as f:
                 f.write(b)
             xs += len(b)
     except Exception as e:   # без розширених даних картки й звіти однаково працюють
