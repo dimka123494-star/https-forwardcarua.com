@@ -70,6 +70,6 @@ returns bigint language sql security definer set search_path = public, extension
 $$;
 revoke all on function public.edr_load_call() from public, anon, authenticated;
 
--- Щосереди: workflow «ЄДР» публікує шарди ≈03:30 UTC; далі кожні 4 хв по 16 шардів (512 шардів ≈ 2 год).
+-- Щосереди: workflow «ЄДР» публікує шарди ≈03:30 UTC; розклад edr-load змінено в 2026-11-edr-upsert.sql.
 -- Коли все завантажено — виклики нічого не роблять.
 select cron.schedule('edr-load', '*/4 4-9 * * 3', 'select public.edr_load_call()');
