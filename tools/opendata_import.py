@@ -435,30 +435,70 @@ def write(name, data):
             json.dump(sh, f, ensure_ascii=False, separators=(',', ':'))
 
 
+def prev_data(name):
+    """шарди попереднього випуску (гілка opendata) — коли джерело недоступне, лишаємо старі дані замість падіння"""
+    out = {}
+    if os.path.isdir(f'{PREV}/{name}'):
+        for n in os.listdir(f'{PREV}/{name}'):
+            try:
+                out.update(json.load(open(f'{PREV}/{name}/{n}', encoding='utf-8')))
+            except Exception:
+                pass
+    return out
+
+
+STALE = []   # джерела, які цього разу не оновились (залишено попередні дані)
+
+
+def keep(name, fn):
+    """fn() — свіжі дані; збій джерела (напр. 403 від data.gov.ua) → попередній випуск. Без попереднього — помилка."""
+    try:
+        return fn()
+    except Exception as e:
+        old = prev_data(name)
+        if not old:
+            raise
+        print(f'{name}: джерело недоступне ({e}) — лишаємо попередні дані, {len(old)} кодів', flush=True)
+        STALE.append(name)
+        return old
+
+
 def main():
-    e = erb(); write('erb', e)
+    er = erb(); write('erb', er)
     write_persons(ERB_PERSONS); np_ = len(ERB_PERSONS); ERB_PERSONS.clear()
-    b = bankrupt(); write('bankrupt', b)
-    c = merge_prev(courts(edr_index()))
+    b = keep('bankrupt', bankrupt); write('bankrupt', b)
+    c = merge_prev(keep('courts', lambda: courts(edr_index())))
     cases = {i['case'] for v in c.values() for i in v['items']} | {i['case'] for v in b.values() for i in v['items']}
-    d = decisions(cases)
-    dec = {}
-    for code, v in list(c.items()) + [(k, {'items': x['items']}) for k, x in b.items()]:
-        for i in v['items']:
-            if i['case'] in d:
-                dec.setdefault(code, {})[i['case']] = d[i['case']]
+    try:
+        d = decisions(cases)
+        dec = {}
+        for code, v in list(c.items()) + [(k, {'items': x['items']}) for k, x in b.items()]:
+            for i in v['items']:
+                if i['case'] in d:
+                    dec.setdefault(code, {})[i['case']] = d[i['case']]
+    except Exception as ex:
+        dec = prev_data('decisions')
+        if not dec:
+            raise
+        print('decisions: джерело недоступне (', ex, ') — лишаємо попередні дані', flush=True)
+        STALE.append('decisions')
     write('courts', c); write('decisions', dec)
     try:
         a = aeo()
         json.dump(a, open(f'{OUT}/aeo.json', 'w', encoding='utf-8'), ensure_ascii=False)
     except Exception as e:   # AEO — додаткове джерело: його збій не зупиняє оновлення решти
         print('AEO failed', e, flush=True); a = {}
+        if os.path.exists(f'{PREV}/aeo.json'):
+            import shutil; shutil.copy(f'{PREV}/aeo.json', f'{OUT}/aeo.json'); STALE.append('aeo')
     try:
         lic = licenses(); write('lic', lic)
     except Exception as e:
-        print('licenses failed', e, flush=True); lic = {}
-    meta = {'generated': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()), 'erb_firms': len(e), 'bankrupt_firms': len(b),
-            'court_firms': len(c), 'decision_firms': len(dec), 'aeo_firms': len(a), 'lic_firms': len(lic), 'shards': SHARDS, 'erb_persons': np_, 'pshards': PSHARDS}
+        print('licenses failed', e, flush=True)
+        lic = prev_data('lic')
+        if lic:
+            write('lic', lic); STALE.append('lic')
+    meta = {'generated': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()), 'erb_firms': len(er), 'bankrupt_firms': len(b),
+            'court_firms': len(c), 'decision_firms': len(dec), 'aeo_firms': len(a), 'lic_firms': len(lic), 'shards': SHARDS, 'erb_persons': np_, 'pshards': PSHARDS, 'stale': STALE}
     json.dump(meta, open(f'{OUT}/meta.json', 'w'))
     print(meta)
 
