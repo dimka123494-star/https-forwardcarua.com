@@ -148,7 +148,19 @@ const CompanyCheck = (() => {
   const cap1 = t => String(t || '').toLowerCase().replace(/(^|[\s\-'’"«(])(\p{L})/gu, (_, a, b) => a + b.toUpperCase());
   const TAXN = t => String(t || '').replace(/^Реєстр платників податків.*/i, 'Реєстр платників податків').replace(/^Реєстр платників єдиного внеску.*/i, 'Реєстр платників єдиного внеску');
   function extract(r){
-    const E = r.edr, X = r.extract || {};
+    const E = r.edr, X0 = r.extract || {};
+    const sp = t => String(t || '').replace(/\s+/g, ' ').trim();
+    // чистимо: порожні засновники, «причина відсутності» бенефіціара, код правонаступника окремим рядком
+    const pr = [];
+    (X0.successors || []).forEach(t => { t = sp(t); if (/^\d{8}$/.test(t) && pr.length) pr[pr.length - 1] += ' (код ' + t + ')'; else if (t) pr.push(t); });
+    // бенефіціар: рядок (старий формат) або [ПІБ, тип впливу, відсоток]
+    const bfAll = (X0.beneficiaries || []).map(b => Array.isArray(b) ? { name: sp(b[0]), inf: b[1], pct: b[2] } : { name: sp(b) }).filter(b => b.name);
+    const bfNo = (bfAll.find(b => /^причина відсутності/i.test(b.name)) || {}).name;
+    const X = { ...X0,
+      signers: (X0.signers || []).map(h => ({ name: sp(h.name), role: h.role })).filter(h => h.name),
+      founders: (X0.founders || []).map(f => ({ ...f, name: sp(f.name) })).filter(f => f.name),
+      beneficiaries: bfAll.filter(b => !/^причина відсутності/i.test(b.name)), bfNo: bfNo ? bfNo.replace(/^причина відсутності:\s*/i, '') : null,
+      successors: pr };
     if (!E) return '<div class="text-sm text-muted">Компанії немає у відкритих даних ЄДР.</div>';
     const row = (k, v) => v ? '<tr><td>' + k + '</td><td>' + v + '</td></tr>' : '';
     const st = String(E.state || '');
@@ -159,9 +171,10 @@ const CompanyCheck = (() => {
     const reps = heads.filter(h => h.role && !/керівник/.test(h.role)).map(h => esc(cap1(h.name)) + (h.role !== 'представник' ? ' <span class="text-muted">(' + esc(h.role) + ')</span>' : '')).join('<br>');
     const founders = X.founders && X.founders.length
       ? X.founders.map(f => esc(f.code ? f.name : cap1(f.name)) + (f.code ? ' <span class="text-muted">(код ' + esc(f.code) + ')</span>' : '') +
+          (f.country && f.country !== 'Україна' ? ' <span class="text-muted">· ' + esc(f.country) + '</span>' : '') +
           (f.share != null ? '<br><span class="text-muted">внесок ' + money(f.share) + (cap ? ' (' + (Math.round(f.share / cap * 10000) / 100) + '%)' : '') + '</span>' : '')).join('<br>')
-      : ((E.founder_orgs || []).map(f => esc(f.name) + ' <span class="text-muted">(код ' + esc(f.code) + ')</span>').join('<br>') +
-         (E.founders_total ? '<br><span class="text-muted">Усього засновників: ' + E.founders_total + '</span>' : ''));
+      : ([...(E.founder_orgs || []).map(f => esc(f.name) + ' <span class="text-muted">(код ' + esc(f.code) + ')</span>'),
+          E.founders_total ? '<span class="text-muted">' + ((E.founder_orgs || []).length ? 'Усього засновників: ' + E.founders_total : 'Засновників: ' + E.founders_total + ' — імена у відкритих даних ЄДР не наведено') + '</span>' : ''].filter(Boolean).join('<br>'));
     const taxes = (E.taxes || []).map(t => esc(TAXN(t.type)) + (t.date ? ' — з ' + date(t.date) : '') + (t.end ? ' по ' + date(t.end) : '')).join('<br>');
     const br = (X.branches || []).map(b => esc(b.name) + (b.code ? ' <span class="text-muted">(' + esc(b.code) + ')</span>' : '')).join('<br>') || (E.branches ? String(E.branches) : '');
     return '<div class="cc-extract" id="ccExtract">' +
@@ -181,10 +194,11 @@ const CompanyCheck = (() => {
       row('Представники', reps) +
       row('Органи управління', esc(String(X.management || E.management || '').toLowerCase())) +
       row('Засновники', founders) +
-      row('Кінцеві бенефіціарні власники', (X.beneficiaries || []).map(b => esc(cap1(b))).join('<br>')) +
+      row('Кінцеві бенефіціарні власники', (X.beneficiaries || []).map(b => esc(cap1(b.name)) +
+          (b.inf || b.pct ? '<br><span class="text-muted">' + [b.inf ? esc(String(b.inf).toLowerCase()) : '', b.pct ? esc(b.pct) + '%' : ''].filter(Boolean).join(', ') + '</span>' : '')).join('<br>') || (X.bfNo ? '<span class="text-muted">не зазначено: ' + esc(X.bfNo.toLowerCase()) + '</span>' : '')) +
       row('Статутний капітал', E.capital != null ? money(E.capital) : '') +
       row('Відокремлені підрозділи', br) +
-      row('Правонаступники / попередники', (X.successors || []).map(esc).join('<br>')) +
+      row('Правонаступники / попередники', X.successors.map(esc).join('<br>')) +
       row('Взяття на облік', taxes) +
       row('Адреса, види діяльності (КВЕД), контакти', '<span class="text-muted">на час воєнного стану не публікуються у відкритих даних ЄДР — дивіться в офіційному витязі Мін’юсту</span>') +
       '</table>' +

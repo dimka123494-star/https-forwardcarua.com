@@ -84,7 +84,7 @@ async function extFor(db: any, code: string) {
   return {
     reg_number: x.rn ?? null, record_date: x.rd ?? null, management: x.m ?? null,
     signers: (x.sg || []).map(([name, role]: string[]) => ({ name, role })),
-    founders: (x.f || []).map(([name, code, share]: any[]) => ({ name, code, share })),
+    founders: (x.f || []).map(([name, code, share, country]: any[]) => ({ name, code, share, country })),
     beneficiaries: x.bf || [], branches: (x.br || []).map(([name, code]: string[]) => ({ name, code })), successors: x.pr || [],
   };
 }
