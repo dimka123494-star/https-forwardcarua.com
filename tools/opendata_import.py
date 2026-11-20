@@ -24,9 +24,35 @@ clean = lambda s: ' '.join(str(s or '').split())
 is_firm = lambda c: len(c) == 8 and c.isdigit()
 
 
+# Ті самі набори на сайті розпорядника (НАІС) — запасне джерело: з 19.11.2026 data.gov.ua відповідає 403 серверам GitHub.
+# НАІС відхиляє «браузерний» User-Agent, тож туди — стандартний curl.
+NAIS_ALT = {
+    'uo.zip': 'https://nais.gov.ua/m/ediniy-derjavniy-reestr-yuridichnih-osib-fizichnih-osib-pidpriemtsiv-ta-gromadskih-formuvan',
+    'erb.zip': 'https://nais.gov.ua/m/ediniy-reestr-borjnikiv-549',
+}
+
+
+def nais_latest(page):
+    """посилання /files/general/РРРР/ММ/ДД/….zip з найновішою датою на сторінці набору НАІС"""
+    html = subprocess.run(['curl', '-sSLf', '--retry', '3', page], check=True, capture_output=True).stdout.decode('utf-8', 'ignore')
+    links = sorted(set(re.findall(r'/files/general/\d{4}/\d{2}/\d{2}/[\w.-]+\.zip', html)))
+    if not links:
+        raise RuntimeError('НАІС: архів не знайдено на ' + page)
+    return 'https://nais.gov.ua' + links[-1]
+
+
 def fetch(url, path):
     if not os.path.exists(path):
-        subprocess.run(['curl', '-sSLf', '--retry', '3', '-A', UA, '-o', path, url], check=True)
+        try:
+            subprocess.run(['curl', '-sSLf', '--retry', '3', '-A', UA, '-o', path, url], check=True)
+        except subprocess.CalledProcessError:
+            if path not in NAIS_ALT:
+                raise
+            if os.path.exists(path):
+                os.remove(path)
+            alt = nais_latest(NAIS_ALT[path])
+            print('data.gov.ua недоступний, беремо з НАІС:', alt, flush=True)
+            subprocess.run(['curl', '-sSLf', '--retry', '3', '-o', path, alt], check=True)
     print(path, os.path.getsize(path) // 2 ** 20, 'MB', flush=True)
 
 
@@ -86,7 +112,8 @@ def edr_index():
     idx = {}
     import zipfile
     with zipfile.ZipFile('uo.zip') as z:
-        for n in [x for x in z.namelist() if x.lower().endswith('.xml')]:
+        xmls = [x for x in z.namelist() if x.lower().endswith('.xml')]
+        for n in [x for x in xmls if 'UO' in x.upper()] or xmls:   # архів НАІС: ще FOP і FSU — не потрібні
             with z.open(n) as f:
                 depth, rec = 0, None
                 for ev, el in ET.iterparse(f, events=('start', 'end')):
