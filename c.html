@@ -75,17 +75,17 @@
 <body>
 <nav class="nav">
   <a class="nav-brand" href="/">Митний<span>Брокер</span></a>
-  <div class="nav-links"><a class="nav-link active" href="/c/">Перевірка компанії</a><a class="nav-link" href="/perevirka-perevizhnyka">Перевірка перевізника</a><a class="nav-link" href="/rmpd">RMPD</a><a class="nav-link" href="/sent">SENT</a><a class="nav-link" href="/cmr-nakladna">CMR</a><a class="nav-link" href="/perevezennya">Біржа вантажів</a></div>
+  <div class="nav-links"><a class="nav-link active" href="/perevirka-kompanii">Перевірка компанії</a><a class="nav-link" href="/perevirka-perevizhnyka">Перевірка перевізника</a><a class="nav-link" href="/rmpd">RMPD</a><a class="nav-link" href="/sent">SENT</a><a class="nav-link" href="/cmr-nakladna">CMR</a><a class="nav-link" href="/perevezennya">Біржа вантажів</a></div>
   <div class="nav-actions">
     <a class="btn btn-ghost btn-sm" href="/vhid?role=carrier&next=%2Fkabinet%23rmpd">Увійти</a>
     <button class="nav-burger" onclick="document.getElementById('menu').classList.toggle('open')" aria-label="Меню"><i class="ti ti-menu-2"></i></button>
   </div>
 </nav>
-<div class="mobile-menu" id="menu"><a href="/c/">Перевірка компанії</a><a href="/perevirka-perevizhnyka">Перевірка перевізника</a><a href="/rmpd">Заявка RMPD</a><a href="/sent">Доповнення SENT</a><a href="/cmr-nakladna">CMR-накладна</a><a href="/perevezennya">Біржа вантажів</a><a href="/vhid?role=carrier">Увійти в кабінет</a></div>
+<div class="mobile-menu" id="menu"><a href="/perevirka-kompanii">Перевірка компанії</a><a href="/perevirka-perevizhnyka">Перевірка перевізника</a><a href="/rmpd">Заявка RMPD</a><a href="/sent">Доповнення SENT</a><a href="/cmr-nakladna">CMR-накладна</a><a href="/perevezennya">Біржа вантажів</a><a href="/vhid?role=carrier">Увійти в кабінет</a></div>
 
 <div class="page">
   <main id="cMain"><!--C--><section class="container-narrow page-hero" style="padding-bottom:.5rem">
-    <div class="crumbs"><a href="/">МитнийБрокер</a> › Перевірка компанії</div>
+    <div class="crumbs"><a href="/">МитнийБрокер</a> › <a href="/perevirka-kompanii">Перевірка компанії</a></div>
     <h1 class="h-lg" style="font-size:clamp(28px,5vw,42px)">Перевірка компанії<br><span style="color:var(--green)">за ЄДРПОУ або назвою</span></h1>
     <p class="lead">Стан у ЄДР, дата реєстрації, керівник, статутний капітал і засновники-юрособи, санкції РНБО та Єдиний реєстр боржників — безкоштовно, без реєстрації. Повний звіт: виконавчі провадження, банкрутство, судові справи.</p>
     <div class="rm-trust"><span><i class="ti ti-database"></i>≈2 млн компаній</span><span><i class="ti ti-search"></i>Пошук за назвою</span><span><i class="ti ti-refresh"></i>ЄДР оновлюється щотижня</span><span><i class="ti ti-shield-check"></i>Санкції й боржники — щодня</span></div>
@@ -111,7 +111,7 @@
       <div class="footer-links">
         <a href="/rmpd">Заявка RMPD</a>
         <a href="/perevezennya">Біржа вантажів ВантажПоруч</a>
-        <a href="/c/">Перевірка компанії за ЄДРПОУ</a>
+        <a href="/perevirka-kompanii">Перевірка компанії за ЄДРПОУ</a>
         <a href="/perevirka-perevizhnyka">Перевірка перевізника за ЄДРПОУ</a>
         <a href="/perevirka-avto">Перевірка авто за номером</a>
   <a href="/app">Застосунок НомерОК</a>
@@ -160,6 +160,8 @@ async function go(){
 }
 $('cGo').addEventListener('click', go);
 $('cQ').addEventListener('keydown', e => { if (e.key === 'Enter') go(); });
+const setPrice = () => CompanyCheck.loadPrice().then(p => document.querySelectorAll('.ccPrice').forEach(e => e.textContent = p));
+setPrice();
 (async () => {
   if (!code) return;
   $('cSearchH').textContent = 'Перевірити іншу компанію';
@@ -169,7 +171,7 @@ $('cQ').addEventListener('keydown', e => { if (e.key === 'Enter') go(); });
     const r = await fetch('/api/company/' + code); const d = await r.json();
     if (!r.ok) throw new Error(d.error || r.status);
     if (!d.found){ main.innerHTML = renderNotFound(code); return; }
-    const p = renderCompany(d); main.innerHTML = p.html; document.title = p.title; Sanctions.auto(); Erb.auto();
+    const p = renderCompany(d); main.innerHTML = p.html; document.title = p.title; Sanctions.auto(); Erb.auto(); setPrice();
   }catch(e){ main.innerHTML = '<section class="container-narrow page-hero"><h1 class="h-lg">ЄДРПОУ ' + esc(code) + '</h1><p class="lead">Не вдалося завантажити дані ЄДР — оновіть сторінку за хвилину.</p></section>'; }
 })();
 </script>

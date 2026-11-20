@@ -42,7 +42,7 @@ export function renderCompany(d){
   const title = name + ' — ЄДРПОУ ' + d.code + (dead ? ', припинено' : '') + ' | перевірка компанії';
   const desc = name + ' (ЄДРПОУ ' + d.code + '): ' + (dead ? 'за ЄДР — ' + st + '.' : (warn ? 'увага, за ЄДР — ' + st + '. ' : 'зареєстровано' + (e.reg_date ? ' ' + date(e.reg_date) : '') + '. ') +
     (head ? 'Керівник — ' + cap(head.name) + '. ' : '') + (e.capital ? 'Статутний капітал ' + money(e.capital) + '. ' : '')).trim() +
-    ' Безкоштовно: дані ЄДР, санкції РНБО, реєстр боржників. Повний звіт — виконавчі провадження, банкрутство, суди.';
+    ' Безкоштовно: дані ЄДР, санкції РНБО, реєстр боржників. Аналіз компанії в PDF — виконавчі провадження, банкрутство, суди.';
   const badge = dead
     ? '<span class="badge" style="background:rgba(240,90,90,.12);color:var(--red);border:.5px solid rgba(240,90,90,.35);padding:5px 12px;border-radius:20px;font-size:12px"><i class="ti ti-circle-x"></i> ' + esc(st) + '</span>'
     : warn ? '<span class="badge" style="background:rgba(245,166,35,.12);color:var(--amber);border:.5px solid rgba(245,166,35,.35);padding:5px 12px;border-radius:20px;font-size:12px"><i class="ti ti-alert-triangle"></i> ' + esc(st) + '</span>'
@@ -68,7 +68,7 @@ export function renderCompany(d){
     '</table>';
   const html =
     '<section class="container-narrow page-hero" style="padding-bottom:.5rem">' +
-      '<div class="crumbs"><a href="/">МитнийБрокер</a> › <a href="/app#company">Перевірка компанії</a> › ' + code + '</div>' +
+      '<div class="crumbs"><a href="/">МитнийБрокер</a> › <a href="/perevirka-kompanii">Перевірка компанії</a> › ' + code + '</div>' +
       '<h1 class="h-lg" style="font-size:clamp(24px,4.5vw,38px)">' + esc(name) + '</h1>' +
       '<div class="row" style="gap:8px;flex-wrap:wrap;margin:.75rem 0 0">' + badge + '<span class="badge" style="padding:5px 12px;border-radius:20px;font-size:12px;border:.5px solid var(--border)">ЄДРПОУ ' + code + '</span></div>' +
     '</section>' +
@@ -78,16 +78,25 @@ export function renderCompany(d){
         '. Адреси, КВЕДи й контакти у відкритих даних не публікуються (воєнний стан).</p></div>' +
       '<h2 style="font-size:18px;margin:1.5rem 0 .5rem">Санкції та борги — безкоштовно</h2>' +
       '<div data-sanctions-code="' + code + '"></div><div data-erb-code="' + code + '"></div>' +
-      '<div class="card" style="margin-top:1rem;border-color:rgba(245,166,35,.35)"><h2 style="font-size:18px;margin:0 0 .35rem">Повний звіт про компанію</h2>' +
-        '<p class="text-sm text-muted" style="margin:0 0 .75rem">Виконавчі провадження з деталями, справи про банкрутство, судові справи й рішення, ліцензії, AEO. Повторний перегляд 30 днів — безкоштовно.</p>' +
-        '<button class="btn btn-primary btn-block" type="button" onclick="CompanyCheck.open(\'' + code + '\',' + esc(JSON.stringify(name)) + ')"><i class="ti ti-shield-search"></i>Отримати звіт · 50 грн</button></div>' +
+      '<div class="card" id="buy" style="margin-top:1rem;border-color:rgba(45,217,143,.45)"><h2 style="font-size:20px;margin:0 0 .25rem">Аналіз компанії · PDF</h2>' +
+        '<p class="text-sm text-muted" style="margin:0">Усе про ' + esc(name) + ' в одному звіті з висновком про ризики. Перед угодою, передоплатою чи договором.</p>' +
+        '<div class="cc-locks">' +
+        '<div class="cc-lock"><b>Висновок про ризики<i class="ti ti-lock"></i></b><span>червоні прапорці й що на користь</span></div>' +
+        '<div class="cc-lock"><b>Виконавчі провадження<i class="ti ti-lock"></i></b><span>скільки, за чим, хто стягувач</span></div>' +
+        '<div class="cc-lock"><b>Банкрутство<i class="ti ti-lock"></i></b><span>справи та їхні етапи</span></div>' +
+        '<div class="cc-lock"><b>Судові справи<i class="ti ti-lock"></i></b><span>де відповідач, рішення судів</span></div>' +
+        '<div class="cc-lock"><b>Ліцензії та AEO<i class="ti ti-lock"></i></b><span>митні, енергетика, перевезення</span></div>' +
+        '<div class="cc-lock"><b>PDF-файл<i class="ti ti-lock"></i></b><span>завантажити, переслати, роздрукувати</span></div>' +
+        '</div>' +
+        '<button class="btn btn-primary btn-block" type="button" onclick="CompanyCheck.open(\'' + code + '\',' + esc(JSON.stringify(name)) + ')"><i class="ti ti-file-analytics"></i>Отримати аналіз · <span class="ccPrice">50</span> грн</button>' +
+        '<p class="text-xs text-muted" style="margin:.5rem 0 0;text-align:center">Картка, Apple Pay чи Google Pay · без реєстрації · звіт одразу на екрані й на email</p></div>' +
     '</section>';
   const ld = { '@context': 'https://schema.org', '@graph': [
     Object.assign({ '@type': 'Organization', name, legalName: e.name || name, identifier: d.code, url: canonical },
       e.reg_date ? { foundingDate: e.reg_date } : {}, dead && e.termination ? { dissolutionDate: (String(e.termination).match(/\d{2}\.\d{2}\.\d{4}/) || [''])[0].split('.').reverse().join('-') || undefined } : {}),
     { '@type': 'BreadcrumbList', itemListElement: [
       { '@type': 'ListItem', position: 1, name: 'МитнийБрокер', item: SITE + '/' },
-      { '@type': 'ListItem', position: 2, name: 'Перевірка компанії', item: SITE + '/app' },
+      { '@type': 'ListItem', position: 2, name: 'Перевірка компанії', item: SITE + '/perevirka-kompanii' },
       { '@type': 'ListItem', position: 3, name, item: canonical }] }] };
   return { title, desc, canonical, index: !dead, html, ld };
 }

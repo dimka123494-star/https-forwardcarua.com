@@ -31,19 +31,21 @@ const CompanyCheck = (() => {
     if (!/^\d{8}$/.test(code)){ body.innerHTML = '<div class="modal-title">Перевірка компанії</div><p class="text-sm">Перевірка доступна для юридичних осіб — 8-значний код ЄДРПОУ.</p>'; return; }
     await loadPrice();
     body.innerHTML =
-      '<div class="modal-title">Перевірка компанії</div>' +
+      '<div class="modal-title">Аналіз компанії · PDF</div>' +
       '<div class="modal-sub">' + esc(name || '') + ' · ЄДРПОУ ' + esc(code) + '</div>' +
       '<ul class="text-sm" style="margin:0 0 1rem;padding-left:18px;line-height:1.7">' +
-        '<li><b>Виконавчі провадження</b> — чи є компанія в Єдиному реєстрі боржників: кількість, категорії стягнень, хто стягувач і виконавець</li>' +
+        '<li><b>Висновок про ризики</b> — що насторожує, а що свідчить на користь компанії, одним списком</li>' +
+        '<li><b>Виконавчі провадження</b> — кількість, категорії стягнень, хто стягувач і виконавець</li>' +
         '<li><b>Банкрутство</b> — справи про банкрутство та їхні етапи</li>' +
-        '<li><b>Судові справи</b> — де компанія позивач, відповідач чи інша сторона, з рішеннями в цих справах (посилання на тексти в реєстрі судових рішень)</li>' +
-        '<li>Дані ЄДР і ліцензії перевізника, якщо є</li></ul>' +
+        '<li><b>Судові справи</b> — де компанія позивач чи відповідач, з посиланнями на рішення</li>' +
+        '<li><b>Ліцензії, AEO, санкції РНБО</b> і дані ЄДР: стан, керівник, засновники, капітал</li>' +
+        '<li><b>PDF-файл</b> зі звітом — завантажити, переслати, роздрукувати</li></ul>' +
       '<p class="text-xs text-muted" style="margin:0 0 1rem">Джерела — відкриті дані Мін’юсту та Державної судової адміністрації, оновлюються двічі на тиждень. Повторний перегляд цієї компанії протягом 30 днів — безкоштовно.</p>' +
       '<div class="msg" id="ccMsg"></div>' +
       '<div id="ccCab" style="display:none;margin-bottom:12px"><button class="btn btn-primary btn-block" id="ccBtn" onclick="CompanyCheck.run(\'' + code + '\')"><i class="ti ti-wallet"></i>Списати ' + price + ' грн з балансу кабінету</button></div>' +
       '<div id="ccCard"><div class="field"><label class="label" for="ccEmail">Email для чека й посилання на звіт</label><input class="input" id="ccEmail" type="email" autocomplete="email" placeholder="you@example.com"></div>' +
         '<button class="btn btn-block" id="ccPay" style="background:var(--green);color:#06120c;font-weight:600" onclick="CompanyCheck.payCard(\'' + code + '\')"><i class="ti ti-credit-card"></i>Оплатити карткою ' + price + ' грн</button>' +
-        '<p class="text-xs text-muted" style="margin:.5rem 0 0">Оплата через WayForPay (Visa, Mastercard, Apple Pay, Google Pay). Після оплати одразу відкриється звіт; посилання на нього збережеться в цьому браузері.</p></div>';
+        '<p class="text-xs text-muted" style="margin:.5rem 0 0">Оплата через WayForPay (Visa, Mastercard, Apple Pay, Google Pay). Після оплати одразу відкриється звіт із кнопкою «Завантажити PDF», а посилання на нього прийде на email.</p></div>';
     // є кабінет — пропонуємо списати з балансу
     try{ const u = await currentUser(); if (u){ const b = await getMyBroker(); if (b){ document.getElementById('ccCab').style.display = ''; const e = document.getElementById('ccEmail'); if (e) e.value = u.email || ''; } else { const e = document.getElementById('ccEmail'); if (e) e.value = u.email || ''; } } }catch(e){}
   }
@@ -104,6 +106,43 @@ const CompanyCheck = (() => {
     const t = new Date(+m[3], +m[2] - 1, +m[1]);
     return (t >= new Date(new Date().toDateString()) ? 'засідання призначено на ' : 'засідання ') + m[1] + '.' + m[2] + '.' + m[3] + (m[4] ? ' о ' + m[4] : '');
   }
+  // автоматичний висновок: червоні прапорці, на що звернути увагу, що на користь компанії
+  function analysis(r){
+    const bad = [], warn = [], good = [];
+    const E = r.edr || {}, st = String(E.state || '');
+    if (st && st !== 'зареєстровано') bad.push('Стан за ЄДР: ' + st);
+    if (E.termination) bad.push('Припинення: ' + E.termination);
+    if (E.bankruptcy) bad.push('ЄДР: ' + E.bankruptcy);
+    const sn = (r.sanctions && r.sanctions.items) || [];
+    if (sn.some(i => i.status === 'active')) bad.push('Під чинними санкціями РНБО');
+    else if (r.sanctions) good.push('Санкцій РНБО немає');
+    if (r.erb && r.erb.n) bad.push('Боржник: відкритих виконавчих проваджень — ' + r.erb.n);
+    else good.push('Не значиться в Єдиному реєстрі боржників');
+    if ((r.bankrupt || []).length) bad.push('Справи про банкрутство: ' + r.bankrupt.length);
+    else good.push('Справ про банкрутство немає');
+    const c = r.courts, roles = (c && c.roles) || {};
+    const def = Object.entries(roles).filter(([k]) => /відповідач|боржник/.test(k)).reduce((a, [, v]) => a + Number(v || 0), 0);
+    if (def) warn.push('Відповідач у судових справах: ' + def);
+    else if (c && c.n) good.push('У судах лише як позивач чи третя особа (' + c.n + ')');
+    else good.push('Судових справ не знайдено');
+    if (E.reg_date){
+      const y = (Date.now() - new Date(E.reg_date).getTime()) / 31557600000;
+      if (y < 1) warn.push('Компанія молода — зареєстрована ' + date(E.reg_date));
+      else if (y >= 5) good.push('Працює понад ' + Math.floor(y) + ' р. (з ' + date(E.reg_date) + ')');
+    }
+    if (E.capital != null && Number(E.capital) > 0 && Number(E.capital) <= 1000) warn.push('Мінімальний статутний капітал — ' + Number(E.capital).toLocaleString('uk-UA') + ' грн');
+    const L = (r.licenses || []).filter(l => l.ok).length + (r.license && r.license.status === 'Чинна' ? 1 : 0);
+    if (L) good.push('Чинні ліцензії й дозволи: ' + L);
+    if ((r.aeo || []).some(a => a.status === 'Чинна')) good.push('Авторизований економічний оператор (AEO)');
+    const lvl = bad.length ? 'bad' : warn.length ? 'warn' : 'good';
+    const V = { bad: ['var(--red)', 'ti-alert-octagon', 'Високий ризик'], warn: ['var(--amber)', 'ti-alert-triangle', 'Є на що звернути увагу'], good: ['var(--green)', 'ti-shield-check', 'Суттєвих ризиків не виявлено'] }[lvl];
+    const li = (arr, col, ic) => arr.map(t => '<div class="cc-f"><i class="ti ' + ic + '" style="color:' + col + '"></i>' + esc(t) + '</div>').join('');
+    return '<div class="card cc-verdict cc-' + lvl + '">' +
+      '<div class="cc-vh" style="color:' + V[0] + '"><i class="ti ' + V[1] + '"></i>' + V[2] + '</div>' +
+      li(bad, 'var(--red)', 'ti-circle-x') + li(warn, 'var(--amber)', 'ti-alert-triangle') + li(good, 'var(--green)', 'ti-circle-check') +
+      '<p class="text-xs text-muted" style="margin:.6rem 0 0">Автоматичний висновок за відкритими державними реєстрами. Не є юридичним висновком — перед великою угодою перевірте документи компанії.</p></div>';
+  }
+
   function report(r){
     const e = r.erb, b = r.bankrupt || [], dec = r.decisions || {};
     const docs = cs => (dec[cs] || []).length ? '<div class="text-xs" style="margin-top:6px">Рішення: ' + dec[cs].map(d =>
@@ -148,7 +187,7 @@ const CompanyCheck = (() => {
       (head ? '<br>Керівник: ' + esc(head.name) : '') + (E.capital ? ' · статутний капітал ' + Number(E.capital).toLocaleString('uk-UA') + ' грн' : '') +
       (E.founders_total ? '<br>Засновників: ' + E.founders_total + ((E.founder_orgs || []).length ? ' (юрособи: ' + E.founder_orgs.map(f => esc(f.name) + ', ' + esc(f.code)).join('; ') + ')' : '') : '') +
       (E.termination ? '<br><span style="color:var(--red)">Припинення: ' + esc(E.termination) + '</span>' : '') + (E.bankruptcy ? '<br><span style="color:var(--red)">Банкрутство: ' + esc(E.bankruptcy) + '</span>' : '') +
-      '<br><a href="/c/' + esc(r.code) + '" target="_blank" rel="noopener">Картка компанії за даними ЄДР</a></div>' : '';
+      '<br><a class="no-pdf" href="/c/' + esc(r.code) + '" target="_blank" rel="noopener">Картка компанії за даними ЄДР</a></div>' : '';
     const lic = r.license ? '<div class="text-sm">Ліцензія Укртрансбезпеки: <b>' + esc(r.license.status) + '</b>' + (r.license.intl_cargo ? ', міжнародні перевезення' : '') + '</div>' : '';
     // ліцензії й дозволи з відкритих реєстрів органів (Держмитслужба, НКРЕКП, Держлікслужба, ДАРТ) + Укртрансбезпека
     const L = (r.licenses || []).slice(0, 15);
@@ -159,15 +198,20 @@ const CompanyCheck = (() => {
     const licBlock = r.licenses === undefined ? '' : '<h3 style="font-size:16px;margin:1.25rem 0 .5rem">Ліцензії та дозволи</h3>' +
       (licItems.length ? licItems.join('') : '<div class="text-sm text-muted">У відкритих ліцензійних реєстрах не знайдено.</div>') +
       '<p class="text-xs text-muted">Реєстри Держмитслужби (митні брокери), НКРЕКП (енергетика, комунальні послуги), Держлікслужби (наркотичні засоби й прекурсори), ДАРТ (туроператори), Укртрансбезпеки (перевезення). Єдиний ліцензійний реєстр ДРС у відкритих даних не публікується, тож інші види ліцензій (медична практика, будівництво, охорона тощо) тут не перевіряються.</p>';
-    return '<div class="modal-title">Звіт перевірки</div>' +
-      '<div class="modal-sub" style="margin-bottom:.75rem">' + esc(r.name || '') + ' · ЄДРПОУ ' + esc(r.code) + '</div>' + edr + (r.licenses === undefined ? lic : '') +
+    last = r;
+    return '<div class="cc-report" id="ccReport"><div class="cc-pdfhead"><span><b>МитнийБрокер</b> · forwardcarua.com</span><span>Аналіз компанії від ' + date(r.checked_at) + '</span></div>' +
+      '<div class="modal-title">Аналіз компанії</div>' +
+      '<div class="modal-sub" style="margin-bottom:.75rem">' + esc(r.name || '') + ' · ЄДРПОУ ' + esc(r.code) + '</div>' + analysis(r) +
+      '<h3 style="font-size:16px;margin:1.25rem 0 .5rem">Відомості з ЄДР</h3>' + (edr || '<div class="text-sm text-muted">Компанії немає у відкритих даних ЄДР.</div>') + (r.licenses === undefined ? lic : '') +
       snBlock + licBlock +
       '<h3 style="font-size:16px;margin:1.25rem 0 .5rem">Виконавчі провадження</h3>' + erbBlock +
       '<h3 style="font-size:16px;margin:1.25rem 0 .5rem">Банкрутство</h3>' + bkBlock +
       '<h3 style="font-size:16px;margin:1.25rem 0 .5rem">Судові справи</h3>' + crBlock + aeoBlock +
       '<p class="text-xs text-muted" style="margin:1.25rem 0 0">Перевірено ' + date(r.checked_at) + '. Дані — відкриті дані Мін’юсту (Єдиний реєстр боржників) і ДСА (справи про банкрутство, справи, призначені до розгляду, Єдиний державний реєстр судових рішень) станом на ' + date(r.data_at) + '. Судові справи привʼязані за точним збігом назви з ЄДР; справи компаній з неоднозначними назвами не показуються. ' +
         (r.token ? 'Оплачено карткою ' + r.price + ' грн.' : r.price > 0 ? 'Списано ' + r.price + ' грн з балансу.' : 'Без оплати (повторний перегляд).') + (r.token ? ' Збережіть посилання на цю сторінку — звіт доступний за ним.' : ' Звіт збережено в кабінеті → «Перевірка компаній».') + '</p>' +
-      '<div class="row" style="gap:8px;margin-top:1rem"><button class="btn btn-ghost" onclick="window.print()"><i class="ti ti-printer"></i>Друк / PDF</button>' + (r.token ? '' : '<button class="btn btn-ghost" onclick="CompanyCheck.close()">Закрити</button>') + '</div>';
+      '<p class="text-xs text-muted cc-pdfonly" style="margin:.5rem 0 0">Відомості з ЄДР наведено за відкритими даними Мін’юсту й не замінюють офіційного витягу з ЄДР.</p></div>' +
+      '<div class="row no-print" style="gap:8px;margin-top:1rem;flex-wrap:wrap"><button class="btn btn-primary" id="ccPdf" onclick="CompanyCheck.pdf()"><i class="ti ti-file-type-pdf"></i>Завантажити PDF</button>' +
+        '<button class="btn btn-ghost" onclick="window.print()"><i class="ti ti-printer"></i>Друк</button>' + (r.token ? '' : '<button class="btn btn-ghost" onclick="CompanyCheck.close()">Закрити</button>') + '</div>';
   }
 
   async function mountHistory(el){
@@ -188,7 +232,37 @@ const CompanyCheck = (() => {
       }).join('') : 'Перевірок ще не було.';
     }catch(e){ document.getElementById('ccHist').textContent = 'Не вдалося завантажити історію.'; }
   }
+  // PDF: світла копія звіту на A4 через html2pdf (html2canvas + jsPDF), бібліотека вантажиться лише за потреби
+  let last = null, h2p = null;
+  function lib(){
+    if (window.html2pdf) return Promise.resolve();
+    return h2p || (h2p = new Promise((ok, no) => { const s = document.createElement('script');
+      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js'; s.onload = ok; s.onerror = () => { h2p = null; no(new Error('lib')); }; document.head.appendChild(s); }));
+  }
+  async function pdf(){
+    const src = document.getElementById('ccReport'), btn = document.getElementById('ccPdf');
+    if (!src) return;
+    const label = btn ? btn.innerHTML : '';
+    if (btn){ btn.disabled = true; btn.textContent = 'Готуємо PDF…'; }
+    // holder — за межами екрана; у PDF іде .cc-pdf (світла тема), щоб стилі працювали і в копії html2pdf
+    const wrap = document.createElement('div'), doc = document.createElement('div');
+    wrap.className = 'cc-pdf-holder'; doc.className = 'cc-pdf';
+    doc.appendChild(src.cloneNode(true)); doc.firstChild.removeAttribute('id');
+    wrap.appendChild(doc); document.body.appendChild(wrap);
+    try{
+      await lib();
+      const r = last || {};
+      await window.html2pdf().set({
+        margin: [10, 10, 12, 10], filename: 'analiz-kompanii-' + (r.code || '') + '.pdf',
+        image: { type: 'jpeg', quality: 0.92 }, html2canvas: { scale: 2, backgroundColor: '#ffffff', useCORS: true },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }, pagebreak: { mode: ['css', 'legacy'], avoid: ['.card', '.msg', '.cc-f', 'h3'] },
+      }).from(doc).save();
+      try{ track('company_pdf', { code: r.code }); }catch(e){}
+    }catch(e){ window.print(); }
+    finally{ wrap.remove(); if (btn){ btn.disabled = false; btn.innerHTML = label; } }
+  }
+
   function show(i){ const c = (window.__ccHist || [])[i]; if (!c) return; shell().classList.add('open'); document.getElementById('ccBody').innerHTML = report({ ...c.report, price: c.price }); }
 
-  return { open, run, payCard, close, topup, mountHistory, show, report };
+  return { open, run, payCard, close, topup, mountHistory, show, report, pdf, analysis, loadPrice };
 })();

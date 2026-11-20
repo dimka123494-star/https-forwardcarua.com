@@ -436,3 +436,46 @@ body.ap .vc-fab{bottom:calc(84px + env(safe-area-inset-bottom))}
 .vc-us b{display:block;margin-bottom:2px;font-size:14px}
 .vc-us small{display:block;margin-top:.5rem;opacity:.7;font-size:11px}
 @media print{.vc-us-full{display:none}}
+
+/* ── Аналіз компанії: висновок, PDF ── */
+.cc-verdict{padding:14px 16px;margin:.25rem 0 0}
+.cc-verdict.cc-bad{border-color:rgba(241,101,75,.45)}
+.cc-verdict.cc-warn{border-color:rgba(245,166,35,.45)}
+.cc-verdict.cc-good{border-color:rgba(45,217,143,.45)}
+.cc-vh{display:flex;align-items:center;gap:8px;font:700 19px var(--display);margin-bottom:.5rem}
+.cc-vh i{font-size:22px}
+.cc-f{display:flex;gap:8px;align-items:flex-start;font-size:14px;line-height:1.45;padding:4px 0}
+.cc-f i{font-size:16px;margin-top:1px;flex:none}
+.cc-pdfhead,.cc-pdfonly{display:none}
+.cc-pdf-holder{position:fixed;left:-10000px;top:0}
+.cc-pdf{width:700px;box-sizing:border-box;background:#fff;color:#111}
+
+.cc-pdf .cc-report{--text:#111;--muted:#555;--muted-strong:#333;--surface:#fff;--border:#d9d9d9;--green:#0a8a5a;--red:#c0392b;--amber:#b26a00;--blue:#0a8a5a;
+  color:#111;background:#fff;padding:8px 6px;font-family:Arial,Helvetica,sans-serif}
+.cc-pdf .cc-pdfhead{display:flex;justify-content:space-between;gap:12px;font-size:12px;color:#555;border-bottom:2px solid #0a8a5a;padding-bottom:8px;margin-bottom:14px}
+.cc-pdf .cc-pdfhead b{color:#0a8a5a}
+.cc-pdf .cc-pdfonly{display:block}
+.cc-pdf .no-pdf{display:none}
+.cc-pdf .modal-title{font:700 22px Arial,Helvetica,sans-serif;color:#111}
+.cc-pdf .modal-sub{color:#555}
+.cc-pdf a{color:#0a6a46}
+.cc-pdf .msg-ok{background:#eefaf4;color:#0a6a46;border-color:#bfe8d4}
+.cc-pdf .msg-err{background:#fdeeea;color:#a5301f;border-color:#f3c3b8}
+.cc-pdf .card{background:#fff;border:1px solid #d9d9d9}
+.cc-pdf h3{color:#111}
+@media print{
+  body{background:#fff!important;color:#111!important}
+  .nav,.mobile-menu,.footer,.no-print,.overlay .modal-close{display:none!important}
+  .cc-pdfhead{display:flex;justify-content:space-between;font-size:11px;border-bottom:2px solid #0a8a5a;padding-bottom:6px;margin-bottom:12px}
+  .cc-pdfonly{display:block}
+  .cc-report{--text:#111;--muted:#555;--muted-strong:#333;--surface:#fff;--border:#ccc;--green:#0a8a5a;--red:#c0392b;--amber:#b26a00;color:#111}
+  .cc-report .msg-ok{background:#eefaf4;color:#0a6a46}.cc-report .msg-err{background:#fdeeea;color:#a5301f}
+  .cc-report .card,.cc-report .msg{break-inside:avoid}
+}
+
+/* ── картка компанії: що відкривається в аналізі ── */
+.cc-locks{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px;margin:.75rem 0 1rem}
+.cc-lock{background:var(--bg);border:.5px dashed var(--border-strong);border-radius:var(--r-sm);padding:10px 12px;font-size:13px;line-height:1.4}
+.cc-lock b{display:flex;align-items:center;justify-content:space-between;gap:6px;font-size:14px;margin-bottom:2px}
+.cc-lock b i{color:var(--amber);font-size:15px}
+.cc-lock span{color:var(--muted)}

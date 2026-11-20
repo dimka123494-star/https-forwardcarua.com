@@ -166,13 +166,13 @@ html = f'''<!DOCTYPE html>
 <body>
 <nav class="nav">
   <a class="nav-brand" href="/">Митний<span>Брокер</span></a>
-  <div class="nav-links"><a class="nav-link active" href="/perevirka-perevizhnyka">Перевірка перевізника</a><a class="nav-link" href="/rmpd">RMPD</a><a class="nav-link" href="/sent">SENT</a><a class="nav-link" href="/cmr-nakladna">CMR</a><a class="nav-link" href="/perevezennya">Біржа вантажів</a></div>
+  <div class="nav-links"><a class="nav-link active" href="/perevirka-perevizhnyka">Перевірка перевізника</a><a class="nav-link" href="/perevirka-kompanii">Перевірка компанії</a><a class="nav-link" href="/rmpd">RMPD</a><a class="nav-link" href="/sent">SENT</a><a class="nav-link" href="/cmr-nakladna">CMR</a><a class="nav-link" href="/perevezennya">Біржа вантажів</a></div>
   <div class="nav-actions">
     <a class="btn btn-ghost btn-sm" href="/vhid?role=carrier&next=%2Fkabinet%23rmpd">Увійти</a>
     <button class="nav-burger" onclick="document.getElementById('menu').classList.toggle('open')" aria-label="Меню"><i class="ti ti-menu-2"></i></button>
   </div>
 </nav>
-<div class="mobile-menu" id="menu"><a href="/perevirka-perevizhnyka">Перевірка перевізника</a><a href="/rmpd">Заявка RMPD</a><a href="/sent">Доповнення SENT</a><a href="/cmr-nakladna">CMR-накладна</a><a href="/perevezennya">Біржа вантажів</a><a href="/vhid?role=carrier">Увійти в кабінет</a></div>
+<div class="mobile-menu" id="menu"><a href="/perevirka-kompanii">Перевірка компанії</a><a href="/perevirka-perevizhnyka">Перевірка перевізника</a><a href="/rmpd">Заявка RMPD</a><a href="/sent">Доповнення SENT</a><a href="/cmr-nakladna">CMR-накладна</a><a href="/perevezennya">Біржа вантажів</a><a href="/vhid?role=carrier">Увійти в кабінет</a></div>
 
 <div class="page">
   <main id="cpMain"><!--CP-->{INTRO}<!--/CP--></main>
