@@ -32,8 +32,14 @@ jobs:
           gh release view edr-data >/dev/null 2>&1 || gh release create edr-data --latest=false \
             --title "Відкриті дані ЄДР (шарди)" --notes "Службовий реліз: оновлюється щотижня workflow edr.yml. Не видаляти."
           # спершу шарди, мета — останньою: поки вона стара, читачі знають, що оновлення ще йде
+          # у релізі може бути не більше 1000 файлів: зашифровані edrx-* живуть в окремому релізі edrx-data
+          for a in $(gh release view edr-data --json assets -q '.assets[].name' | grep '^edrx-' || true); do gh release delete-asset edr-data "$a" -y; done
           gh release upload edr-data out-edr/edr-*.json.gz --clobber
-          if ls out-edr/edrx-*.bin >/dev/null 2>&1; then gh release upload edr-data out-edr/edrx-*.bin --clobber; fi
+          if ls out-edr/edrx-*.bin >/dev/null 2>&1; then
+            gh release view edrx-data >/dev/null 2>&1 || gh release create edrx-data --latest=false \
+              --title "ЄДР: розширені дані (зашифровано)" --notes "Службовий реліз: зашифровані дані для витягу з ЄДР (workflow edr.yml). Не видаляти."
+            gh release upload edrx-data out-edr/edrx-*.bin --clobber
+          fi
           gh release upload edr-data out-edr/edr-meta.json --clobber
       - name: Import (перевізники)
         run: UO_ZIP=uo.zip python3 tools/edr_import.py
