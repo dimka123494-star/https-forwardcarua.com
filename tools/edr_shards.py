@@ -16,7 +16,7 @@ Netlify Edge (company-page.ts) та Supabase Edge (company-check) на запи�
 import gzip, json, os, sys, time, zipfile, xml.etree.ElementTree as ET
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from edr_import import download, todict, pick  # noqa: E402
+from edr_import import download, todict, pick, uo_files  # noqa: E402
 
 SHARDS = 512
 OUT = 'out-edr'
@@ -47,9 +47,7 @@ def main():
     download(zpath)
     t0, total, out = time.time(), 0, {}
     with zipfile.ZipFile(zpath) as z:
-        xmls = [x for x in z.namelist() if x.lower().endswith('.xml')]
-        # повний архів НАІС має ще FOP (без кодів, 5 ГБ, з битими &#…;) і FSU — беремо лише юрособи
-        for n in [x for x in xmls if 'UO' in x.upper()] or xmls:
+        for n in uo_files(z):
             with z.open(n) as f:
                 for _, el in ET.iterparse(f):
                     if el.tag != 'SUBJECT':

@@ -12,7 +12,8 @@ SB = 'https://ecdfpqhbaqjqurzedunh.supabase.co'
 ANON = ('eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVjZGZwcWhiYXFqcXVyemVkdW5oIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyNzU3NTIsImV4cCI6MjA5NDg1MTc1Mn0.'
         't0ry-slbPVwVHmF1KLzWX6EDonWBMC2Uu3KUobH8oFY')
 OUT = 'data/edr-carriers.json'
-UA = {'User-Agent': 'Mozilla/5.0 (forwardcarua.com open-data import)'}
+# Стандартний User-Agent Python: захист сайту НАІС відхиляє (403) і «браузерні», і довільні власні назви клієнта
+UA = {}
 
 
 def carrier_codes():
@@ -21,15 +22,48 @@ def carrier_codes():
     return {c for c, _ in json.load(urllib.request.urlopen(req, timeout=60))}
 
 
+NAIS = 'https://nais.gov.ua/m/ediniy-derjavniy-reestr-yuridichnih-osib-fizichnih-osib-pidpriemtsiv-ta-gromadskih-formuvan'
+
+
+def nais_latest():
+    """Свіжий повний архів ЄДР на сайті НАІС (розпорядник даних): посилання /files/general/РРРР/ММ/ДД/….zip з найновішою датою.
+    Там юрособи, ФОП і громадські формування разом (≈800 МБ); читаємо лише файл юросіб (див. uo_files)."""
+    html = urllib.request.urlopen(urllib.request.Request(NAIS, headers=UA), timeout=60).read().decode('utf-8', 'ignore')
+    links = sorted(set(re.findall(r'/files/general/\d{4}/\d{2}/\d{2}/[\w.-]+\.zip', html)))
+    if not links:
+        raise RuntimeError('НАІС: посилання на архів ЄДР не знайдено')
+    return 'https://nais.gov.ua' + links[-1]
+
+
 def download(path):
+    """data.gov.ua, а якщо він відмовляє (з листопада 2026 дає 403 серверам GitHub) — сайт НАІС."""
     if os.path.exists(path):
         return
-    with urllib.request.urlopen(urllib.request.Request(UO, headers=UA), timeout=600) as r, open(path, 'wb') as f:
-        while True:
-            b = r.read(1 << 20)
-            if not b:
-                break
-            f.write(b)
+    errors = []
+    for src in (lambda: UO, nais_latest):
+        try:
+            url = src()
+            with urllib.request.urlopen(urllib.request.Request(url, headers=UA), timeout=900) as r, open(path + '.part', 'wb') as f:
+                while True:
+                    b = r.read(1 << 20)
+                    if not b:
+                        break
+                    f.write(b)
+            if os.path.getsize(path + '.part') < 100 * 2 ** 20:
+                raise RuntimeError('архів підозріло малий')
+            os.replace(path + '.part', path)
+            print('ЄДР завантажено з', url, flush=True)
+            return
+        except Exception as e:
+            errors.append(f'{e}')
+            print('джерело ЄДР недоступне:', e, flush=True)
+    raise RuntimeError('ЄДР: усі джерела недоступні: ' + '; '.join(errors))
+
+
+def uo_files(z):
+    """XML юросіб в архіві: у data.gov.ua — єдиний файл, у НАІС — ще FOP (без кодів, з битими &#…;) і FSU, їх пропускаємо."""
+    xmls = [n for n in z.namelist() if n.lower().endswith('.xml')]
+    return [n for n in xmls if 'UO' in n.upper()] or xmls
 
 
 def todict(el):
@@ -135,7 +169,7 @@ def main():
     print('zip MB:', os.path.getsize(zpath) // 2**20)
     out, samples, total = {}, [], 0
     with zipfile.ZipFile(zpath) as z:
-        names = [n for n in z.namelist() if n.lower().endswith('.xml')]
+        names = uo_files(z)
         print('xml files:', [(n, z.getinfo(n).file_size // 2**20) for n in names])
         for n in names:
             with z.open(n) as f:
