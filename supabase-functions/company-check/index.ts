@@ -2,7 +2,8 @@
 // POST {code} з JWT користувача → бере зі свіжих відкритих даних (гілка opendata репозиторію, шарди по коду):
 //   erb/NNN.json — Єдиний реєстр боржників, bankrupt/NNN.json — справи про банкрутство, courts/NNN.json — судові справи,
 //   decisions/NNN.json — рішення в цих справах з ЄДРСР;
-// додає ЄДР і ліцензію (якщо перевізник), списує ціну з балансу (company_check_charge) і зберігає звіт.
+// додає ЄДР (перевізники — carrier_edr; решта компаній — шард відкритого ЄДР з релізу edr-data, tools/edr_shards.py)
+// і ліцензію (якщо перевізник), списує ціну з балансу (company_check_charge) і зберігає звіт.
 // Повторний перегляд тієї ж компанії протягом 30 днів — без оплати.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -45,6 +46,21 @@ async function sanctionsFor(db: any, code: string) {
   }));
   return { at: sancIdx._at, source: "csv", items };
 }
+// ЄДР усіх юросіб: шарди .json.gz у GitHub-релізі edr-data; короткі ключі розгортаємо у формат carrier_edr
+const EDR = "https://github.com/dimka123494-star/https-forwardcarua.com/releases/download/edr-data/";
+async function edrFor(code: string) {
+  const r = await fetch(`${EDR}edr-${String(Number(code) % 512).padStart(3, "0")}.json.gz`);
+  if (!r.ok || !r.body) return null;
+  const c = JSON.parse(await new Response(r.body.pipeThrough(new DecompressionStream("gzip"))).text())[code];
+  if (!c) return null;
+  return {
+    name: c.n || null, short_name: c.sn || null, opf: c.o || null, state: c.s || null, reg_date: c.d || null,
+    capital: c.c ?? null, heads: (c.h || []).map((name: string) => ({ name, role: "керівник" })),
+    founders_total: c.fn || 0, founder_orgs: (c.fo || []).map(([name, code]: string[]) => ({ name, code })),
+    branches: c.b || 0, termination: c.t || null, bankruptcy: c.bk || null,
+    taxes: (c.x || []).map(([type, date, end]: string[]) => ({ type, date, end })),
+  };
+}
 async function aeoFor(code: string) {
   const r = await fetch(RAW + "aeo.json");
   if (!r.ok) return null;
@@ -76,11 +92,12 @@ Deno.serve(async (req) => {
       sb.from("carrier_registry").select("name, status, intl_cargo, dangerous").eq("edrpou", code).maybeSingle(),
       sb.from("carrier_edr").select("data").eq("edrpou", code).maybeSingle(),
       sanctionsFor(sb, code).catch(() => null), aeoFor(code).catch(() => null)]);
+    const edrData = edr?.data ?? await edrFor(code).catch(() => null);   // джерело ЄДР необовʼязкове
     const report = {
       code, checked_at: new Date().toISOString(), data_at: meta?.generated ?? null,
-      name: edr?.data?.name || lic?.name || erb?.name || bankrupt?.name || courts?.name || null,
+      name: edrData?.name || lic?.name || erb?.name || bankrupt?.name || courts?.name || null,
       erb, bankrupt: bankrupt?.items ?? null, courts, decisions: decisions ?? null,
-      edr: edr?.data ?? null,
+      edr: edrData,
       license: lic ? { status: lic.status, intl_cargo: lic.intl_cargo, dangerous: lic.dangerous } : null,
       sanctions, aeo, licenses: licenses ?? [],
     };

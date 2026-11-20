@@ -1,11 +1,11 @@
-name: ЄДР — дані перевізників
+name: ЄДР — дані перевізників і всіх компаній
 on:
   schedule:
     - cron: '17 3 * * 3'   # щосереди 03:17 UTC (набір на data.gov.ua оновлюється щотижня)
   workflow_dispatch:
   push:
     branches: [main]
-    paths: ['tools/edr_import.py', '.github/workflows/edr.yml']
+    paths: ['tools/edr_import.py', 'tools/edr_shards.py', '.github/workflows/edr.yml']
 permissions:
   contents: write
 concurrency: edr
@@ -15,8 +15,25 @@ jobs:
     timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
-      - name: Import
-        run: python3 tools/edr_import.py
+      # Усі юрособи → шарди в релізі edr-data (картка /c/{ЄДРПОУ}, звіт «Перевірка компанії»).
+      # Збій цього кроку не зупиняє оновлення даних перевізників нижче.
+      - name: ЄДР усіх компаній — шарди
+        id: shards
+        continue-on-error: true
+        run: python3 tools/edr_shards.py uo.zip
+      - name: ЄДР усіх компаній — публікація в реліз edr-data
+        if: steps.shards.outcome == 'success'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release view edr-data >/dev/null 2>&1 || gh release create edr-data --latest=false \
+            --title "Відкриті дані ЄДР (шарди)" --notes "Службовий реліз: оновлюється щотижня workflow edr.yml. Не видаляти."
+          # спершу шарди, мета — останньою: поки вона стара, читачі знають, що оновлення ще йде
+          gh release upload edr-data out-edr/edr-*.json.gz --clobber
+          gh release upload edr-data out-edr/edr-meta.json --clobber
+      - name: Import (перевізники)
+        run: UO_ZIP=uo.zip python3 tools/edr_import.py
       - name: Commit
         run: |
           git config user.name "edr-bot"
