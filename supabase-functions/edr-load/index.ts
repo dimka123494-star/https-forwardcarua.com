@@ -1,12 +1,13 @@
 // Supabase Edge Function «edr-load»: переносить відкритий ЄДР (≈2 млн юросіб) з GitHub-релізу edr-data у таблицю
 // edr_companies — для пошуку компаній за назвою (edr_search). Шарди будує tools/edr_shards.py (workflow «ЄДР», щосереди).
-// За один виклик — до 16 шардів (≈62 тис. рядків), що ще не завантажені для поточного edr-meta.json → generated.
-// Коли всі 512 шардів нового випуску завантажено — видаляє коди, яких у ньому вже немає.
-// Викликається pg_cron (edr_load_call, щосереди кожні 4 хв) або адміністратором. Деплой без verify_jwt.
+// За один виклик — PER_CALL шардів (3 ≈ 12 тис. рядків; body {n} — інша кількість, до 16), ще не пройдених для
+// поточного edr-meta.json → generated. Пише лише нові й змінені рядки (rpc edr_upsert_rows), щоб не витрачати Disk IO.
+// Коди з ЄДР не зникають (припинені лишаються зі станом), тому видалення немає.
+// Викликається pg_cron (edr-load-night: кожні 5 хв уночі за Києвом) або адміністратором. Деплой без verify_jwt.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const REL = "https://github.com/dimka123494-star/https-forwardcarua.com/releases/download/edr-data/";
-const SHARDS = 512, PER_CALL = 16, BATCH = 2000;
+const SHARDS = 512, PER_CALL = 3, BATCH = 2000;
 const json = (b: unknown, s = 200) => new Response(JSON.stringify(b), { status: s, headers: { "Content-Type": "application/json" } });
 
 Deno.serve(async (req) => {
@@ -26,21 +27,15 @@ Deno.serve(async (req) => {
     const gen: string = meta.generated;
     if (!gen || meta.shards !== SHARDS) return json({ error: "bad_meta", meta }, 502);
 
+    const body = await req.json().catch(() => ({}));
+    const per = Math.min(Math.max(Number(body?.n) || PER_CALL, 1), 16);
     const { data: done } = await sb.from("edr_load").select("shard").eq("generated", gen);
     const doneSet = new Set((done ?? []).map((r: any) => r.shard));
-    const todo = [...Array(SHARDS).keys()].filter((i) => !doneSet.has(i)).slice(0, PER_CALL);
+    const todo = [...Array(SHARDS).keys()].filter((i) => !doneSet.has(i)).slice(0, per);
 
-    if (!todo.length) {
-      // усі шарди випуску на місці: прибрати коди, що зникли з ЄДР (рядки, не оновлені цим випуском)
-      const { data: first } = await sb.from("edr_load").select("loaded_at").eq("generated", gen).order("loaded_at").limit(1).maybeSingle();
-      if (first?.loaded_at) {
-        const { count } = await sb.from("edr_companies").delete({ count: "exact" }).lt("updated_at", first.loaded_at);
-        return json({ ok: true, generated: gen, complete: true, removed: count ?? 0 });
-      }
-      return json({ ok: true, generated: gen, complete: true });
-    }
+    if (!todo.length) return json({ ok: true, generated: gen, complete: true });
 
-    let rows = 0;
+    let rows = 0, written = 0;
     for (const i of todo) {
       const started = new Date().toISOString();
       const r = await fetch(`${REL}edr-${String(i).padStart(3, "0")}.json.gz`);
@@ -48,16 +43,17 @@ Deno.serve(async (req) => {
       const sh: Record<string, any> = JSON.parse(await new Response(r.body.pipeThrough(new DecompressionStream("gzip"))).text());
       const list = Object.entries(sh).map(([code, c]) => ({
         code, name: c.n, short_name: c.sn ?? null, state: c.s ?? null, reg_date: c.d ?? null,
-        head: (c.h ?? [])[0] ?? null, updated_at: started,
+        head: (c.h ?? [])[0] ?? null,
       }));
       for (let k = 0; k < list.length; k += BATCH) {
-        const { error } = await sb.from("edr_companies").upsert(list.slice(k, k + BATCH), { onConflict: "code" });
+        const { data: w, error } = await sb.rpc("edr_upsert_rows", { p: list.slice(k, k + BATCH) });
         if (error) return json({ error: "upsert", shard: i, detail: error.message, rows }, 500);
+        written += Number(w) || 0;
       }
       await sb.from("edr_load").upsert({ shard: i, generated: gen, rows: list.length, loaded_at: started }, { onConflict: "shard" });
       rows += list.length;
     }
-    return json({ ok: true, generated: gen, shards: todo, rows, left: SHARDS - doneSet.size - todo.length });
+    return json({ ok: true, generated: gen, shards: todo, rows, written, left: SHARDS - doneSet.size - todo.length });
   } catch (e) {
     return json({ error: "exception", detail: String(e) }, 500);
   }
