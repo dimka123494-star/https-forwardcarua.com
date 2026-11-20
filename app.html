@@ -114,6 +114,7 @@
 <script src="/assets/js/vehicle-check.js"></script>
 <script type="module">
 import { prettyName, esc } from '/assets/js/carrier-render.mjs';
+import { renderSearchResults } from '/assets/js/company-render.mjs';
 const $ = id => document.getElementById(id);
 const store = { get(k, d){ try{ return JSON.parse(localStorage.getItem(k)) ?? d; }catch(e){ return d; } }, set(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} } };
 const when = t => { const d = new Date(t); return d.toLocaleDateString('uk-UA', { day: '2-digit', month: '2-digit' }) + ' ' + d.toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' }); };
@@ -187,8 +188,12 @@ async function companyGo(){
           '<div class="text-xs text-muted" style="margin-top:4px">Усі дані ЄДР <i class="ti ti-arrow-right"></i></div></a>';
     }catch(e){}
   }
+  if (!isCode){   // назва — компанії з ЄДР (ФОП і люди там без коду, тож лише юрособи)
+    try{ const rows = await edrSearch(raw, 10); if (rows.length) edrHtml = renderSearchResults(rows, raw); }
+    catch(e){}
+  }
   const erbNote = isCode && dg.length === 10 ? '<p class="text-xs text-muted">Реєстр боржників не містить РНОКПП фізосіб — для перевірки людини чи ФОП введіть ПІБ.</p>' : '';
-  out.innerHTML = (edrHtml ? H('ti-building', 'Дані ЄДР') + edrHtml : '') + H('ti-gavel', 'Санкції РНБО') + sn + (erb || erbNote ? H('ti-file-alert', 'Реєстр боржників') + erb + erbNote : '') + paid;
+  out.innerHTML = (edrHtml ? H('ti-building', isCode ? 'Дані ЄДР' : 'Компанії в ЄДР') + edrHtml : '') + H('ti-gavel', 'Санкції РНБО') + sn + (erb || erbNote ? H('ti-file-alert', 'Реєстр боржників') + erb + erbNote : '') + paid;
 }
 $('ccGo').onclick = companyGo;
 $('ccQ').addEventListener('keydown', e => { if (e.key === 'Enter') companyGo(); });

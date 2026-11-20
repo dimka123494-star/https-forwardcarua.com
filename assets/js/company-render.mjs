@@ -96,3 +96,15 @@ export function renderNotFound(code){
   return '<section class="container-narrow page-hero"><h1 class="h-lg">Компанію не знайдено</h1><p class="lead">Коду ЄДРПОУ ' + esc(code) +
     ' немає у відкритих даних ЄДР. Перевірте код — він має 8 цифр. Нові компанії зʼявляються протягом тижня після реєстрації.</p></section>';
 }
+
+/** результати edr_search → список посилань на картки /c/{код} */
+export function renderSearchResults(rows, q){
+  if (!rows.length) return '<p class="text-sm text-muted">За запитом «' + esc(q) + '» компаній у ЄДР не знайдено. Спробуйте коротше слово з назви або код ЄДРПОУ.</p>';
+  return rows.map(r => {
+    const dead = !r.active, warn = r.active && r.state !== 'зареєстровано';
+    return '<a class="card card-hover" href="/c/' + esc(r.code) + '" style="display:block;color:inherit;padding:12px 14px;margin-bottom:8px">' +
+      '<b>' + esc(displayName(r)) + '</b> <span class="text-muted text-sm">· ' + esc(r.code) + '</span>' +
+      '<div class="text-sm" style="margin-top:4px"><span style="color:' + (dead ? 'var(--red)' : warn ? 'var(--amber)' : 'var(--green)') + '">' + esc(r.state || '') + '</span>' +
+      (r.reg_date ? ' · з ' + date(r.reg_date) : '') + (r.head ? ' · ' + esc(cap(r.head)) : '') + '</div></a>';
+  }).join('') + (rows.length >= 20 ? '<p class="text-xs text-muted">Показано перші ' + rows.length + '. Уточніть назву, щоб звузити пошук.</p>' : '');
+}

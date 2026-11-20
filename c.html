@@ -86,16 +86,17 @@
 <div class="page">
   <main id="cMain"><!--C--><section class="container-narrow page-hero" style="padding-bottom:.5rem">
     <div class="crumbs"><a href="/">МитнийБрокер</a> › Перевірка компанії</div>
-    <h1 class="h-lg" style="font-size:clamp(28px,5vw,42px)">Перевірка компанії<br><span style="color:var(--green)">за кодом ЄДРПОУ</span></h1>
+    <h1 class="h-lg" style="font-size:clamp(28px,5vw,42px)">Перевірка компанії<br><span style="color:var(--green)">за ЄДРПОУ або назвою</span></h1>
     <p class="lead">Стан у ЄДР, дата реєстрації, керівник, статутний капітал і засновники-юрособи, санкції РНБО та Єдиний реєстр боржників — безкоштовно, без реєстрації. Повний звіт: виконавчі провадження, банкрутство, судові справи.</p>
-    <div class="rm-trust"><span><i class="ti ti-database"></i>≈2 млн компаній</span><span><i class="ti ti-refresh"></i>ЄДР оновлюється щотижня</span><span><i class="ti ti-shield-check"></i>Санкції й боржники — щодня</span></div>
+    <div class="rm-trust"><span><i class="ti ti-database"></i>≈2 млн компаній</span><span><i class="ti ti-search"></i>Пошук за назвою</span><span><i class="ti ti-refresh"></i>ЄДР оновлюється щотижня</span><span><i class="ti ti-shield-check"></i>Санкції й боржники — щодня</span></div>
   </section><!--/C--></main>
   <section class="container-narrow" style="padding-top:1rem;padding-bottom:2rem" id="cSearch">
     <h2 style="font-size:22px;margin:0 0 .75rem" id="cSearchH">Перевірити компанію</h2>
-    <div class="row" style="gap:8px"><input class="input" id="cQ" placeholder="Код ЄДРПОУ — 8 цифр" maxlength="8" autocomplete="off" inputmode="numeric" style="flex:1;min-width:0">
+    <div class="row" style="gap:8px"><input class="input" id="cQ" placeholder="Код ЄДРПОУ або назва компанії" maxlength="120" autocomplete="off" style="flex:1;min-width:0">
       <button class="btn btn-primary" type="button" id="cGo"><i class="ti ti-search"></i>Перевірити</button></div>
     <div class="msg" id="cMsg" style="margin-top:.75rem"></div>
-    <p class="text-xs text-muted" style="margin:.5rem 0 0">Пошук за назвою чи ПІБ — у <a href="/app#company">застосунку НомерОК</a>.</p>
+    <div id="cRes" style="margin-top:.75rem"></div>
+    <p class="text-xs text-muted" style="margin:.5rem 0 0">ФОП у відкритому ЄДР без коду — перевірити людину чи ФОП за ПІБ можна в <a href="/app#company">застосунку НомерОК</a>.</p>
   </section>
 </div>
 
@@ -140,14 +141,22 @@
 <script src="/assets/js/sanctions.js"></script>
 <script src="/assets/js/erb.js"></script>
 <script type="module">
-import { renderCompany, renderNotFound, esc } from '/assets/js/company-render.mjs';
+import { renderCompany, renderNotFound, renderSearchResults, esc } from '/assets/js/company-render.mjs';
 const $ = id => document.getElementById(id);
 const code = (location.pathname.match(/^\/c\/(\d{8})\/?$/) || [])[1];
-function go(){
-  const q = $('cQ').value.replace(/\D/g, '');
-  if (!/^\d{8}$/.test(q)){ const m = $('cMsg'); m.className = 'msg show msg-err'; m.textContent = 'Код ЄДРПОУ — 8 цифр. ФОП і фізосіб у відкритому ЄДР за кодом не знайти.'; return; }
-  try{ track('company_page_search', {}); }catch(e){}
-  location.href = '/c/' + q;
+async function go(){
+  const raw = $('cQ').value.trim(), dg = raw.replace(/\s/g, ''), m = $('cMsg'), out = $('cRes');
+  m.className = 'msg'; out.innerHTML = '';
+  if (/^\d{8}$/.test(dg)){ try{ track('company_page_search', { by: 'code' }); }catch(e){} location.href = '/c/' + dg; return; }
+  if (/^\d+$/.test(dg)){ m.className = 'msg show msg-err'; m.textContent = 'Код ЄДРПОУ — 8 цифр.'; return; }
+  try{ track('company_page_search', { by: 'name' }); }catch(e){}
+  out.innerHTML = '<p class="text-sm text-muted">Шукаємо в ЄДР…</p>';
+  try{ out.innerHTML = renderSearchResults(await edrSearch(raw, 20), raw); }
+  catch(e){
+    out.innerHTML = '';
+    m.className = 'msg show msg-err';
+    m.textContent = e.message === 'short_query' ? 'Введіть від 3 літер назви — без «ТОВ», «ПП» тощо.' : 'Пошук тимчасово недоступний — введіть код ЄДРПОУ.';
+  }
 }
 $('cGo').addEventListener('click', go);
 $('cQ').addEventListener('keydown', e => { if (e.key === 'Enter') go(); });
