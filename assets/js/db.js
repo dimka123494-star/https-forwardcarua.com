@@ -1120,3 +1120,13 @@ async function adminUpdateDeleg(id, patch){
   const { error } = await sb.from('deleg_requests').update(patch).eq('id', id);
   if (error){ console.error('adminUpdateDeleg:', error); throw new Error(delegError(error, 'Не вдалося зберегти')); }
 }
+
+/* ================= ЄДР: ПОШУК КОМПАНІЙ ЗА НАЗВОЮ ================= */
+/** Пошук у відкритому ЄДР (≈2 млн юросіб) за назвою або кодом. Від 3 літер; форми власності (ТОВ, ПП…) ігноруються.
+ *  Повертає [{ code, name, short_name, state, active, reg_date, head }]; помилка 'short_query' — запит закороткий. */
+async function edrSearch(q, lim = 20){
+  const sb = await sbReady();
+  const { data, error } = await sb.rpc('edr_search', { q, lim });
+  if (error) throw new Error(/short_query/.test(error.message) ? 'short_query' : error.message);
+  return data || [];
+}

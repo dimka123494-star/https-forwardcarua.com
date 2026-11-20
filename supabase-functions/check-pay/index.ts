@@ -29,6 +29,21 @@ async function shard(kind: string, code: string, optional = false): Promise<any>
   if (!r.ok) throw new Error(`source ${kind} ${r.status}`);
   return (await r.json())[code] ?? null;
 }
+// ЄДР усіх юросіб: шарди .json.gz у GitHub-релізі edr-data (tools/edr_shards.py); короткі ключі → формат carrier_edr
+const EDR = "https://github.com/dimka123494-star/https-forwardcarua.com/releases/download/edr-data/";
+async function edrFor(code: string) {
+  const r = await fetch(`${EDR}edr-${String(Number(code) % 512).padStart(3, "0")}.json.gz`);
+  if (!r.ok || !r.body) return null;
+  const c = JSON.parse(await new Response(r.body.pipeThrough(new DecompressionStream("gzip"))).text())[code];
+  if (!c) return null;
+  return {
+    name: c.n || null, short_name: c.sn || null, opf: c.o || null, state: c.s || null, reg_date: c.d || null,
+    capital: c.c ?? null, heads: (c.h || []).map((name: string) => ({ name, role: "керівник" })),
+    founders_total: c.fn || 0, founder_orgs: (c.fo || []).map(([name, code]: string[]) => ({ name, code })),
+    branches: c.b || 0, termination: c.t || null, bankruptcy: c.bk || null,
+    taxes: (c.x || []).map(([type, date, end]: string[]) => ({ type, date, end })),
+  };
+}
 async function buildReport(db: any, code: string) {
   const [meta, erb, bankrupt, courts, decisions, licenses] = await Promise.all([
     fetch(RAW + "meta.json").then((r) => r.json()), shard("erb", code), shard("bankrupt", code), shard("courts", code), shard("decisions", code, true), shard("lic", code, true).catch(() => null)]);
@@ -36,10 +51,11 @@ async function buildReport(db: any, code: string) {
     db.from("carrier_registry").select("name, status, intl_cargo, dangerous").eq("edrpou", code).maybeSingle(),
     db.from("carrier_edr").select("data").eq("edrpou", code).maybeSingle(),
     sanctionsFor(db, code).catch(() => null), aeoFor(code).catch(() => null)]);
+  const edrData = edr?.data ?? await edrFor(code).catch(() => null);   // джерело ЄДР необовʼязкове
   return {
     code, checked_at: new Date().toISOString(), data_at: meta?.generated ?? null,
-    name: edr?.data?.name || lic?.name || erb?.name || bankrupt?.name || courts?.name || null,
-    erb, bankrupt: bankrupt?.items ?? null, courts, decisions: decisions ?? null, edr: edr?.data ?? null,
+    name: edrData?.name || lic?.name || erb?.name || bankrupt?.name || courts?.name || null,
+    erb, bankrupt: bankrupt?.items ?? null, courts, decisions: decisions ?? null, edr: edrData,
     license: lic ? { status: lic.status, intl_cargo: lic.intl_cargo, dangerous: lic.dangerous } : null,
       sanctions, aeo, licenses: licenses ?? [],
   };

@@ -27,6 +27,8 @@
 /zvit-avto       /zvit-avto.html     200
 /perevirka-avto  /perevirka-avto.html 200
 /avto/*          /avto.html          200
+/c               /c.html             200
+/c/*             /c.html             200
 /app             /app.html           200
 /apps            /app                301
 /ap              /app                301

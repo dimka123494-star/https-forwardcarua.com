@@ -143,7 +143,12 @@ const CompanyCheck = (() => {
       aeo.map(a => (a.status === 'Чинна' ? ok : bad)('<b>' + esc(a.type || 'AEO') + (AEO_T[a.type] ? ' — ' + AEO_T[a.type] : '') + '</b>: авторизація ' + esc((a.status || '').toLowerCase()) +
         '<div class="text-xs" style="margin-top:4px">№ ' + esc(a.number || '—') + (a.authorizationDate ? ' · з ' + date(a.authorizationDate) : '') +
         (a.cancellationDate ? ' · скасовано ' + date(a.cancellationDate) : '') + (a.annulmentDate ? ' · анульовано ' + date(a.annulmentDate) : '') + '</div>')).join('') : '';
-    const edr = r.edr ? '<div class="text-sm" style="margin-top:.5rem">Стан за ЄДР: <b>' + esc(r.edr.state || '—') + '</b>' + (r.edr.reg_date ? ' · зареєстровано ' + date(r.edr.reg_date) : '') + '</div>' : '';
+    const E = r.edr, head = E && (E.heads || []).find(h => !h.role || h.role === 'керівник');
+    const edr = E ? '<div class="text-sm" style="margin-top:.5rem">Стан за ЄДР: <b' + (E.state && E.state !== 'зареєстровано' ? ' style="color:var(--red)"' : '') + '>' + esc(E.state || '—') + '</b>' + (E.reg_date ? ' · зареєстровано ' + date(E.reg_date) : '') +
+      (head ? '<br>Керівник: ' + esc(head.name) : '') + (E.capital ? ' · статутний капітал ' + Number(E.capital).toLocaleString('uk-UA') + ' грн' : '') +
+      (E.founders_total ? '<br>Засновників: ' + E.founders_total + ((E.founder_orgs || []).length ? ' (юрособи: ' + E.founder_orgs.map(f => esc(f.name) + ', ' + esc(f.code)).join('; ') + ')' : '') : '') +
+      (E.termination ? '<br><span style="color:var(--red)">Припинення: ' + esc(E.termination) + '</span>' : '') + (E.bankruptcy ? '<br><span style="color:var(--red)">Банкрутство: ' + esc(E.bankruptcy) + '</span>' : '') +
+      '<br><a href="/c/' + esc(r.code) + '" target="_blank" rel="noopener">Картка компанії за даними ЄДР</a></div>' : '';
     const lic = r.license ? '<div class="text-sm">Ліцензія Укртрансбезпеки: <b>' + esc(r.license.status) + '</b>' + (r.license.intl_cargo ? ', міжнародні перевезення' : '') + '</div>' : '';
     // ліцензії й дозволи з відкритих реєстрів органів (Держмитслужба, НКРЕКП, Держлікслужба, ДАРТ) + Укртрансбезпека
     const L = (r.licenses || []).slice(0, 15);
