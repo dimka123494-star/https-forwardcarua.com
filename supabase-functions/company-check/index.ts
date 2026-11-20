@@ -61,6 +61,32 @@ async function edrFor(code: string) {
     taxes: (c.x || []).map(([type, date, end]: string[]) => ({ type, date, end })),
   };
 }
+// Розширені дані для «Витягу з ЄДР» (засновники з частками, бенефіціари, представники, номер запису, філії):
+// зашифровані шарди edrx-NNN.bin у тому ж релізі (tools/edr_shards.py). Приватний ключ — app_secrets.EDRX_PRIVATE_KEY.
+let edrxKey: CryptoKey | null = null;
+async function extFor(db: any, code: string) {
+  if (!edrxKey) {
+    const { data } = await db.from("app_secrets").select("value").eq("name", "EDRX_PRIVATE_KEY").maybeSingle();
+    if (!data?.value) return null;
+    const der = Uint8Array.from(atob(String(data.value).replace(/-----[^-]+-----|\s/g, "")), (c) => c.charCodeAt(0));
+    edrxKey = await crypto.subtle.importKey("pkcs8", der, { name: "RSA-OAEP", hash: "SHA-256" }, false, ["decrypt"]);
+  }
+  const r = await fetch(`${EDR}edrx-${String(Number(code) % 512).padStart(3, "0")}.bin`);
+  if (!r.ok) return null;
+  const b = new Uint8Array(await r.arrayBuffer());
+  const wl = (b[0] << 8) | b[1];
+  const aes = await crypto.subtle.decrypt({ name: "RSA-OAEP" }, edrxKey, b.slice(2, 2 + wl));
+  const k = await crypto.subtle.importKey("raw", aes, "AES-GCM", false, ["decrypt"]);
+  const plain = await crypto.subtle.decrypt({ name: "AES-GCM", iv: b.slice(2 + wl, 14 + wl) }, k, b.slice(14 + wl));
+  const x = JSON.parse(await new Response(new Blob([plain]).stream().pipeThrough(new DecompressionStream("gzip"))).text())[code];
+  if (!x) return null;
+  return {
+    reg_number: x.rn ?? null, record_date: x.rd ?? null, management: x.m ?? null,
+    signers: (x.sg || []).map(([name, role]: string[]) => ({ name, role })),
+    founders: (x.f || []).map(([name, code, share]: any[]) => ({ name, code, share })),
+    beneficiaries: x.bf || [], branches: (x.br || []).map(([name, code]: string[]) => ({ name, code })), successors: x.pr || [],
+  };
+}
 async function aeoFor(code: string) {
   const r = await fetch(RAW + "aeo.json");
   if (!r.ok) return null;
@@ -92,12 +118,13 @@ Deno.serve(async (req) => {
       sb.from("carrier_registry").select("name, status, intl_cargo, dangerous").eq("edrpou", code).maybeSingle(),
       sb.from("carrier_edr").select("data").eq("edrpou", code).maybeSingle(),
       sanctionsFor(sb, code).catch(() => null), aeoFor(code).catch(() => null)]);
-    const edrData = edr?.data ?? await edrFor(code).catch(() => null);   // джерело ЄДР необовʼязкове
+    const [edrData, extract] = await Promise.all([edr?.data ? Promise.resolve(edr.data) : edrFor(code).catch(() => null),
+      extFor(sb, code).catch((e) => { console.error("edrx:", e); return null; })]);   // джерела ЄДР необовʼязкові
     const report = {
       code, checked_at: new Date().toISOString(), data_at: meta?.generated ?? null,
       name: edrData?.name || lic?.name || erb?.name || bankrupt?.name || courts?.name || null,
       erb, bankrupt: bankrupt?.items ?? null, courts, decisions: decisions ?? null,
-      edr: edrData,
+      edr: edrData, extract,
       license: lic ? { status: lic.status, intl_cargo: lic.intl_cargo, dangerous: lic.dangerous } : null,
       sanctions, aeo, licenses: licenses ?? [],
     };

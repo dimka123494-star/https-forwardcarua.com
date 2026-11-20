@@ -78,7 +78,7 @@ export function renderCompany(d){
         '. Адреси, КВЕДи й контакти у відкритих даних не публікуються (воєнний стан).</p></div>' +
       '<h2 style="font-size:18px;margin:1.5rem 0 .5rem">Санкції та борги — безкоштовно</h2>' +
       '<div data-sanctions-code="' + code + '"></div><div data-erb-code="' + code + '"></div>' +
-      '<div class="card" id="buy" style="margin-top:1rem;border-color:rgba(45,217,143,.45)"><h2 style="font-size:20px;margin:0 0 .25rem">Аналіз компанії · PDF</h2>' +
+      '<div class="card" id="buy" style="margin-top:1rem;border-color:rgba(45,217,143,.45)"><h2 style="font-size:20px;margin:0 0 .25rem">Аналіз компанії + витяг з ЄДР</h2>' +
         '<p class="text-sm text-muted" style="margin:0">Усе про ' + esc(name) + ' в одному звіті з висновком про ризики. Перед угодою, передоплатою чи договором.</p>' +
         '<div class="cc-locks">' +
         '<div class="cc-lock"><b>Висновок про ризики<i class="ti ti-lock"></i></b><span>червоні прапорці й що на користь</span></div>' +
@@ -86,7 +86,7 @@ export function renderCompany(d){
         '<div class="cc-lock"><b>Банкрутство<i class="ti ti-lock"></i></b><span>справи та їхні етапи</span></div>' +
         '<div class="cc-lock"><b>Судові справи<i class="ti ti-lock"></i></b><span>де відповідач, рішення судів</span></div>' +
         '<div class="cc-lock"><b>Ліцензії та AEO<i class="ti ti-lock"></i></b><span>митні, енергетика, перевезення</span></div>' +
-        '<div class="cc-lock"><b>PDF-файл<i class="ti ti-lock"></i></b><span>завантажити, переслати, роздрукувати</span></div>' +
+        '<div class="cc-lock"><b>Витяг з ЄДР у PDF<i class="ti ti-lock"></i></b><span>засновники з частками, бенефіціари, представники</span></div>' +
         '</div>' +
         '<button class="btn btn-primary btn-block" type="button" onclick="CompanyCheck.open(\'' + code + '\',' + esc(JSON.stringify(name)) + ')"><i class="ti ti-file-analytics"></i>Отримати аналіз · <span class="ccPrice">50</span> грн</button>' +
         '<p class="text-xs text-muted" style="margin:.5rem 0 0;text-align:center">Картка, Apple Pay чи Google Pay · без реєстрації · звіт одразу на екрані й на email</p></div>' +

@@ -5,7 +5,7 @@ on:
   workflow_dispatch:
   push:
     branches: [main]
-    paths: ['tools/edr_import.py', 'tools/edr_shards.py', '.github/workflows/edr.yml']
+    paths: ['tools/edr_import.py', 'tools/edr_shards.py', 'tools/edrx_public.pem', '.github/workflows/edr.yml']
 permissions:
   contents: write
 concurrency: edr
@@ -20,7 +20,9 @@ jobs:
       - name: ЄДР усіх компаній — шарди
         id: shards
         continue-on-error: true
-        run: python3 tools/edr_shards.py uo.zip
+        run: |
+          python3 -c "import cryptography" 2>/dev/null || pip install -q cryptography
+          python3 tools/edr_shards.py uo.zip
       - name: ЄДР усіх компаній — публікація в реліз edr-data
         if: steps.shards.outcome == 'success'
         continue-on-error: true
@@ -31,6 +33,7 @@ jobs:
             --title "Відкриті дані ЄДР (шарди)" --notes "Службовий реліз: оновлюється щотижня workflow edr.yml. Не видаляти."
           # спершу шарди, мета — останньою: поки вона стара, читачі знають, що оновлення ще йде
           gh release upload edr-data out-edr/edr-*.json.gz --clobber
+          if ls out-edr/edrx-*.bin >/dev/null 2>&1; then gh release upload edr-data out-edr/edrx-*.bin --clobber; fi
           gh release upload edr-data out-edr/edr-meta.json --clobber
       - name: Import (перевізники)
         run: UO_ZIP=uo.zip python3 tools/edr_import.py
