@@ -490,13 +490,16 @@ def main():
         print('AEO failed', e, flush=True); a = {}
         if os.path.exists(f'{PREV}/aeo.json'):
             import shutil; shutil.copy(f'{PREV}/aeo.json', f'{OUT}/aeo.json'); STALE.append('aeo')
+            a = json.load(open(f'{OUT}/aeo.json', encoding='utf-8'))
     try:
-        lic = licenses(); write('lic', lic)
+        lic = licenses()
     except Exception as e:
-        print('licenses failed', e, flush=True)
+        print('licenses failed', e, flush=True); lic = {}
+    if not lic:   # licenses() ковтає збої окремих органів: усі впали → порожньо → лишаємо попередні дані
         lic = prev_data('lic')
         if lic:
-            write('lic', lic); STALE.append('lic')
+            STALE.append('lic')
+    write('lic', lic)
     meta = {'generated': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()), 'erb_firms': len(er), 'bankrupt_firms': len(b),
             'court_firms': len(c), 'decision_firms': len(dec), 'aeo_firms': len(a), 'lic_firms': len(lic), 'shards': SHARDS, 'erb_persons': np_, 'pshards': PSHARDS, 'stale': STALE}
     json.dump(meta, open(f'{OUT}/meta.json', 'w'))
