@@ -430,3 +430,9 @@ body.ap .vc-fab{bottom:calc(84px + env(safe-area-inset-bottom))}
 .vc-pk-p b{font-size:16px}
 .vc-pk-p em{font-style:normal;color:var(--green);font-weight:600}
 .vc-credit{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:12px 14px;border-radius:var(--r-sm);border:.5px solid var(--green);background:rgba(16,185,129,.10)}
+/* авто зі США/Канади — позначка в довідці й посилання на аукціони у звіті */
+.vc-us{display:flex;gap:10px;align-items:flex-start;margin:.75rem 0 0;padding:12px 14px;border-radius:12px;border:1px solid rgba(59,130,246,.35);background:rgba(59,130,246,.08);color:inherit;text-decoration:none;font-size:13px;line-height:1.45}
+.vc-us>i{font-size:20px;color:#3b82f6;flex:none;margin-top:1px}
+.vc-us b{display:block;margin-bottom:2px;font-size:14px}
+.vc-us small{display:block;margin-top:.5rem;opacity:.7;font-size:11px}
+@media print{.vc-us-full{display:none}}

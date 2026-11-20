@@ -113,8 +113,27 @@ const VehicleCheck = (() => {
       } else if (i.market_known) rows.push(lockTile('Авто для ринку', 'Північна Америка', 'map-pin'));
     }
     const vin = full && r.vin ? tile('VIN', r.vin, 'barcode') : r.vin_masked ? '<a class="vc-tile vc-locked" href="#vcBuy" onclick="return VehicleCheck.toBuy()"><span><i class="ti ti-barcode"></i>VIN</span><b>' + esc(r.vin_masked) + '<i class="ti ti-lock"></i></b></a>' : '';
-    return '<h4 class="vc-h">Розшифрування VIN</h4><div class="vc-tiles">' + vin + rows.join('') + '</div>';
+    return '<h4 class="vc-h">Розшифрування VIN</h4><div class="vc-tiles">' + vin + rows.join('') + '</div>' + usBlock(r, full);
   }
+  // Авто з ринку США/Канади: такі часто ввозять з аукціонів Copart / IAAI. У довідці — позначка, у повному звіті —
+  // швидкі посилання на офіційний пошук аукціонів і пошук архівів за повним VIN (дані аукціонів ми не копіюємо).
+  function usBlock(r, full){
+    const i = r.vin_info || {};
+    const us = full ? /Америк/.test(i.market || '') : i.market_known;
+    if (!us) return '';
+    if (!full || !r.vin) return '<a class="vc-us" href="#vcBuy" onclick="return VehicleCheck.toBuy()"><i class="ti ti-flag"></i><span><b>Авто зі США або Канади</b>' +
+      'Такі авто часто купують на страхових аукціонах Copart та IAAI після ДТП чи затоплення. У повному звіті — повний VIN і швидкі посилання на історію аукціонів.</span></a>';
+    const v = encodeURIComponent(r.vin);
+    const a = (href, icon, label) => '<a class="btn btn-ghost btn-sm" href="' + href + '" target="_blank" rel="noopener nofollow" onclick="VehicleCheck.copyVin(\'' + esc(r.vin) + '\')"><i class="ti ti-' + icon + '"></i>' + label + '</a>';
+    return '<div class="vc-us vc-us-full"><i class="ti ti-flag"></i><span><b>Авто зі США або Канади — перевірте аукціонну історію</b>' +
+      'Перевірте, чи не продавалося авто на аукціонах після ДТП, затоплення чи як «total loss»: фото пошкоджень, ціна продажу, пробіг. VIN скопіюється автоматично.' +
+      '<span class="row" style="gap:6px;flex-wrap:wrap;margin-top:.6rem">' +
+      a('https://www.copart.com/lotSearchResults?free=true&query=' + v, 'gavel', 'Copart') +
+      a('https://www.iaai.com/Search?Keyword=' + v, 'gavel', 'IAAI') +
+      a('https://www.google.com/search?q=%22' + v + '%22+copart+OR+iaai', 'search', 'Архіви аукціонів') +
+      '</span><small>Copart та IAAI показують лише поточні лоти; продані раніше авто шукайте в архівах.</small></span></div>';
+  }
+  function copyVin(v){ try{ navigator.clipboard && navigator.clipboard.writeText(v); }catch(e){} }
   // оголошення про продаж на AUTO.RIA: фото, пробіг, ціна (лише в повному звіті)
   function riaBlock(r){
     const x = r.ria; if (!x) return '';
@@ -537,5 +556,5 @@ const VehicleCheck = (() => {
   }
   function show(k){ const c = (window.__vcHist || [])[k]; if (c) openReport({ ...c.report, price: c.price }); }
 
-  return { setPack, redeem, crSet, toBuy, mount, mountBuy, loadPhotos, pdf, search, run, payCard, report, summary, reopen, mountHistory, show, loadPrice };
+  return { setPack, redeem, copyVin, crSet, toBuy, mount, mountBuy, loadPhotos, pdf, search, run, payCard, report, summary, reopen, mountHistory, show, loadPrice };
 })();
