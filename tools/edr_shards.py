@@ -17,7 +17,8 @@ Netlify Edge (company-page.ts) та Supabase Edge (company-check) на запи�
   Приватний ключ — лише в Supabase (app_secrets.EDRX_PRIVATE_KEY), розшифровують функції company-check / check-pay.
   Формат файлу: 2 байти довжини загорнутого ключа (big-endian) + загорнутий ключ + 12 байт nonce + шифротекст.
   Запис: rn — номер запису, rd — дата запису, m — органи управління, sg — [[ПІБ, роль]] (керівник і представники),
-  f — [[назва/ПІБ, код|null, частка грн|null]] засновників, bf — [ПІБ] бенефіціарів (без адрес), br — [[назва, код]] філій,
+  f — [[назва/ПІБ, код|null, частка грн|null, громадянство/резидентство|null]] засновників,
+  bf — [[ПІБ, тип впливу, відсоток]] бенефіціарів (без адрес), br — [[назва, код]] філій,
   pr — [правонаступники/попередники]. Адрес, КВЕДів і контактів у відкритих даних немає (воєнний стан).
 
 Запуск: python3 tools/edr_shards.py [uo.zip]   (без аргументу — UO_ZIP або uo.zip; якщо файлу немає — завантажить)"""
@@ -74,16 +75,24 @@ def extended(d):
                 sg.append([name, role])
     f = []
     for x in kids(d, 'FOUNDERS', 'FOUNDER'):
-        parts = [p.strip() for p in str(x).split(';')]
+        parts = [p.strip() for p in str(x or '').split(';')]
+        if not parts[0]:
+            continue
         code = next((p for p in parts[1:] if re.fullmatch(r'\d{8}', p)), None)
         m = re.search(r'частки\s*-\s*([\d\s]+(?:,\d+)?)', str(x))
         share = float(m.group(1).replace(' ', '').replace(',', '.')) if m else None
-        f.append([parts[0][:300], code, share])
-    bf = []
+        cn = next((re.sub(r'^(громадянство|резиденство|резидентство):\s*', '', p) for p in parts[1:] if re.match(r'(громадянство|резиденство|резидентство):', p)), None)
+        f.append([parts[0][:300], code, share, cn])
+    bf = []   # [ПІБ, тип впливу, відсоток] — без адрес; або ['причина відсутності: …']
     for t in texts(d.get('BENEFICIARIES')):
-        name = re.split(r'[;,]', t)[0].strip()
-        if name and name not in bf:
-            bf.append(name[:200])
+        parts = [p.strip() for p in t.split(';')]
+        if not parts[0]:
+            continue
+        inf = next((p for p in parts[1:] if 'вплив' in p.lower()), None)
+        m = re.search(r'відсоток частки[^-]*-\s*([\d.,]+)', t)
+        rec = [parts[0][:200], inf, m.group(1).replace(',', '.') if m else None]
+        if rec not in bf:
+            bf.append(rec)
     br = []
     for b in kids(d, 'BRANCHES', 'BRANCH'):
         if isinstance(b, dict) and b.get('NAME'):
