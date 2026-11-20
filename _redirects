@@ -29,8 +29,8 @@
 /avto/*          /avto.html          200
 /perevirka-kompanii /perevirka-kompanii.html 200
 /perevirka-kompanii.html /perevirka-kompanii 301
-/c               /perevirka-kompanii 301
-/c/              /perevirka-kompanii 301
+/c               /perevirka-kompanii 301!
+/c/              /perevirka-kompanii 301!
 /c/*             /c.html             200
 /app             /app.html           200
 /apps            /app                301
