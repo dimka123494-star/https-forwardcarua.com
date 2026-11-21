@@ -511,6 +511,38 @@ const CONSULT_STATUS = {
   in_progress: { label: 'В роботі',   color: 'var(--amber)' },
   done:        { label: 'Відповіли',  color: 'var(--green)' }
 };
+/* ---------- Швидка заявка без реєстрації (лендинги) ---------- */
+async function createQuickLead(l){
+  const sb = await sbReady();
+  const q = new URLSearchParams(location.search), utm = {};
+  ['utm_source','utm_medium','utm_campaign','utm_term','utm_content'].forEach(k => { const v = q.get(k); if (v) utm[k] = v.slice(0, 200); });
+  let gclid = q.get('gclid');
+  try { if (gclid) sessionStorage.setItem('fc_gclid', gclid); else gclid = sessionStorage.getItem('fc_gclid'); } catch(e){}
+  const row = {
+    service: l.service || 'rmpd', contact: String(l.contact || '').trim().slice(0, 80), contact_method: l.contact_method || 'telegram',
+    plate: (l.plate || '').trim().slice(0, 40) || null, route: (l.route || '').trim().slice(0, 200) || null,
+    entry_date: l.entry_date || null, comment: (l.comment || '').trim().slice(0, 1000) || null,
+    page: location.pathname.slice(0, 300), gclid: gclid ? gclid.slice(0, 300) : null, utm: Object.keys(utm).length ? utm : null
+  };
+  const { error } = await sb.from('quick_leads').insert(row);
+  if (error){
+    console.error('createQuickLead:', error);
+    if (/duplicate_lead/.test(error.message || '')) return { duplicate: true };
+    throw new Error('Не вдалося надіслати. Напишіть нам у Telegram або зателефонуйте +38 093 110 46 62.');
+  }
+  return { ok: true };
+}
+async function adminQuickLeads(){
+  const sb = await sbReady();
+  const { data, error } = await sb.from('quick_leads').select('*').order('created_at', { ascending: false }).limit(500);
+  if (error) throw new Error('Не вдалося завантажити швидкі заявки');
+  return data || [];
+}
+async function adminUpdateQuickLead(id, patch){
+  const sb = await sbReady();
+  const { error } = await sb.from('quick_leads').update(patch).eq('id', id);
+  if (error) throw new Error('Не вдалося зберегти');
+}
 async function createConsultation(c){
   const sb = await sbReady();
   const { error } = await sb.from('consultations').insert({

@@ -64,6 +64,20 @@
   .rm-more i{font-size:22px;color:var(--blue);display:block;margin-bottom:.5rem}
   .rm-tg{background:#229ED9;color:#fff;border:0}
   .rm-tg:hover{background:#1c8cc2;color:#fff}
+  .ql-form{max-width:760px;margin-top:1.75rem;border-color:var(--green);box-shadow:0 0 0 1px var(--green);scroll-margin-top:80px}
+  .ql-head{display:flex;gap:12px;align-items:flex-start;margin-bottom:1rem}
+  .ql-head>i{font-size:22px;color:var(--green);margin-top:2px}
+  .ql-head strong{display:block;font-size:17px;margin-bottom:2px}
+  .ql-head span{font-size:14px;color:var(--muted-strong);line-height:1.5}
+  .ql-how{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:1rem}
+  .ql-how label{cursor:pointer}
+  .ql-how input{position:absolute;opacity:0;pointer-events:none}
+  .ql-how span{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:999px;border:.5px solid var(--border);background:var(--surface);font-size:14px;color:var(--muted-strong)}
+  .ql-how input:checked+span{border-color:var(--green);color:var(--green);box-shadow:0 0 0 1px var(--green)}
+  .ql-how input:focus-visible+span{outline:2px solid var(--green);outline-offset:2px}
+  .ql-hp{position:absolute;left:-9999px;width:1px;height:1px;opacity:0}
+  .ql-done{text-align:center;padding:1.5rem .5rem}
+  .ql-done i{font-size:40px;color:var(--green)}
   .rm-sticky{display:none}
   @media(max-width:700px){
     .rm-sticky{display:flex;gap:8px;position:fixed;left:12px;right:12px;bottom:12px;z-index:50}
@@ -90,11 +104,31 @@
     <h1 class="h-lg">Заявка RMPD на вʼїзд у Польщу —<br><span style="color:var(--green)">без помилок і штрафів</span></h1>
     <p class="lead" style="font-size:17px;color:var(--muted-strong);max-width:660px;line-height:1.7;margin-top:1rem">Заповніть коротку форму українською — ми переведемо дані в латиницю, перевіримо помилки, за які штрафують, подамо заявку в PUESC і надішлемо номер RMPD у кабінет і Telegram. Або візьміть перевірені дані й подайте самі.</p>
     <div class="row" style="margin-top:1.75rem">
-      <a class="btn btn-primary rm-cta" data-cta="hero" href="/vhid?role=carrier&next=%2Fkabinet%23rmpd" style="padding:13px 26px;font-size:15px"><i class="ti ti-file-certificate"></i>Подати заявку RMPD</a>
+      <a class="btn btn-primary ql-go" data-cta="hero" href="#shvydko" style="padding:13px 26px;font-size:15px"><i class="ti ti-bolt"></i>Швидка заявка без реєстрації</a>
       <a class="btn rm-tg" data-tg="hero" href="https://t.me/Dimakrykun95?text=%D0%94%D0%BE%D0%B1%D1%80%D0%B8%D0%B9%20%D0%B4%D0%B5%D0%BD%D1%8C%21%20%D0%9F%D0%BE%D1%82%D1%80%D1%96%D0%B1%D0%BD%D0%B0%20%D0%B7%D0%B0%D1%8F%D0%B2%D0%BA%D0%B0%20RMPD.%20%D0%9D%D0%BE%D0%BC%D0%B5%D1%80%20%D0%B0%D0%B2%D1%82%D0%BE/%D0%BF%D1%80%D0%B8%D1%87%D0%B5%D0%BF%D0%B0%3A%20%2C%20%D0%BC%D0%B0%D1%80%D1%88%D1%80%D1%83%D1%82%3A%20%2C%20%D0%B4%D0%B0%D1%82%D0%B0%20%D0%B7%D0%B0%D1%97%D0%B7%D0%B4%D1%83%3A%20" target="_blank" rel="noopener" style="padding:13px 22px;font-size:15px"><i class="ti ti-brand-telegram"></i>Написати в Telegram</a>
     </div>
-    <p class="text-sm" style="margin-top:.6rem;color:var(--muted-strong)"><i class="ti ti-bolt"></i> Без реєстрації: напишіть у Telegram номер авто й маршрут — оформимо й надішлемо номер за 30–60 хв. Оплата після реєстрації заявки.</p>
+    <p class="text-sm" style="margin-top:.6rem;color:var(--muted-strong)"><i class="ti ti-bolt"></i> Без реєстрації: залиште контакт або напишіть у Telegram номер авто й маршрут — оформимо й надішлемо номер за 30–60 хв. Оплата після реєстрації заявки. Вже маєте кабінет? <a class="rm-cta" data-cta="hero_cab" href="/vhid?role=carrier&next=%2Fkabinet%23rmpd">Подати через кабінет</a></p>
     <p class="text-sm" data-team="welcome_bonus" hidden style="margin-top:1rem;color:var(--green)"><i class="ti ti-gift"></i> <strong><span data-price="welcome_bonus">100</span> грн на перший документ</strong> — даруємо після реєстрації</p>
+    <form class="card ql-form" id="shvydko" onsubmit="return qlSubmit(event)" novalidate>
+      <div class="ql-head"><i class="ti ti-bolt"></i><div><strong>Швидка заявка RMPD — без реєстрації</strong><span>Залиште контакт — оператор звʼяжеться за 15 хвилин (щодня 8:00–22:00), уточнить дані й подасть заявку.</span></div></div>
+      <div class="ql-how" role="radiogroup" aria-label="Як з вами звʼязатися">
+        <label><input type="radio" name="qlHow" value="telegram" checked><span><i class="ti ti-brand-telegram"></i>Telegram</span></label>
+        <label><input type="radio" name="qlHow" value="viber"><span><i class="ti ti-brand-viber"></i>Viber</span></label>
+        <label><input type="radio" name="qlHow" value="phone"><span><i class="ti ti-phone"></i>Дзвінок</span></label>
+      </div>
+      <div class="field-row">
+        <div class="field"><label class="label" for="qlContact">Телефон або @нік у Telegram *</label><input class="input" id="qlContact" autocomplete="tel" maxlength="80" placeholder="+380… або @username" required></div>
+        <div class="field"><label class="label" for="qlPlate">Номер авто / причепа</label><input class="input" id="qlPlate" maxlength="40" placeholder="AC1234BC / AC5678XT"></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label class="label" for="qlRoute">Пункт пропуску або маршрут</label><input class="input" id="qlRoute" maxlength="200" placeholder="Ягодин–Дорогуськ, Луцьк → Варшава"></div>
+        <div class="field"><label class="label" for="qlDate">Дата вʼїзду в Польщу</label><input class="input" id="qlDate" type="date"></div>
+      </div>
+      <input type="text" id="qlWebsite" name="website" tabindex="-1" autocomplete="off" aria-hidden="true" class="ql-hp">
+      <button class="btn btn-primary btn-block" id="qlBtn" type="submit" style="padding:13px"><i class="ti ti-send"></i>Надіслати заявку</button>
+      <p class="text-xs text-muted" style="margin:.6rem 0 0">Нічого не платите зараз: оплата лише після реєстрації заявки RMPD. Надсилаючи, ви погоджуєтесь з <a href="/terms#privacy">умовами обробки даних</a>.</p>
+      <div class="msg" id="qlMsg"></div>
+    </form>
     <div class="rm-trust">
       <span><i class="ti ti-clock"></i>Номер за 30–60 хв, щодня 8:00–22:00</span>
       <span><i class="ti ti-shield-check"></i>Перевіряємо кожну заявку в RMPD406</span>
@@ -200,8 +234,8 @@
   </section>
 
   <section class="container seo">
-    <div class="cta-band"><h3>Подайте першу заявку RMPD сьогодні</h3><p>Реєстрація займає хвилину. Платите лише за зареєстровану заявку.</p>
-      <div class="row"><a class="btn btn-primary rm-cta" data-cta="band" href="/vhid?role=carrier&next=%2Fkabinet%23rmpd"><i class="ti ti-file-certificate"></i>Подати заявку</a><a class="btn btn-ghost" href="tel:+380931104662"><i class="ti ti-phone"></i>+38 093 110 46 62</a></div>
+    <div class="cta-band"><h3>Подайте першу заявку RMPD сьогодні</h3><p>Без реєстрації: залиште контакт — оператор звʼяжеться за 15 хвилин. Платите лише за зареєстровану заявку.</p>
+      <div class="row"><a class="btn btn-primary ql-go" data-cta="band" href="#shvydko"><i class="ti ti-bolt"></i>Швидка заявка</a><a class="btn btn-ghost" href="tel:+380931104662"><i class="ti ti-phone"></i>+38 093 110 46 62</a></div>
     </div>
     <h2 style="font-size:22px">Ще для перевізників</h2>
     <div class="rm-more">
@@ -212,7 +246,7 @@
   </section>
 </div>
 
-<div class="rm-sticky"><a class="btn rm-tg" data-tg="sticky" href="https://t.me/Dimakrykun95?text=%D0%94%D0%BE%D0%B1%D1%80%D0%B8%D0%B9%20%D0%B4%D0%B5%D0%BD%D1%8C%21%20%D0%9F%D0%BE%D1%82%D1%80%D1%96%D0%B1%D0%BD%D0%B0%20%D0%B7%D0%B0%D1%8F%D0%B2%D0%BA%D0%B0%20RMPD.%20%D0%9D%D0%BE%D0%BC%D0%B5%D1%80%20%D0%B0%D0%B2%D1%82%D0%BE/%D0%BF%D1%80%D0%B8%D1%87%D0%B5%D0%BF%D0%B0%3A%20%2C%20%D0%BC%D0%B0%D1%80%D1%88%D1%80%D1%83%D1%82%3A%20%2C%20%D0%B4%D0%B0%D1%82%D0%B0%20%D0%B7%D0%B0%D1%97%D0%B7%D0%B4%D1%83%3A%20" target="_blank" rel="noopener"><i class="ti ti-brand-telegram"></i>Telegram</a><a class="btn btn-primary rm-cta" data-cta="sticky" href="/vhid?role=carrier&next=%2Fkabinet%23rmpd"><i class="ti ti-file-certificate"></i>Форма</a></div>
+<div class="rm-sticky"><a class="btn rm-tg" data-tg="sticky" href="https://t.me/Dimakrykun95?text=%D0%94%D0%BE%D0%B1%D1%80%D0%B8%D0%B9%20%D0%B4%D0%B5%D0%BD%D1%8C%21%20%D0%9F%D0%BE%D1%82%D1%80%D1%96%D0%B1%D0%BD%D0%B0%20%D0%B7%D0%B0%D1%8F%D0%B2%D0%BA%D0%B0%20RMPD.%20%D0%9D%D0%BE%D0%BC%D0%B5%D1%80%20%D0%B0%D0%B2%D1%82%D0%BE/%D0%BF%D1%80%D0%B8%D1%87%D0%B5%D0%BF%D0%B0%3A%20%2C%20%D0%BC%D0%B0%D1%80%D1%88%D1%80%D1%83%D1%82%3A%20%2C%20%D0%B4%D0%B0%D1%82%D0%B0%20%D0%B7%D0%B0%D1%97%D0%B7%D0%B4%D1%83%3A%20" target="_blank" rel="noopener"><i class="ti ti-brand-telegram"></i>Telegram</a><a class="btn btn-primary ql-go" data-cta="sticky" href="#shvydko"><i class="ti ti-bolt"></i>Заявка</a></div>
 
 <footer class="footer">
   <div class="footer-inner">
@@ -254,6 +288,36 @@
 <script>
 function toggleMenu(){ document.getElementById('menu').classList.toggle('open'); }
 document.querySelectorAll('.rm-cta').forEach(a => a.addEventListener('click', () => { try { track('rmpd_landing_cta', { place: a.dataset.cta }); } catch(e){} }));
+document.querySelectorAll('.ql-go').forEach(a => a.addEventListener('click', e => { e.preventDefault(); try { track('rmpd_quick_cta', { place: a.dataset.cta }); } catch(x){} const f = document.getElementById('shvydko'); f.scrollIntoView({ behavior: 'smooth', block: 'start' }); setTimeout(() => document.getElementById('qlContact').focus({ preventScroll: true }), 400); }));
+document.querySelectorAll('input[name="qlHow"]').forEach(r => r.addEventListener('change', () => {
+  document.getElementById('qlContact').placeholder = r.value === 'telegram' ? '+380… або @username' : '+380 XX XXX XX XX';
+}));
+async function qlSubmit(e){
+  e.preventDefault();
+  const msg = document.getElementById('qlMsg'), btn = document.getElementById('qlBtn');
+  const how = (document.querySelector('input[name="qlHow"]:checked') || {}).value || 'telegram';
+  const contact = document.getElementById('qlContact').value.trim();
+  const digits = contact.replace(/\D/g, '');
+  const okContact = how === 'telegram' ? (/^@?[A-Za-z0-9_]{5,32}$/.test(contact) || digits.length >= 9) : digits.length >= 9;
+  if (!okContact){
+    msg.className = 'msg show msg-err';
+    msg.textContent = how === 'telegram' ? 'Вкажіть телефон або нік у Telegram (наприклад, @ivan_cargo).' : 'Вкажіть номер телефону, щоб ми могли звʼязатися.';
+    document.getElementById('qlContact').focus(); return false;
+  }
+  if (document.getElementById('qlWebsite').value){ return false; } // бот
+  btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader-2"></i>Надсилаємо…'; msg.className = 'msg';
+  try{
+    const r = await createQuickLead({ service: 'rmpd', contact, contact_method: how,
+      plate: document.getElementById('qlPlate').value, route: document.getElementById('qlRoute').value, entry_date: document.getElementById('qlDate').value || null });
+    if (!r.duplicate) { try { track('quick_lead', { service: 'rmpd', method: how }); } catch(x){} }
+    document.getElementById('shvydko').innerHTML = '<div class="ql-done"><i class="ti ti-circle-check"></i><h3 style="margin:.5rem 0">Заявку отримали!</h3><p class="text-sm" style="color:var(--muted-strong);max-width:460px;margin:0 auto">Оператор звʼяжеться з вами ' +
+      (how === 'telegram' ? 'в Telegram' : how === 'viber' ? 'у Viber' : 'телефоном') + ' протягом 15 хвилин (щодня 8:00–22:00). Підготуйте техпаспорти авто й причепа та дані водія.</p></div>';
+  }catch(err){
+    msg.className = 'msg show msg-err'; msg.textContent = err.message;
+    btn.disabled = false; btn.innerHTML = '<i class="ti ti-send"></i>Надіслати заявку';
+  }
+  return false;
+}
 document.querySelectorAll('.rm-tg').forEach(a => a.addEventListener('click', () => { try { track('tg_lead', { page: 'rmpd', place: a.dataset.tg }); } catch(e){} }));
 (async () => {
   // Актуальні ціни з адмінки

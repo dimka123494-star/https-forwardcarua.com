@@ -91,6 +91,7 @@
   <button class="adm-link" data-p="cargo" onclick="pane('cargo',this)"><i class="ti ti-truck-delivery"></i>Вантажі <span class="cab-badge" id="cgAdmBadge" style="display:none">0</span></button>
   <button class="adm-link" data-p="consult" onclick="pane('consult',this)"><i class="ti ti-message-question"></i>Консультації <span class="cab-badge" id="csBadge" style="display:none">0</span></button>
   <div class="adm-group">Документи перевізника</div>
+  <button class="adm-link" data-p="leads" onclick="pane('leads',this)"><i class="ti ti-bolt"></i>Швидкі заявки <span class="cab-badge" id="qlBadge" style="display:none">0</span></button>
   <button class="adm-link" data-p="rmpd" onclick="pane('rmpd',this)"><i class="ti ti-file-certificate"></i>RMPD <span class="cab-badge" id="rmAdmBadge" style="display:none">0</span></button>
   <button class="adm-link" data-p="sent" onclick="pane('sent',this)"><i class="ti ti-map-pin"></i>SENT <span class="cab-badge" id="snAdmBadge" style="display:none">0</span></button>
   <button class="adm-link" data-p="deleg" onclick="pane('deleg',this)"><i class="ti ti-user-check"></i>Відрядження <span class="cab-badge" id="dlAdmBadge" style="display:none">0</span></button>
@@ -285,6 +286,16 @@
       </div>
       <p class="hint" style="margin-bottom:1rem">Безкоштовні консультації для платних тарифів. Бухгалтерські питання — для clerk.tax, юридичні — для «Адвокат Поруч». Відповідь, яку ви тут збережете, брокер побачить у кабінеті.</p>
       <div id="csAdmList"></div>
+    </section>
+
+    <!-- ШВИДКІ ЗАЯВКИ -->
+    <section class="cab-pane" id="pane-leads">
+      <div class="spread" style="margin-bottom:1rem">
+        <h1 class="h-md">Швидкі заявки без реєстрації <span class="text-sm text-muted" id="qlTotal"></span></h1>
+        <select class="input" style="width:170px" id="qlFStatus" onchange="renderLeadsAdm()"><option value="open">Нові та в роботі</option><option value="">Всі</option><option value="done">Опрацьовані</option><option value="spam">Спам</option></select>
+      </div>
+      <p class="hint" style="margin-bottom:1rem">Контакт із форми на /rmpd без реєстрації. Звʼяжіться з клієнтом, оформіть документ (за потреби — створіть йому акаунт), потім позначте «Опрацьовано».</p>
+      <div id="qlAdmList"></div>
     </section>
 
     <!-- RMPD -->
@@ -579,6 +590,7 @@ async function loadAll(){
   renderDash(); renderAllBrokers(); renderPending(); renderRequests(requests); renderPayments(); renderReviews();
   try { consults = await adminConsultations(); renderConsults(); } catch(e){ console.error(e); }
   try { rmpdAdm = await adminRmpd(); renderRmpdAdm(); } catch(e){ console.error(e); }
+  try { leadsAdm = await adminQuickLeads(); renderLeadsAdm(); } catch(e){ console.error(e); }
   rmLoadPrices();
   loadChecks().catch(e => console.error(e));
   try { sentAdm = await adminSent(); renderSentAdm(); } catch(e){ console.error(e); }
@@ -884,6 +896,44 @@ async function saveDelegAdm(id){
   if (status === 'done' && !confirm('Zgłoszenie надіслано на biznes.gov.pl? Клієнт отримає повідомлення, а кошти буде списано.')) return;
   try{ await adminUpdateDeleg(id, { status, admin_note: note || null }); delegAdm = await adminDeleg(); renderDelegAdm(); showToast('Збережено'); }
   catch(e){ showToast(e.message, 'error'); }
+}
+
+/* ---------- Швидкі заявки ---------- */
+let leadsAdm = [];
+const QL_SVC = { rmpd:'RMPD', sent:'SENT', deleg:'Відрядження', cmr:'CMR' };
+const QL_ST = { new:'Нова', in_progress:'В роботі', done:'Опрацьовано', spam:'Спам' };
+function qlLink(l){
+  const c = l.contact || '';
+  if (l.contact_method === 'telegram'){ const u = c.replace(/^@/, ''); if (/^[A-Za-z0-9_]{4,}$/.test(u)) return 'https://t.me/' + u; }
+  const d = c.replace(/[^0-9+]/g, ''); if (d.length >= 9) return (l.contact_method === 'viber' ? 'viber://chat?number=' + encodeURIComponent(d) : 'tel:' + d);
+  return '';
+}
+function renderLeadsAdm(){
+  const fs = document.getElementById('qlFStatus').value;
+  const list = leadsAdm.filter(l => !fs || (fs === 'open' ? (l.status === 'new' || l.status === 'in_progress') : l.status === fs));
+  const n = leadsAdm.filter(l => l.status === 'new').length;
+  const b = document.getElementById('qlBadge'); b.textContent = n; b.style.display = n ? '' : 'none';
+  document.getElementById('qlTotal').textContent = '· ' + leadsAdm.length;
+  document.getElementById('qlAdmList').innerHTML = list.length ? list.map(l => {
+    const href = qlLink(l);
+    return '<div class="card" style="margin-bottom:12px"><div class="spread" style="gap:10px;align-items:flex-start;flex-wrap:wrap">' +
+      '<div><div style="font-weight:600">' + (l.is_test ? '🧪 ' : '') + '<i class="ti ti-bolt" style="color:var(--green)"></i> ' + (QL_SVC[l.service] || esc(l.service)) + ' · ' +
+        (href ? '<a href="' + href + '" target="_blank" rel="noopener">' + esc(l.contact) + '</a>' : esc(l.contact)) + ' <span class="text-xs text-muted">(' + (HOW[l.contact_method] || esc(l.contact_method)) + ')</span></div>' +
+      '<div class="text-xs text-muted">' + new Date(l.created_at).toLocaleString('uk-UA') + (l.gclid ? ' · Google Ads' : '') + '</div>' +
+      '<div class="text-sm" style="margin-top:4px">' + [l.plate ? 'Авто: ' + esc(l.plate) : '', l.route ? 'Маршрут: ' + esc(l.route) : '', l.entry_date ? 'В\'їзд: ' + l.entry_date.split('-').reverse().join('.') : ''].filter(Boolean).join(' · ') + '</div>' +
+      (l.comment ? '<p class="text-sm" style="margin:6px 0 0;white-space:pre-line">' + esc(l.comment) + '</p>' : '') + '</div>' +
+      '<select class="input" style="max-width:150px" id="ql-st-' + l.id + '">' + Object.entries(QL_ST).map(([v, t]) => '<option value="' + v + '"' + (l.status === v ? ' selected' : '') + '>' + t + '</option>').join('') + '</select></div>' +
+      '<input class="input" id="ql-note-' + l.id + '" placeholder="Нотатка (для себе)" value="' + esc(l.admin_note || '') + '" style="margin-top:8px">' +
+      '<button class="btn btn-primary btn-sm" style="margin-top:8px" onclick="saveLead(\'' + l.id + '\')">Зберегти</button></div>';
+  }).join('') : '<div class="empty"><strong>Немає заявок</strong>Тут зʼявляться контакти з форми «Швидка заявка» на /rmpd.</div>';
+}
+async function saveLead(id){
+  const status = document.getElementById('ql-st-' + id).value, note = document.getElementById('ql-note-' + id).value.trim();
+  try{
+    await adminUpdateQuickLead(id, { status, admin_note: note || null });
+    Object.assign(leadsAdm.find(x => x.id === id), { status, admin_note: note || null });
+    renderLeadsAdm(); showToast('Збережено');
+  }catch(e){ showToast(e.message, 'error'); }
 }
 
 /* ---------- Консультації ---------- */

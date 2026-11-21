@@ -199,6 +199,21 @@ async function handleEvent(ev: string, id: string) {
     for (const s of await subsFor([r.brokers?.user_id], "rmpd")) if (await send(s.chat_id, text, ["Відрядження водіїв", `${SITE}/kabinet#deleg`])) sent++;
     return sent;
   }
+  if (ev === "lead_new") {
+    // швидка заявка без реєстрації з лендингу — лише адмінам
+    const { data: l } = await sb.from("quick_leads").select("*").eq("id", id).maybeSingle();
+    if (!l || Date.now() - new Date(l.created_at).getTime() > 15 * 60e3 || !(await once("lead_new:" + id))) return 0;
+    const svc: Record<string, string> = { rmpd: "RMPD", sent: "SENT", deleg: "відрядження водія", cmr: "CMR" };
+    const how: Record<string, string> = { telegram: "Telegram", viber: "Viber", phone: "дзвінок" };
+    const src = l.gclid ? "Google Ads" : (l.utm?.utm_source ? String(l.utm.utm_source) : "сайт");
+    const text = `${l.is_test ? "🧪 ТЕСТ · " : ""}⚡️ <b>Швидка заявка ${esc(svc[l.service] ?? l.service)}</b> (без реєстрації)\n` +
+      `Контакт: <b>${esc(l.contact)}</b> · ${esc(how[l.contact_method] ?? l.contact_method)}\n` +
+      [l.plate ? "Авто: " + esc(l.plate) : "", l.route ? "Маршрут: " + esc(l.route) : "", l.entry_date ? "В'їзд: " + fmtD(l.entry_date) : ""].filter(Boolean).join("\n") +
+      (l.comment ? `\n${esc(String(l.comment).slice(0, 400))}` : "") + `\nДжерело: ${esc(src)}\n\nЗвʼяжіться з клієнтом якнайшвидше.`;
+    const { data: adm } = await sb.from("admins").select("user_id");
+    for (const s of await subsFor((adm ?? []).map((a: any) => a.user_id), "rmpd")) if (await send(s.chat_id, text, ["Усі швидкі заявки", `${SITE}/admin#leads`])) sent++;
+    return sent;
+  }
   return 0;
 }
 
