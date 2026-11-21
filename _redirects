@@ -27,10 +27,10 @@
 /zvit-avto       /zvit-avto.html     200
 /perevirka-avto  /perevirka-avto.html 200
 /rozshyfrovka-vin /rozshyfrovka-vin.html 200
-/rozshyfrovka-vin.html /rozshyfrovka-vin 301
+/rozshyfrovka-vin.html /rozshyfrovka-vin 301!
 /avto/*          /avto.html          200
 /perevirka-kompanii /perevirka-kompanii.html 200
-/perevirka-kompanii.html /perevirka-kompanii 301
+/perevirka-kompanii.html /perevirka-kompanii 301!
 /c               /perevirka-kompanii 301!
 /c/              /perevirka-kompanii 301!
 /c/*             /c.html             200
