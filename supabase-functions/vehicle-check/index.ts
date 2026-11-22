@@ -158,8 +158,8 @@ function groups(evs: Ev[]) {
   return out.sort((a, b) => String(b.evs.at(-1)![0]).localeCompare(String(a.evs.at(-1)![0])));
 }
 
-async function collect(pq: { q: string; vin: boolean }) {
-  let main: { vin: string; evs: Ev[] } | null = null, other: { vin: string; evs: Ev[] }[] = [];
+async function collect(pq: { q: string; vin: boolean }): Promise<{ main: { vin: string; evs: Ev[] } | null; other: { vin: string; evs: Ev[] }[]; via: string | null }> {
+  let main: { vin: string; evs: Ev[] } | null = null, other: { vin: string; evs: Ev[] }[] = [];   // via — звідки VIN, якщо номер знайдено не в МВС
   if (pq.vin) {
     const evs: Ev[] = [...await pshard("#" + pq.q)];
     const plates = (await vplates(pq.q)).slice(0, 8);
@@ -171,6 +171,14 @@ async function collect(pq: { q: string; vin: boolean }) {
   } else {
     const gs = groups(await pshard(pq.q));
     if (gs.length) { main = gs[0]; other = gs.slice(1); }
+    else {
+      // з 1.07.2026 МВС не публікує номери: шукаємо VIN за номером в архіві оголошень AUTO.RIA (ria-harvest) і беремо історію за VIN
+      const { data: ad } = await sb().from("ria_ads_archive").select("vin").eq("plate", pq.q).not("vin", "is", null).order("last_seen", { ascending: false }).limit(1).maybeSingle();
+      if (ad?.vin && /^[A-HJ-NPR-Z0-9]{17}$/.test(ad.vin)) {
+        const r = await collect({ q: ad.vin, vin: true });
+        if (r.main) return { main: r.main, other: [], via: "auto.ria" };
+      }
+    }
     // той самий VIN під іншими номерами (заміна номера, перереєстрація)
     if (main?.vin) {
       const plates = (await vplates(main.vin)).filter((p) => p !== pq.q).slice(0, 8);
@@ -180,7 +188,7 @@ async function collect(pq: { q: string; vin: boolean }) {
     }
   }
   if (main) main.evs.sort((a, b) => String(a[0]).localeCompare(String(b[0])));
-  return { main, other };
+  return { main, other, via: null as string | null };
 }
 const dedupe = (evs: Ev[]) => { const s = new Set<string>(); return evs.filter((e) => { const k = JSON.stringify(e); if (s.has(k)) return false; s.add(k); return true; }); };
 
@@ -414,14 +422,18 @@ async function riaAvgPrice(veh: any) {
 }
 
 async function buildReport(pq: { q: string; vin: boolean }, full: boolean) {
-  const [m, { main, other }] = await Promise.all([meta(), collect(pq)]);
+  const [m, { main, other, via }] = await Promise.all([meta(), collect(pq)]);
   const ops = m?.ops ?? {};
   const base = { q: pq.q, by: pq.vin ? "vin" : "plate", checked_at: new Date().toISOString(), data_at: m?.generated ?? null,
     data_until: (m?.sources ?? []).map((s: any) => s.year).sort().at(-1) ?? null };
   if (!main) {
     // немає в реєстраційних даних, але є в розшуку (напр. викрадене на окупованій території) — показуємо безкоштовно
-    const hits = await wantedFor([pq.q]);   // null — джерело недоступне; {found:false} — перевірено, не в розшуку
-    return { ...base, found: false, wanted: hits === null ? null : { found: hits.length > 0, items: hits.slice(0, 5) } };
+    // номер без записів МВС: VIN з оголошення AUTO.RIA (архів) — для розшифрування й пошуку в розшуку
+    const ad = pq.vin ? null : (await sb().from("ria_ads_archive").select("vin, data").eq("plate", pq.q).not("vin", "is", null).order("last_seen", { ascending: false }).limit(1).maybeSingle()).data;
+    const adVin = ad?.vin && /^[A-HJ-NPR-Z0-9]{17}$/.test(ad.vin) ? ad.vin : null;
+    const hits = await wantedFor([pq.q, adVin ?? ""]);   // null — джерело недоступне; {found:false} — перевірено, не в розшуку
+    return { ...base, found: false, wanted: hits === null ? null : { found: hits.length > 0, items: hits.slice(0, 5) },
+      ad_vin: adVin, ad_title: adVin ? ad?.data?.title ?? null : null };
   }
   const evs = main.evs;
   const opName = (e: Ev) => ops[e[1]] ?? String(e[1] ?? "");
@@ -437,7 +449,7 @@ async function buildReport(pq: { q: string; vin: boolean }, full: boolean) {
   const origin = imported ? "import" : isNew ? "new" : dealer ? "dealer" : null;
   // безкоштовна довідка: дати, кількість власників, екоклас і звідки ввезено — під замком (видно, що вони є)
   const summary: any = {
-    ...base, found: true, vehicle: veh,
+    ...base, found: true, vehicle: veh, plate_via: via,   // "auto.ria" — номер привʼязано до VIN за оголошенням AUTO.RIA
     vin_masked: main.vin ? main.vin.slice(0, 4) + "•••••••••" + main.vin.slice(-5) : null,
     vin_info: vi,
     events: evs.length, origin,
@@ -476,7 +488,7 @@ async function buildReport(pq: { q: string; vin: boolean }, full: boolean) {
   return {
     ...summary, full: true, vin: main.vin || null, euro, euro_note: "орієнтовно, за роком випуску; у перехідні роки залежить від моделі",
     first_date: d8(evs[0][0]), owner_changes: owners, ria,
-    imported: imported ? d8(imported[0]) : null, new_in_ua: isNew ? d8(isNew[0]) : null, dealer: dealer ? d8(dealer[0]) : null, plates: allPlates.length ? allPlates : (pq.vin ? [] : [pq.q]),
+    imported: imported ? d8(imported[0]) : null, new_in_ua: isNew ? d8(isNew[0]) : null, dealer: dealer ? d8(dealer[0]) : null, plates: allPlates.length ? (pq.vin || allPlates.includes(pq.q) ? allPlates : [pq.q, ...allPlates]) : (pq.vin ? [] : [pq.q]),
     wanted: hits === null ? null : { found: hits.length > 0, items: hits.slice(0, 5) },
     history: evs.map((e) => ({ date: d8(e[0]), op: opName(e), code: e[1], owner: e[2] === "J" ? "юридична особа" : e[2] === "P" ? "фізична особа" : null,
       region: REGIONS[e[3]] ?? null, tsc: /^ТСЦ/.test(String(e[4] ?? "")) ? e[4] : null, color: e[8] || null, fuel: e[12] || null, capacity: e[13] ?? null, vin: e[16] || null })),
