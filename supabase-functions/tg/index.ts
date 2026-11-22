@@ -1,6 +1,6 @@
 // Supabase Edge Function «tg»: Telegram-бот сповіщень ВантажПоруч / МитнийБрокер.
 // Секрет TG_BOT_TOKEN задається в Supabase → Edge Functions → Secrets (у код не потрапляє).
-//  • POST від Telegram (вебхук, перевірка secret_token) — /start <код> привʼязує акаунт, /stop відключає
+//  • POST від Telegram (вебхук, перевірка secret_token) — /start <код> привʼязує акаунт, /start w_<код> — стеження за авто (vehicle-watch), /stop відключає
 //  • POST {event, id} від тригерів бази — функція сама перечитує дані й надсилає повідомлення
 //  • GET — стан бота; GET ?setup=1 — встановити вебхук
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -203,12 +203,22 @@ async function handleEvent(ev: string, id: string) {
 }
 
 /* ---------------- вебхук Telegram ---------------- */
+async function watchCall(body: Record<string, unknown>) {
+  await fetch(`${SB_URL}/functions/v1/vehicle-watch`, {
+    method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}` },
+    body: JSON.stringify(body),
+  }).catch((e) => console.error("vehicle-watch", e));
+}
 async function handleUpdate(u: any) {
   const m = u.message;
   if (!m?.chat?.id || typeof m.text !== "string") return;
   const chat = m.chat.id, text = m.text.trim();
   if (text.startsWith("/start")) {
     const code = text.split(/\s+/)[1] ?? "";
+    if (code.startsWith("w_")) {   // «Стежити за авто» — функція vehicle-watch
+      await watchCall({ action: "link", code: code.slice(2), chat, username: m.from?.username ?? null });
+      return;
+    }
     if (code) {
       const { data: row } = await sb.from("tg_link_codes").select("user_id, created_at").eq("code", code).maybeSingle();
       if (!row || Date.now() - new Date(row.created_at).getTime() > 24 * 36e5) {
@@ -227,7 +237,8 @@ async function handleUpdate(u: any) {
   }
   if (text === "/stop") {
     await sb.from("tg_subs").delete().eq("chat_id", chat);
-    await send(chat, "Сповіщення вимкнено. Підключити знову можна в кабінеті.");
+    await watchCall({ action: "stop", chat });
+    await send(chat, "Сповіщення й стеження за авто вимкнено. Підключити знову можна на forwardcarua.com.");
     return;
   }
   await send(chat, "Я лише надсилаю сповіщення. Усе керування — у кабінеті на forwardcarua.com. /stop — вимкнути сповіщення.");

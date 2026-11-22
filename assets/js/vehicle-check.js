@@ -243,7 +243,29 @@ const VehicleCheck = (() => {
       '<h4 class="vc-h">Останній запис</h4><div class="vc-tiles">' + lockTile('Дата', '14.06.2023', 'calendar') + lockTile('Операція', 'Перереєстрація на нового власника', 'file-text') +
         lockTile('Регіон', 'Київська обл.', 'map-pin') + lockTile('Власник', 'Фізична особа', 'user') + '</div>' +
       '<a class="btn btn-ghost btn-block vc-histbtn" href="#vcBuy" onclick="return VehicleCheck.toBuy()"><i class="ti ti-lock"></i>Історія реєстрацій · ' + (L.history || r.events) + ' ' + plural(L.history || r.events, 'запис', 'записи', 'записів') + '</a>' +
-      '</div>' + buyBox(r) + '<a class="vc-fab" href="#vcBuy" onclick="return VehicleCheck.toBuy()"><i class="ti ti-shopping-cart"></i>Повний звіт · ' + PACKS[1] + ' грн</a>';
+      '</div>' + buyBox(r) + watchBox(r.q, 'summary') + '<a class="vc-fab" href="#vcBuy" onclick="return VehicleCheck.toBuy()"><i class="ti ti-shopping-cart"></i>Повний звіт · ' + PACKS[1] + ' грн</a>';
+  }
+  // «Стежити за авто»: безкоштовні сповіщення в Telegram про нові операції МВС і розшук (функція vehicle-watch)
+  const watchBox = (q, src) => !q ? '' : '<div class="card vc-watch no-print" style="margin-top:1rem;display:flex;gap:12px;align-items:center;flex-wrap:wrap">' +
+    '<div style="flex:1 1 240px"><b><i class="ti ti-bell-ringing"></i> Стежити за цим авто — безкоштовно</b>' +
+    '<div class="text-xs text-muted" style="margin-top:3px">Напишемо в Telegram, коли з’явиться нова реєстрація, зняття з обліку чи авто потрапить у розшук МВС.</div>' +
+    '<div class="msg" id="vcWatchMsg" style="margin-top:.5rem"></div></div>' +
+    '<button type="button" class="btn btn-ghost" onclick="VehicleCheck.watch(\'' + esc(q) + '\', \'' + esc(src) + '\', this)"><i class="ti ti-brand-telegram"></i>Стежити в Telegram</button></div>';
+  async function watch(q, src, btn){
+    const m = document.getElementById('vcWatchMsg'), tab = window.open('', '_blank');
+    if (btn) btn.disabled = true;
+    try{
+      const res = await fetch(SUPABASE_URL + '/functions/v1/vehicle-watch', { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: SUPABASE_ANON },
+        body: JSON.stringify({ action: 'create', q, source: src }) });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok || !d.link) throw new Error(d.error || 'error');
+      if (tab) tab.location.href = d.link; else location.href = d.link;
+      if (m){ m.className = 'msg show msg-ok'; m.innerHTML = 'Відкрийте бота й натисніть <b>Start</b> — стеження увімкнеться. Не відкрився? <a href="' + esc(d.link) + '" target="_blank" rel="noopener">Відкрити Telegram</a>'; }
+      try{ if (typeof gtag === 'function') gtag('event', 'vehicle_watch', { source: src }); }catch(e){}
+    }catch(e){
+      if (tab) tab.close();
+      if (m){ m.className = 'msg show msg-err'; m.textContent = e.message === 'too_many' ? 'Забагато запитів. Спробуйте за годину.' : 'Не вдалося увімкнути стеження. Спробуйте ще раз.'; }
+    }finally{ if (btn) btn.disabled = false; }
   }
   const plural = (n, a, b, c) => { n = Math.abs(n) % 100; const m = n % 10; return n > 10 && n < 20 ? c : m === 1 ? a : m > 1 && m < 5 ? b : c; };
   function toBuy(){ const b = document.getElementById('vcBuy'); if (b) b.scrollIntoView({ behavior: 'smooth', block: 'start' }); return false; }
@@ -277,7 +299,7 @@ const VehicleCheck = (() => {
   async function mountBuy(el, r){
     if (!el || !r || !r.found) return;
     await loadPrice(); last = r;
-    el.innerHTML = buyBox(r); prefill(); creditBox();
+    el.innerHTML = buyBox(r) + watchBox(r.q, 'avto'); prefill(); creditBox();
     if (!document.querySelector('.vc-fab')){ document.body.insertAdjacentHTML('beforeend', '<a class="vc-fab" href="#vcBuy" onclick="return VehicleCheck.toBuy()"><i class="ti ti-shopping-cart"></i>Повний звіт · ' + PACKS[1] + ' грн</a>'); watchFab(); }
   }
 
@@ -422,7 +444,7 @@ const VehicleCheck = (() => {
       '<p class="text-xs text-muted" style="margin:1.25rem 0 0">Перевірено ' + date(r.checked_at) + '. Джерело — відкриті дані Головного сервісного центру МВС («Відомості про транспортні засоби та їх власників», «Транспортні засоби в розшуку») ' +
         (r.data_until ? 'за 2013–' + esc(r.data_until) + ' рр. ' : '') + 'Імена, адреси й контакти власників у відкритих даних не публікуються. ' +
         (r.token ? (Number(r.price) > 0 ? 'Оплачено карткою ' + r.price + ' грн. ' : 'Звіт з пакета. ') + 'Збережіть посилання на цю сторінку.' : r.price > 0 ? 'Списано ' + r.price + ' грн з балансу.' : r.price === 0 ? 'Без оплати (повторний перегляд).' : '') + '</p>' +
-      '<div class="row no-print" style="gap:8px;margin-top:1rem"><button class="btn btn-primary" id="vcPdfBtn" onclick="VehicleCheck.pdf()"><i class="ti ti-file-download"></i>Завантажити PDF</button></div>';
+      watchBox(r.vin || r.q, 'report') + '<div class="row no-print" style="gap:8px;margin-top:1rem"><button class="btn btn-primary" id="vcPdfBtn" onclick="VehicleCheck.pdf()"><i class="ti ti-file-download"></i>Завантажити PDF</button></div>';
   }
 
   // «Можливо, ви мали на увазі»: схожі номери з реєстру (сплутані О/0, латинські літери, яких немає на номерах)
@@ -556,5 +578,5 @@ const VehicleCheck = (() => {
   }
   function show(k){ const c = (window.__vcHist || [])[k]; if (c) openReport({ ...c.report, price: c.price }); }
 
-  return { setPack, redeem, copyVin, crSet, toBuy, mount, mountBuy, loadPhotos, pdf, search, run, payCard, report, summary, reopen, mountHistory, show, loadPrice };
+  return { watch, setPack, redeem, copyVin, crSet, toBuy, mount, mountBuy, loadPhotos, pdf, search, run, payCard, report, summary, reopen, mountHistory, show, loadPrice };
 })();
