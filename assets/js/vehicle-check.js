@@ -211,10 +211,35 @@ const VehicleCheck = (() => {
     return '<h4 class="vc-h">Було на продажу' + (t.ads > 1 ? ' · ' + t.ads + ' оголошення' : '') + '</h4>' + gal + '<div class="vc-tiles">' + f.join('') + '</div>';
   }
 
+  // Не знайдено в реєстраційних даних: картки «Держреєстрація», «Розшук», «Розшифрування VIN» + стеження
+  function notFound(r){
+    const vin = r.by === 'vin';
+    const sec = (t, body) => '<div class="card vc-nf"><div class="vc-nf-h"><b>' + t + '</b><span>Україна</span></div>' + body + '</div>';
+    const reg = sec('Держреєстрація', '<p class="vc-nf-v">За ' + (vin ? 'цим VIN' : 'цим номером') + ' записів у реєстрі МВС не знайдено</p>' +
+      '<p class="text-xs text-muted" style="margin:.5rem 0 0">Відкриті дані МВС зараз охоплюють операції до кінця серпня 2026 р. З 1 липня 2026 р. МВС не публікує номерні знаки, тому авто, вперше зареєстровані після цього, ' +
+      (vin ? 'зʼявляться за VIN після наступної публікації МВС.' : 'за номером не знаходяться — перевірте за VIN (він є в техпаспорті й під лобовим склом).') +
+      (vin ? '' : ' Також звірте номер: у старих форматах і транзитних номерах бувають розбіжності.') + '</p>');
+    const w = r.wanted == null ? '<p class="vc-nf-v text-muted">Не вдалося перевірити зараз — спробуйте пізніше</p>'
+      : '<p class="vc-nf-v" style="color:var(--green)">Транспортний засіб не перебуває в розшуку</p>';
+    const dec = vin ? '<div class="card vc-nf" id="vcVinDec"><div class="vc-nf-h"><b>Розшифрування VIN</b></div><p class="text-sm text-muted" style="margin:0">Розшифровуємо…</p></div>' : '';
+    if (vin) setTimeout(() => vinDecodeInto(r.q), 0);
+    return reg + sec('Розшук', w) + dec + watchBox(r.q, 'notfound');
+  }
+  async function vinDecodeInto(v){
+    const el = document.getElementById('vcVinDec'); if (!el) return;
+    try{
+      if (typeof VinTools === 'undefined') await loadScript('/assets/js/vin.js');
+      const d = await VinTools.decode(v);
+      const FUEL = { petrol: 'Бензин', diesel: 'Дизель', electric: 'Електро', hybrid: 'Гібрид' };
+      const rows = [['Марка', d.make], ['Модель', d.model], ['Рік', d.year], ['Виготовлено', d.country], ['Двигун', [FUEL[d.fuel], d.cc ? (d.cc / 1000).toFixed(1) + ' л' : ''].filter(Boolean).join(', ')], ['Кузов', d.body], ['VIN', d.vin]].filter(x => x[1]);
+      el.innerHTML = '<div class="vc-nf-h"><b>Розшифрування VIN</b></div><div class="vc-specs">' + rows.map(x => '<div><span>' + x[0] + '</span><b>' + esc(x[1]) + '</b></div>').join('') + '</div>' +
+        (d.checkOk === false ? '<p class="text-xs" style="color:var(--red);margin:.5rem 0 0">Контрольна цифра VIN не сходиться — перевірте, чи правильно введено VIN.</p>' : '') +
+        '<a class="btn btn-ghost btn-sm" style="margin-top:.75rem" href="/rozshyfrovka-vin?vin=' + encodeURIComponent(d.vin) + '">Детальніше</a>';
+    }catch(e){ el.remove(); }
+  }
   function summary(r){
     if (!r.found && r.wanted && r.wanted.found) return wAlert(r.wanted) + '<p class="text-xs text-muted">У реєстраційних даних МВС за «' + esc(r.q) + '» записів немає — дані з бази транспорту в розшуку.</p>';
-    if (!r.found) return '<div class="card"><h3 style="margin:0 0 .4rem">Нічого не знайдено</h3><p class="text-sm text-muted" style="margin:0">За «' + esc(r.q) + '» немає записів у реєстраційних даних МВС' +
-      (r.data_until ? ' (2013–' + esc(r.data_until) + ')' : '') + '. Перевірте номер: у старих форматах і транзитних номерах бувають розбіжності. Для авто, ввезеного недавно, дані можуть ще не бути опубліковані.</p></div>';
+    if (!r.found) return notFound(r);
     const v = r.vehicle || {}, L = r.locked || {};
     const flags = [];
     if (r.wanted_flag) flags.push('<span class="vc-flag bad"><b>У базі розшуку МВС</b></span>');

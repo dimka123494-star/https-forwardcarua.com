@@ -420,8 +420,8 @@ async function buildReport(pq: { q: string; vin: boolean }, full: boolean) {
     data_until: (m?.sources ?? []).map((s: any) => s.year).sort().at(-1) ?? null };
   if (!main) {
     // немає в реєстраційних даних, але є в розшуку (напр. викрадене на окупованій території) — показуємо безкоштовно
-    const hits = await wantedFor([pq.q]) ?? [];
-    return { ...base, found: false, wanted: hits.length ? { found: true, items: hits.slice(0, 5) } : null };
+    const hits = await wantedFor([pq.q]);   // null — джерело недоступне; {found:false} — перевірено, не в розшуку
+    return { ...base, found: false, wanted: hits === null ? null : { found: hits.length > 0, items: hits.slice(0, 5) } };
   }
   const evs = main.evs;
   const opName = (e: Ev) => ops[e[1]] ?? String(e[1] ?? "");

@@ -491,3 +491,9 @@ body.ap .vc-fab{bottom:calc(84px + env(safe-area-inset-bottom))}
 .btn-tg .ti{color:#fff}
 .vc-watch{border-color:rgba(34,158,217,.45)}
 .vc-watch b .ti{color:#229ED9}
+/* «Не знайдено»: картки розділів */
+.vc-nf{margin-top:.75rem;text-align:center}
+.vc-nf-h{display:flex;flex-direction:column;align-items:center;gap:2px;margin-bottom:.6rem}
+.vc-nf-h b{font-size:17px}.vc-nf-h span{font-size:13px;color:var(--text-muted,#8a93a3)}
+.vc-nf-v{margin:0;font-size:15px;font-weight:600}
+.vc-nf .vc-specs{text-align:left}
