@@ -224,12 +224,25 @@ const VehicleCheck = (() => {
     const dv = vin ? r.q : r.ad_vin;
     const dec = dv ? '<div class="card vc-nf" id="vcVinDec"><div class="vc-nf-h"><b>Розшифрування VIN</b></div><p class="text-sm text-muted" style="margin:0">Розшифровуємо…</p></div>' : '';
     if (dv) setTimeout(() => vinDecodeInto(dv, vin ? '' : r.ad_source || 'auto.ria'), 0);
+    else if (!vin && !r._looked) setTimeout(() => riaLookup(r.q), 0);   // шукаємо оголошення з цим номером на AUTO.RIA
     // номер без VIN: просимо ввести VIN (є в техпаспорті й під лобовим склом) — запамʼятовуємо пару й шукаємо за VIN
     const ask = !vin && !dv ? '<div class="card vc-nf"><div class="vc-nf-h"><b>Знаєте VIN цього авто?</b><span>Перевіримо історію за VIN</span></div>' +
       '<div class="row" style="gap:8px;flex-wrap:wrap;justify-content:center"><input id="vcLinkVin" class="input" maxlength="17" placeholder="17 символів, напр. WVWZZZ1KZ6W312345" style="flex:1 1 220px;text-transform:uppercase">' +
       '<button type="button" class="btn btn-primary" onclick="VehicleCheck.linkVin(\'' + esc(r.q) + '\')">Перевірити</button></div>' +
       '<div class="msg" id="vcLinkMsg" style="margin-top:.5rem"></div><p class="text-xs text-muted" style="margin:.5rem 0 0">VIN є у свідоцтві про реєстрацію, під лобовим склом і в оголошенні про продаж. Пару «номер — VIN» запамʼятаємо, щоб наступного разу авто знаходилось за номером.</p></div>' : '';
     return reg + sec('Розшук', w) + dec + ask + watchBox(dv || r.q, 'notfound');
+  }
+  // номер є в оголошенні на AUTO.RIA → VIN з оголошення; знайшли — показуємо результат заново (сервер уже бачить пару в архіві)
+  async function riaLookup(plate){
+    const box = document.getElementById('vcLinkMsg');
+    try{
+      const res = await fetch(SUPABASE_URL + '/functions/v1/ria-harvest?a=lookup', { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: SUPABASE_ANON }, body: JSON.stringify({ q: plate }) });
+      const d = await res.json().catch(() => ({}));
+      if (d.vin){
+        if (box){ box.className = 'msg show msg-ok'; box.textContent = 'Знайшли оголошення з цим номером на AUTO.RIA — VIN ' + d.vin + '. Оновлюємо результат…'; }
+        setTimeout(() => { location.href = '/perevirka-avto?q=' + encodeURIComponent(plate); }, 600);
+      }
+    }catch(e){}
   }
   async function linkVin(plate){
     const i = document.getElementById('vcLinkVin'), m = document.getElementById('vcLinkMsg');
