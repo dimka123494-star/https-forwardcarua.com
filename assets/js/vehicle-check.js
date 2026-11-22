@@ -223,8 +223,21 @@ const VehicleCheck = (() => {
       : '<p class="vc-nf-v" style="color:var(--green)">Транспортний засіб не перебуває в розшуку</p>';
     const dv = vin ? r.q : r.ad_vin;
     const dec = dv ? '<div class="card vc-nf" id="vcVinDec"><div class="vc-nf-h"><b>Розшифрування VIN</b></div><p class="text-sm text-muted" style="margin:0">Розшифровуємо…</p></div>' : '';
-    if (dv) setTimeout(() => vinDecodeInto(dv, !vin), 0);
-    return reg + sec('Розшук', w) + dec + watchBox(dv || r.q, 'notfound');
+    if (dv) setTimeout(() => vinDecodeInto(dv, vin ? '' : r.ad_source || 'auto.ria'), 0);
+    // номер без VIN: просимо ввести VIN (є в техпаспорті й під лобовим склом) — запамʼятовуємо пару й шукаємо за VIN
+    const ask = !vin && !dv ? '<div class="card vc-nf"><div class="vc-nf-h"><b>Знаєте VIN цього авто?</b><span>Перевіримо історію за VIN</span></div>' +
+      '<div class="row" style="gap:8px;flex-wrap:wrap;justify-content:center"><input id="vcLinkVin" class="input" maxlength="17" placeholder="17 символів, напр. WVWZZZ1KZ6W312345" style="flex:1 1 220px;text-transform:uppercase">' +
+      '<button type="button" class="btn btn-primary" onclick="VehicleCheck.linkVin(\'' + esc(r.q) + '\')">Перевірити</button></div>' +
+      '<div class="msg" id="vcLinkMsg" style="margin-top:.5rem"></div><p class="text-xs text-muted" style="margin:.5rem 0 0">VIN є у свідоцтві про реєстрацію, під лобовим склом і в оголошенні про продаж. Пару «номер — VIN» запамʼятаємо, щоб наступного разу авто знаходилось за номером.</p></div>' : '';
+    return reg + sec('Розшук', w) + dec + ask + watchBox(dv || r.q, 'notfound');
+  }
+  async function linkVin(plate){
+    const i = document.getElementById('vcLinkVin'), m = document.getElementById('vcLinkMsg');
+    const v = String(i && i.value || '').toUpperCase().replace(/[\s-]/g, '');
+    const err = t => { if (m){ m.className = 'msg show msg-err'; m.textContent = t; } };
+    if (!/^[A-HJ-NPR-Z0-9]{17}$/.test(v)) return err('VIN має 17 символів: латинські літери (крім I, O, Q) і цифри.');
+    try{ await call({ action: 'link', q: plate, vin: v, source: 'notfound' }); }catch(e){ if (e.status === 429) return err('Забагато запитів. Спробуйте пізніше.'); }
+    location.href = '/perevirka-avto?q=' + encodeURIComponent(v);
   }
   async function vinDecodeInto(v, fromAd){
     const el = document.getElementById('vcVinDec'); if (!el) return;
@@ -233,7 +246,7 @@ const VehicleCheck = (() => {
       const d = await VinTools.decode(v);
       const FUEL = { petrol: 'Бензин', diesel: 'Дизель', electric: 'Електро', hybrid: 'Гібрид' };
       const rows = [['Марка', d.make], ['Модель', d.model], ['Рік', d.year], ['Виготовлено', d.country], ['Двигун', [FUEL[d.fuel], d.cc ? (d.cc / 1000).toFixed(1) + ' л' : ''].filter(Boolean).join(', ')], ['Кузов', d.body], ['VIN', d.vin]].filter(x => x[1]);
-      el.innerHTML = '<div class="vc-nf-h"><b>Розшифрування VIN</b>' + (fromAd ? '<span>VIN за оголошенням про продаж на AUTO.RIA</span>' : '') + '</div><div class="vc-specs">' + rows.map(x => '<div><span>' + x[0] + '</span><b>' + esc(x[1]) + '</b></div>').join('') + '</div>' +
+      el.innerHTML = '<div class="vc-nf-h"><b>Розшифрування VIN</b>' + (fromAd ? '<span>' + (fromAd === 'users' ? 'VIN за даними користувачів' : 'VIN за оголошенням про продаж на AUTO.RIA') + '</span>' : '') + '</div><div class="vc-specs">' + rows.map(x => '<div><span>' + x[0] + '</span><b>' + esc(x[1]) + '</b></div>').join('') + '</div>' +
         (d.checkOk === false ? '<p class="text-xs" style="color:var(--red);margin:.5rem 0 0">Контрольна цифра VIN не сходиться — перевірте, чи правильно введено VIN.</p>' : '') +
         '<a class="btn btn-ghost btn-sm" style="margin-top:.75rem" href="/rozshyfrovka-vin?vin=' + encodeURIComponent(d.vin) + '">Детальніше</a>';
     }catch(e){ el.remove(); }
@@ -260,7 +273,7 @@ const VehicleCheck = (() => {
       (r.ria_teaser && r.ria_teaser.photos && r.ria_teaser.photos.length > 1 ? photoSlot(v) : (realPhoto(r, true) || photoSlot(v))) +
       '<h3 style="margin:.2rem 0 0;font-size:22px">' + (vline(v) || 'Транспортний засіб') + '</h3>' + priceBadge(r) +
       '<div class="vc-meta">Операцій у реєстрі МВС: <b style="color:var(--text)">' + r.events + '</b>' +
-        (r.by === 'plate' && /^[А-ЯІЇЄ]{2}\d{4}[А-ЯІЇЄA-Z]{2}$/.test(r.q) ? ' · <a href="/avto/' + encodeURIComponent(r.q) + '">сторінка авто</a>' : '') + (r.plate_via === 'auto.ria' ? '<br>Номер повʼязано з VIN за оголошенням на AUTO.RIA (МВС з 07.2026 не публікує номери)' : '') + '</div>' +
+        (r.by === 'plate' && /^[А-ЯІЇЄ]{2}\d{4}[А-ЯІЇЄA-Z]{2}$/.test(r.q) ? ' · <a href="/avto/' + encodeURIComponent(r.q) + '">сторінка авто</a>' : '') + (r.plate_via ? '<br>Номер повʼязано з VIN ' + (r.plate_via === 'auto.ria' ? 'за оголошенням на AUTO.RIA' : 'за даними користувачів') + ' (МВС з 07.2026 не публікує номери)' : '') + '</div>' +
       (flags.length ? '<div class="vc-flags">' + flags.join('') + '</div>' : '') + specs(v, r) +
       '<h4 class="vc-h">Історія авто</h4><div class="vc-tiles">' + hist + '</div>' + adTeaser(r) +
       vinBlock(r, false) +
@@ -604,5 +617,5 @@ const VehicleCheck = (() => {
   }
   function show(k){ const c = (window.__vcHist || [])[k]; if (c) openReport({ ...c.report, price: c.price }); }
 
-  return { watch, setPack, redeem, copyVin, crSet, toBuy, mount, mountBuy, loadPhotos, pdf, search, run, payCard, report, summary, reopen, mountHistory, show, loadPrice };
+  return { watch, linkVin, setPack, redeem, copyVin, crSet, toBuy, mount, mountBuy, loadPhotos, pdf, search, run, payCard, report, summary, reopen, mountHistory, show, loadPrice };
 })();

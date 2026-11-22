@@ -128,6 +128,13 @@ async function wantedFor(keys: string[]): Promise<any[] | null> {
   } catch (_) { return null; }
 }
 
+// VIN за номером, коли МВС номер не опублікувало: оголошення AUTO.RIA або пари від користувачів (≥2 різні IP) — plate_vin_lookup
+async function plateVin(plate: string): Promise<{ vin: string; title: string | null; source: string } | null> {
+  const { data } = await sb().rpc("plate_vin_lookup", { p_plate: plate });
+  const r = Array.isArray(data) ? data[0] : data;
+  return r?.vin && /^[A-HJ-NPR-Z0-9]{17}$/.test(r.vin) ? r : null;
+}
+
 // подія: [дата, код, P|J, регіон, ТСЦ, марка, модель, рік, колір, тип, кузов, призначення, пальне, обʼєм, маса, повна, VIN]
 type Ev = any[];
 const brandKey = (e: Ev) => String(e[5] || "").split(" ")[0].toUpperCase() + "|" + (e[7] ?? "");
@@ -173,10 +180,10 @@ async function collect(pq: { q: string; vin: boolean }): Promise<{ main: { vin: 
     if (gs.length) { main = gs[0]; other = gs.slice(1); }
     else {
       // з 1.07.2026 МВС не публікує номери: шукаємо VIN за номером в архіві оголошень AUTO.RIA (ria-harvest) і беремо історію за VIN
-      const { data: ad } = await sb().from("ria_ads_archive").select("vin").eq("plate", pq.q).not("vin", "is", null).order("last_seen", { ascending: false }).limit(1).maybeSingle();
-      if (ad?.vin && /^[A-HJ-NPR-Z0-9]{17}$/.test(ad.vin)) {
-        const r = await collect({ q: ad.vin, vin: true });
-        if (r.main) return { main: r.main, other: [], via: "auto.ria" };
+      const pv = await plateVin(pq.q).catch(() => null);
+      if (pv) {
+        const r = await collect({ q: pv.vin, vin: true });
+        if (r.main) return { main: r.main, other: [], via: pv.source };
       }
     }
     // той самий VIN під іншими номерами (заміна номера, перереєстрація)
@@ -429,11 +436,10 @@ async function buildReport(pq: { q: string; vin: boolean }, full: boolean) {
   if (!main) {
     // немає в реєстраційних даних, але є в розшуку (напр. викрадене на окупованій території) — показуємо безкоштовно
     // номер без записів МВС: VIN з оголошення AUTO.RIA (архів) — для розшифрування й пошуку в розшуку
-    const ad = pq.vin ? null : (await sb().from("ria_ads_archive").select("vin, data").eq("plate", pq.q).not("vin", "is", null).order("last_seen", { ascending: false }).limit(1).maybeSingle()).data;
-    const adVin = ad?.vin && /^[A-HJ-NPR-Z0-9]{17}$/.test(ad.vin) ? ad.vin : null;
-    const hits = await wantedFor([pq.q, adVin ?? ""]);   // null — джерело недоступне; {found:false} — перевірено, не в розшуку
+    const pv = pq.vin ? null : await plateVin(pq.q).catch(() => null);
+    const hits = await wantedFor([pq.q, pv?.vin ?? ""]);   // null — джерело недоступне; {found:false} — перевірено, не в розшуку
     return { ...base, found: false, wanted: hits === null ? null : { found: hits.length > 0, items: hits.slice(0, 5) },
-      ad_vin: adVin, ad_title: adVin ? ad?.data?.title ?? null : null };
+      ad_vin: pv?.vin ?? null, ad_source: pv?.source ?? null };
   }
   const evs = main.evs;
   const opName = (e: Ev) => ops[e[1]] ?? String(e[1] ?? "");
@@ -449,7 +455,7 @@ async function buildReport(pq: { q: string; vin: boolean }, full: boolean) {
   const origin = imported ? "import" : isNew ? "new" : dealer ? "dealer" : null;
   // безкоштовна довідка: дати, кількість власників, екоклас і звідки ввезено — під замком (видно, що вони є)
   const summary: any = {
-    ...base, found: true, vehicle: veh, plate_via: via,   // "auto.ria" — номер привʼязано до VIN за оголошенням AUTO.RIA
+    ...base, found: true, vehicle: veh, plate_via: via,   // "auto.ria" | "users" — номер привʼязано до VIN не з даних МВС
     vin_masked: main.vin ? main.vin.slice(0, 4) + "•••••••••" + main.vin.slice(-5) : null,
     vin_info: vi,
     events: evs.length, origin,
@@ -535,6 +541,20 @@ Deno.serve(async (req) => {
       const pq = parseQ(p.q);
       if (!pq) return json({ error: "bad_query" }, 400);
       return json(await buildReport(pq, false));
+    }
+
+    // користувач повідомляє VIN для номера, якого немає в даних МВС; показуємо пару іншим лише після підтвердження з другого IP
+    if (p.action === "link") {
+      const pl = parseQ(p.q), vn = parseQ(p.vin);
+      if (!pl || pl.vin || !vn || !vn.vin) return json({ error: "bad_query" }, 400);
+      const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || null;
+      if (ip) {
+        const { count } = await db.from("plate_vin_reports").select("id", { count: "exact", head: true }).eq("ip", ip).gt("created_at", new Date(Date.now() - 3600e3).toISOString());
+        if ((count ?? 0) >= 10) return json({ error: "too_many" }, 429);
+      }
+      const { error } = await db.from("plate_vin_reports").insert({ plate: pl.q, vin: vn.q, ip, source: String(p.source ?? "").slice(0, 40) || null });
+      if (error) { console.error("link:", error); return json({ error: "server_error" }, 500); }
+      return json({ ok: true, plate: pl.q, vin: vn.q });
     }
 
     if (p.action === "full") {
