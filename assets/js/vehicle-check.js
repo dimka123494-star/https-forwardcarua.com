@@ -250,7 +250,7 @@ const VehicleCheck = (() => {
     '<div style="flex:1 1 240px"><b><i class="ti ti-bell-ringing"></i> Стежити за цим авто — безкоштовно</b>' +
     '<div class="text-xs text-muted" style="margin-top:3px">Напишемо в Telegram, коли з’явиться нова реєстрація, зняття з обліку чи авто потрапить у розшук МВС.</div>' +
     '<div class="msg" id="vcWatchMsg" style="margin-top:.5rem"></div></div>' +
-    '<button type="button" class="btn btn-ghost" onclick="VehicleCheck.watch(\'' + esc(q) + '\', \'' + esc(src) + '\', this)"><i class="ti ti-brand-telegram"></i>Стежити в Telegram</button></div>';
+    '<button type="button" class="btn btn-tg" onclick="VehicleCheck.watch(\'' + esc(q) + '\', \'' + esc(src) + '\', this)"><i class="ti ti-brand-telegram"></i>Стежити в Telegram</button></div>';
   async function watch(q, src, btn){
     const m = document.getElementById('vcWatchMsg'), tab = window.open('', '_blank');
     if (btn) btn.disabled = true;

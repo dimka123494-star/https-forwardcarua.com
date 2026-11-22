@@ -485,3 +485,9 @@ body.ap .vc-fab{bottom:calc(84px + env(safe-area-inset-bottom))}
 .cc-xt{width:100%;border-collapse:collapse;font-size:13.5px}
 .cc-xt td{padding:7px 10px 7px 0;border-top:.5px solid var(--border);vertical-align:top;line-height:1.45}
 .cc-xt td:first-child{width:38%;color:var(--muted)}
+/* «Стежити за авто в Telegram» — фірмовий синій Telegram */
+.btn-tg{background:#229ED9;color:#fff;border:1px solid #229ED9;font-weight:600}
+.btn-tg:hover{background:#1c8cc2;border-color:#1c8cc2;color:#fff}
+.btn-tg .ti{color:#fff}
+.vc-watch{border-color:rgba(34,158,217,.45)}
+.vc-watch b .ti{color:#229ED9}
