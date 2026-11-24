@@ -497,3 +497,15 @@ body.ap .vc-fab{bottom:calc(84px + env(safe-area-inset-bottom))}
 .vc-nf-h b{font-size:17px}.vc-nf-h span{font-size:13px;color:var(--text-muted,#8a93a3)}
 .vc-nf-v{margin:0;font-size:15px;font-weight:600}
 .vc-nf .vc-specs{text-align:left}
+/* carVertical — партнерський блок (історія авто за кордоном) */
+.cv-box{margin-top:1rem;border-color:rgba(0,115,240,.45);background:linear-gradient(180deg,rgba(0,115,240,.10),transparent 70%)}
+.cv-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:.6rem}
+.cv-head img{height:20px;width:auto}
+.cv-tag{font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);border:.5px solid var(--border);border-radius:6px;padding:2px 6px}
+.cv-title{font-size:17px}
+.cv-row{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+.cv-btn{background:#0073F0;border:1px solid #0073F0;color:#fff;font-weight:600}
+.cv-btn:hover{background:#0062cc;border-color:#0062cc;color:#fff}
+.cv-code{font-size:13px;color:var(--text)}
+.cv-code b{font-family:var(--mono,monospace);letter-spacing:.03em}
+.cv-note{font-size:11px;color:var(--muted);margin:.65rem 0 0}

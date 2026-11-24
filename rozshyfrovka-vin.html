@@ -209,7 +209,8 @@
         '<p class="text-sm text-muted" style="margin:0">VIN описує авто на виході з заводу. Перед купівлею перевірте його історію за базою МВС:</p>' +
         '<ul><li>реєстрації з датами й областями та скільки було власників</li><li>номерні знаки, які мало авто</li><li>ввезення з-за кордону, зняття з обліку, розшук</li></ul>' +
         '<a class="btn btn-primary btn-block" id="vBuy" href="/perevirka-avto?q=' + encodeURIComponent(v) + '"><i class="ti ti-history"></i>Перевірити історію за VIN</a>' +
-        '<p class="text-xs text-muted" style="margin:.5rem 0 0;text-align:center">Коротка довідка — безкоштовно, повний звіт — <span class="vcPrice">69</span> грн</p></div>';
+        '<p class="text-xs text-muted" style="margin:.5rem 0 0;text-align:center">Коротка довідка — безкоштовно, повний звіт — <span class="vcPrice">69</span> грн</p></div>' +
+      (window.VehicleCheck && VehicleCheck.cvBox ? VehicleCheck.cvBox(v, 'vin_decoder', !VehicleCheck.isUaVin(v)) : '');
     setPrice();
     $('vBuy').addEventListener('click', () => { try { track('vin_decode_to_check', {}); } catch (e) {} });
   }

@@ -230,7 +230,7 @@ const VehicleCheck = (() => {
       '<div class="row" style="gap:8px;flex-wrap:wrap;justify-content:center"><input id="vcLinkVin" class="input" maxlength="17" placeholder="17 символів, напр. WVWZZZ1KZ6W312345" style="flex:1 1 220px;text-transform:uppercase">' +
       '<button type="button" class="btn btn-primary" onclick="VehicleCheck.linkVin(\'' + esc(r.q) + '\')">Перевірити</button></div>' +
       '<div class="msg" id="vcLinkMsg" style="margin-top:.5rem"></div><p class="text-xs text-muted" style="margin:.5rem 0 0">VIN є у свідоцтві про реєстрацію, під лобовим склом і в оголошенні про продаж. Пару «номер — VIN» запамʼятаємо, щоб наступного разу авто знаходилось за номером.</p></div>' : '';
-    return reg + sec('Розшук', w) + dec + ask + watchBox(dv || r.q, 'notfound');
+    return reg + sec('Розшук', w) + dec + ask + cvBox(dv || r.q, 'notfound', dv ? !isUaVin(dv) : true) + watchBox(dv || r.q, 'notfound');
   }
   // номер є в оголошенні на AUTO.RIA → VIN з оголошення; знайшли — показуємо результат заново (сервер уже бачить пару в архіві)
   async function riaLookup(plate){
@@ -264,6 +264,22 @@ const VehicleCheck = (() => {
         '<a class="btn btn-ghost btn-sm" style="margin-top:.75rem" href="/rozshyfrovka-vin?vin=' + encodeURIComponent(d.vin) + '">Детальніше</a>';
     }catch(e){ el.remove(); }
   }
+  // carVertical (партнерська програма, договір № 1.1.1-524/26): історія авто за кордоном для пригнаних авто.
+  // Посилання з VIN/номером у sub3 (сторінка UA precheck), sub2 — місце на сайті. Промокод FORWARDCARUA — −20%.
+  const CV_URL = 'https://www.carvertical.deal/4LDSHKX/9GG2SS/?uid=179&source_id=AFF&sub1=forwardcarua';
+  const isUaVin = v => /^Y[6-9]/.test(String(v || ''));
+  function cvBox(key, src, show){
+    if (!key || !show) return '';
+    const href = CV_URL + '&sub2=' + encodeURIComponent(src || 'site') + '&sub3=' + encodeURIComponent(key);
+    return '<div class="card cv-box no-print">' +
+      '<div class="cv-head"><img src="/assets/img/partners/carvertical-white.png" alt="carVertical" width="150" height="22" loading="lazy"><span class="cv-tag">Партнер</span></div>' +
+      '<b class="cv-title">Перевірте історію авто за кордоном</b>' +
+      '<p class="text-sm text-muted" style="margin:.35rem 0 .75rem">Наші дані охоплюють реєстрацію в Україні. Пробіг, ДТП, пошкодження та аукціони в США і Європі покаже звіт carVertical.</p>' +
+      '<div class="cv-row"><a class="btn cv-btn" href="' + href + '" target="_blank" rel="sponsored noopener" onclick="VehicleCheck.cvClick(\'' + esc(src) + '\')">Перевірити на carVertical <i class="ti ti-external-link"></i></a>' +
+      '<span class="cv-code">Промокод <b>FORWARDCARUA</b> — знижка 20%</span></div>' +
+      '<p class="cv-note">Партнерське посилання. Послугу надає та продає carVertical (UAB cV Group). Усі права на звіт належать carVertical.</p></div>';
+  }
+  function cvClick(src){ try{ if (typeof gtag === 'function') gtag('event', 'carvertical_click', { source: src }); }catch(e){} try{ track('carvertical_click', { source: src }); }catch(e){} }
   function summary(r){
     if (!r.found && r.wanted && r.wanted.found) return wAlert(r.wanted) + '<p class="text-xs text-muted">У реєстраційних даних МВС за «' + esc(r.q) + '» записів немає — дані з бази транспорту в розшуку.</p>';
     if (!r.found) return notFound(r);
@@ -295,7 +311,7 @@ const VehicleCheck = (() => {
       '<h4 class="vc-h">Останній запис</h4><div class="vc-tiles">' + lockTile('Дата', '14.06.2023', 'calendar') + lockTile('Операція', 'Перереєстрація на нового власника', 'file-text') +
         lockTile('Регіон', 'Київська обл.', 'map-pin') + lockTile('Власник', 'Фізична особа', 'user') + '</div>' +
       '<a class="btn btn-ghost btn-block vc-histbtn" href="#vcBuy" onclick="return VehicleCheck.toBuy()"><i class="ti ti-lock"></i>Історія реєстрацій · ' + (L.history || r.events) + ' ' + plural(L.history || r.events, 'запис', 'записи', 'записів') + '</a>' +
-      '</div>' + buyBox(r) + watchBox(r.q, 'summary') + '<a class="vc-fab" href="#vcBuy" onclick="return VehicleCheck.toBuy()"><i class="ti ti-shopping-cart"></i>Повний звіт · ' + PACKS[1] + ' грн</a>';
+      '</div>' + buyBox(r) + watchBox(r.q, 'summary') + cvBox(r.by === 'vin' ? r.q : r.q, 'summary', r.by === 'vin' ? !isUaVin(r.q) : (r.origin === 'import' || (r.vin_info && r.vin_info.country && r.vin_info.country !== 'Україна'))) + '<a class="vc-fab" href="#vcBuy" onclick="return VehicleCheck.toBuy()"><i class="ti ti-shopping-cart"></i>Повний звіт · ' + PACKS[1] + ' грн</a>';
   }
   // «Стежити за авто»: безкоштовні сповіщення в Telegram про нові операції МВС і розшук (функція vehicle-watch)
   const watchBox = (q, src) => !q ? '' : '<div class="card vc-watch no-print" style="margin-top:1rem;display:flex;gap:12px;align-items:center;flex-wrap:wrap">' +
@@ -496,7 +512,7 @@ const VehicleCheck = (() => {
       '<p class="text-xs text-muted" style="margin:1.25rem 0 0">Перевірено ' + date(r.checked_at) + '. Джерело — відкриті дані Головного сервісного центру МВС («Відомості про транспортні засоби та їх власників», «Транспортні засоби в розшуку») ' +
         (r.data_until ? 'за 2013–' + esc(r.data_until) + ' рр. ' : '') + 'Імена, адреси й контакти власників у відкритих даних не публікуються. ' +
         (r.token ? (Number(r.price) > 0 ? 'Оплачено карткою ' + r.price + ' грн. ' : 'Звіт з пакета. ') + 'Збережіть посилання на цю сторінку.' : r.price > 0 ? 'Списано ' + r.price + ' грн з балансу.' : r.price === 0 ? 'Без оплати (повторний перегляд).' : '') + '</p>' +
-      watchBox(r.vin || r.q, 'report') + '<div class="row no-print" style="gap:8px;margin-top:1rem"><button class="btn btn-primary" id="vcPdfBtn" onclick="VehicleCheck.pdf()"><i class="ti ti-file-download"></i>Завантажити PDF</button></div>';
+      watchBox(r.vin || r.q, 'report') + cvBox(r.vin || r.q, 'report', r.vin ? !isUaVin(r.vin) : r.origin === 'import') + '<div class="row no-print" style="gap:8px;margin-top:1rem"><button class="btn btn-primary" id="vcPdfBtn" onclick="VehicleCheck.pdf()"><i class="ti ti-file-download"></i>Завантажити PDF</button></div>';
   }
 
   // «Можливо, ви мали на увазі»: схожі номери з реєстру (сплутані О/0, латинські літери, яких немає на номерах)
@@ -630,5 +646,5 @@ const VehicleCheck = (() => {
   }
   function show(k){ const c = (window.__vcHist || [])[k]; if (c) openReport({ ...c.report, price: c.price }); }
 
-  return { watch, linkVin, setPack, redeem, copyVin, crSet, toBuy, mount, mountBuy, loadPhotos, pdf, search, run, payCard, report, summary, reopen, mountHistory, show, loadPrice };
+  return { watch, linkVin, cvBox, cvClick, isUaVin, setPack, redeem, copyVin, crSet, toBuy, mount, mountBuy, loadPhotos, pdf, search, run, payCard, report, summary, reopen, mountHistory, show, loadPrice };
 })();
