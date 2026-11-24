@@ -12,7 +12,7 @@
 import codecs, csv, gzip, hashlib, io, json, os, re, sys, time, urllib.parse, urllib.request, zipfile, zlib
 from collections import defaultdict
 
-UA = 'Mozilla/5.0 (forwardcarua.com opendata import)'
+UA = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0 Safari/537.36'
 PKG = '06779371-308f-42d7-895e-5a39833375f0'
 WANTED_PKG = '2a746426-b289-4eb2-be8f-aac03e68948c'
 CACHE = 'tzcache'
@@ -261,6 +261,7 @@ def main():
     except Exception as e:
         # портал недоступний — дані з минулого імпорту лишаються; спробуємо наступного запуску
         print('::warning::data.gov.ua недоступний (%s) — імпорт пропущено, дані не змінено' % e, flush=True)
+        open('NOCHANGE', 'w').close()   # інакше крок публікації спробує викласти порожню гілку
         return
     # по одному ресурсу на рік (назва reestrTZYYYY): найсвіжіший
     best = {}
