@@ -51,7 +51,16 @@ def get(url, t=600):
 
 
 def api(action, **kw):
-    return json.load(get('https://data.gov.ua/api/3/action/%s?%s' % (action, urllib.parse.urlencode(kw)), 120))['result']
+    # data.gov.ua інколи віддає 403/5xx запитам з GitHub Actions — кілька спроб з паузою
+    url = 'https://data.gov.ua/api/3/action/%s?%s' % (action, urllib.parse.urlencode(kw))
+    for attempt in range(4):
+        try:
+            return json.load(get(url, 120))['result']
+        except (urllib.error.HTTPError, urllib.error.URLError, TimeoutError) as e:
+            if attempt == 3:
+                raise
+            print('data.gov.ua %s: %s — повтор через %d с' % (action, e, 60 * (attempt + 1)), flush=True)
+            time.sleep(60 * (attempt + 1))
 
 
 def fetch(url, path):
@@ -247,7 +256,12 @@ def wanted():
 
 def main():
     os.makedirs(CACHE, exist_ok=True)
-    pkg = api('package_show', id=PKG)
+    try:
+        pkg = api('package_show', id=PKG)
+    except Exception as e:
+        # портал недоступний — дані з минулого імпорту лишаються; спробуємо наступного запуску
+        print('::warning::data.gov.ua недоступний (%s) — імпорт пропущено, дані не змінено' % e, flush=True)
+        return
     # по одному ресурсу на рік (назва reestrTZYYYY): найсвіжіший
     best = {}
     for r in pkg['resources']:
