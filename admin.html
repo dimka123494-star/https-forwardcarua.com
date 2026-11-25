@@ -97,6 +97,7 @@
   <div class="adm-group">Фінанси</div>
   <button class="adm-link" data-p="billing" onclick="pane('billing',this)"><i class="ti ti-credit-card"></i>Платежі</button>
   <button class="adm-link" data-p="checks" onclick="pane('checks',this)"><i class="ti ti-shield-search"></i>Перевірки компаній і авто</button>
+  <button class="adm-link" data-p="vexpert" onclick="pane('vexpert',this)"><i class="ti ti-file-search"></i>Детальні перевірки авто <span class="cab-badge" id="vxBadge" style="display:none">0</span></button>
 </aside>
 <div class="adm-shade" onclick="document.body.classList.remove('adm-open')"></div>
 
@@ -347,6 +348,16 @@
     </section>
 
     <!-- ПЛАТЕЖІ -->
+    <section class="cab-pane" id="pane-vexpert">
+      <div class="spread" style="margin-bottom:1rem">
+        <h1 class="h-md">Детальні перевірки авто <span class="text-sm text-muted" id="vxTotal"></span></h1>
+        <select class="input" style="width:190px" id="vxF" onchange="renderVx()">
+          <option value="open">До опрацювання</option><option value="">Усі оплачені</option><option value="done">Готові</option><option value="all">Усі, разом з неоплаченими</option>
+        </select>
+      </div>
+      <p class="hint" style="margin:0 0 1rem">Клієнт оплатив 500 грн. Перевірте авто за VIN, заповніть розділи довідки (без персональних даних) і збережіть зі статусом «Готово» — клієнт отримає лист з посиланням на довідку.</p>
+      <div id="vxList"></div>
+    </section>
     <section class="cab-pane" id="pane-checks">
       <div class="spread" style="margin-bottom:1rem">
         <h1 class="h-md">Перевірки компаній і авто <span class="text-sm text-muted" id="ckTotal"></span></h1>
@@ -581,10 +592,66 @@ async function loadAll(){
   try { rmpdAdm = await adminRmpd(); renderRmpdAdm(); } catch(e){ console.error(e); }
   rmLoadPrices();
   loadChecks().catch(e => console.error(e));
+  loadVx().catch(e => console.error(e));
   try { sentAdm = await adminSent(); renderSentAdm(); } catch(e){ console.error(e); }
   try { delegAdm = await adminDeleg(); renderDelegAdm(); } catch(e){ console.error(e); }
   try { cargoAdm = await adminCargo(); renderCargoAdm(); } catch(e){ console.error(e); }
   try { vehAdm = await adminVehicles(); renderVehAdm(); } catch(e){ console.error(e); }
+}
+
+/* ---------- Детальні перевірки авто (500 грн) ---------- */
+let vxAdm = [];
+const VX_ST = { pending: ['Не оплачено', 'var(--text-3)'], paid: ['Нова', 'var(--green)'], in_progress: ['В роботі', 'var(--amber)'], done: ['Готово', 'var(--blue)'], cancelled: ['Скасовано', 'var(--red)'] };
+const VX_SECS = [['restrictions', 'Обмеження'], ['drorm', 'ДРОРМ'], ['fines', 'Штрафи'], ['enforcement', 'Виконавчі провадження'], ['encumbrances', 'Обтяження'], ['conclusion', 'Висновок']];
+async function loadVx(){
+  const sb = await sbReady();
+  const { data, error } = await sb.from('vehicle_expert_orders').select('*').order('created_at', { ascending: false }).limit(300);
+  if (error) throw error;
+  vxAdm = data || []; renderVx();
+}
+function renderVx(){
+  const f = document.getElementById('vxF').value, paidSt = ['paid', 'in_progress', 'done', 'cancelled'];
+  const list = vxAdm.filter(r => f === 'all' ? true : f === 'open' ? ['paid', 'in_progress'].includes(r.status) : f === 'done' ? r.status === 'done' : paidSt.includes(r.status));
+  const open = vxAdm.filter(r => r.status === 'paid').length;
+  const bd = document.getElementById('vxBadge'); bd.textContent = open; bd.style.display = open ? '' : 'none';
+  document.getElementById('vxTotal').textContent = '· ' + vxAdm.filter(r => paidSt.includes(r.status)).length;
+  document.getElementById('vxList').innerHTML = list.length ? list.map(r => {
+    const st = VX_ST[r.status] || [r.status, 'var(--text-3)'], S = (r.result && r.result.sections) || {};
+    const editable = paidSt.includes(r.status);
+    return '<div class="card" style="margin-bottom:12px' + (r.status === 'paid' ? ';border-color:rgba(16,185,129,.45)' : '') + '">' +
+      '<div class="spread" style="align-items:flex-start;gap:10px"><div>' +
+        '<div style="font-weight:600">' + esc(r.vehicle || 'Авто') + ' · <span style="font-family:monospace">' + esc(r.vin) + '</span> <button class="btn-quiet" title="Скопіювати VIN" onclick="navigator.clipboard.writeText(\'' + esc(r.vin) + '\').then(()=>showToast(\'VIN скопійовано\'))"><i class="ti ti-copy"></i></button></div>' +
+        '<div class="text-xs text-muted">Запит: <a href="/perevirka-avto?q=' + encodeURIComponent(r.q) + '" target="_blank">' + esc(r.q) + '</a> · ' + esc(r.email) + (r.phone ? ' · ' + esc(r.phone) : '') +
+          ' · ' + uah(r.amount) + ' · ' + new Date(r.created_at).toLocaleString('uk-UA') + (r.paid_at ? ' · оплачено ' + new Date(r.paid_at).toLocaleString('uk-UA') : '') + '</div></div>' +
+      '<span class="badge" style="border:.5px solid ' + st[1] + ';color:' + st[1] + '">' + st[0] + '</span></div>' +
+      (editable ? '<div style="margin-top:10px">' + VX_SECS.map(([k, label]) => {
+        const x = S[k] || {};
+        return '<div class="field"><div class="spread" style="gap:8px"><label class="label" style="margin:0">' + label + '</label>' +
+          (k === 'conclusion' ? '' : '<select class="input" style="width:150px;padding:4px 8px" id="vx-' + k + '-st-' + r.id + '"><option value="">—</option><option value="ok"' + (x.st === 'ok' ? ' selected' : '') + '>не виявлено</option><option value="bad"' + (x.st === 'bad' ? ' selected' : '') + '>виявлено</option></select>') +
+          '</div><textarea class="input" id="vx-' + k + '-' + r.id + '" style="min-height:' + (k === 'conclusion' ? 70 : 54) + 'px;margin-top:4px">' + esc(x.text || '') + '</textarea></div>';
+      }).join('') +
+      '<div class="spread" style="gap:8px;flex-wrap:wrap"><select class="input" style="width:200px" id="vx-st-' + r.id + '">' +
+        ['paid', 'in_progress', 'done', 'cancelled'].map(k => '<option value="' + k + '"' + (r.status === k ? ' selected' : '') + '>' + VX_ST[k][0] + '</option>').join('') + '</select>' +
+      '<div style="display:flex;gap:6px">' + (r.status === 'done' ? '<a class="btn btn-ghost btn-sm" href="/dovidka-avto?t=' + esc(r.token) + '" target="_blank"><i class="ti ti-eye"></i> Довідка</a>' : '') +
+      '<button class="btn btn-primary btn-sm" onclick="saveVx(\'' + r.id + '\')">Зберегти</button></div></div></div>' : '') +
+    '</div>';
+  }).join('') : '<div class="empty"><strong>Немає замовлень</strong>Тут зʼявляться оплачені детальні перевірки авто.</div>';
+}
+async function saveVx(id){
+  const r = vxAdm.find(x => x.id === id); if (!r) return;
+  const sections = {};
+  VX_SECS.forEach(([k]) => { const t = document.getElementById('vx-' + k + '-' + id).value.trim(), s = document.getElementById('vx-' + k + '-st-' + id); sections[k] = { text: t, st: s ? s.value : '' }; });
+  const status = document.getElementById('vx-st-' + id).value;
+  if (status === 'done'){
+    if (!VX_SECS.some(([k]) => sections[k].text || sections[k].st)){ showToast('Заповніть хоча б один розділ довідки', 'error'); return; }
+    if (r.status !== 'done' && !confirm('Позначити готовим? Клієнт отримає лист з посиланням на довідку.')) return;
+  }
+  try{
+    const sb = await sbReady();
+    const { error } = await sb.from('vehicle_expert_orders').update({ status, result: { sections } }).eq('id', id);
+    if (error) throw error;
+    await loadVx(); showToast(status === 'done' && r.status !== 'done' ? 'Готово — лист клієнту надіслано' : 'Збережено');
+  }catch(e){ showToast('Не вдалося зберегти: ' + (e.message || e), 'error'); }
 }
 
 /* ---------- Вантажі ---------- */

@@ -509,3 +509,17 @@ body.ap .vc-fab{bottom:calc(84px + env(safe-area-inset-bottom))}
 .cv-code{font-size:13px;color:var(--text)}
 .cv-code b{font-family:var(--mono,monospace);letter-spacing:.03em}
 .cv-note{font-size:11px;color:var(--muted);margin:.65rem 0 0}
+
+/* детальна перевірка за реєстрами (500 грн) */
+.vc-expert{margin-top:1rem;border-color:rgba(245,166,35,.45)}
+.vc-expert-head{display:flex;gap:12px;align-items:flex-start;margin-bottom:.85rem}
+.vc-expert-head>i{font-size:26px;color:var(--amber);line-height:1}
+.vc-expert-btn,.vc-expert-pay{background:var(--amber);color:#1a1205;font-weight:600;border:0}
+.vc-expert-btn:hover,.vc-expert-pay:hover{filter:brightness(1.06)}
+.vx-doc .vx-sec{border-top:.5px solid var(--border);padding:.85rem 0}
+.vx-doc .vx-sec:first-of-type{border-top:0}
+.vx-doc .vx-sec h3{margin:0 0 .35rem;font-size:15px;display:flex;gap:8px;align-items:center}
+.vx-doc .vx-sec p{margin:0;white-space:pre-line;font-size:14px;line-height:1.6}
+.vx-st{font-size:12px;font-weight:500;padding:2px 8px;border-radius:999px;border:.5px solid currentColor}
+.vx-st.ok{color:var(--green)}.vx-st.bad{color:var(--red)}
+@media print{.vx-doc{color:#000}.vx-doc .vx-sec{border-color:#ccc}}

@@ -516,6 +516,8 @@ Deno.serve(async (req) => {
   const u = new URL(req.url);
   const ret = u.searchParams.get("return");
   if (ret) return new Response(null, { status: 303, headers: { Location: `https://forwardcarua.com/zvit-avto?t=${encodeURIComponent(ret)}` } });
+  const xret = u.searchParams.get("xret");   // детальна перевірка: повернення з WayForPay на сторінку довідки
+  if (xret) return new Response(null, { status: 303, headers: { Location: `https://forwardcarua.com/dovidka-avto?t=${encodeURIComponent(xret)}` } });
   if (req.method !== "POST") return new Response("ok");
   const db = sb();
   const p: Record<string, any> = await readBody(req);
@@ -524,10 +526,11 @@ Deno.serve(async (req) => {
   if (p.merchantSignature && p.orderReference) {
     const base = [p.merchantAccount, p.orderReference, p.amount, p.currency, p.authCode, p.cardPan, p.transactionStatus, p.reasonCode].join(";");
     if (!SECRET || hmac(base) !== p.merchantSignature) { console.error("bad signature", p.orderReference); return new Response("bad signature", { status: 400 }); }
-    const { data: o } = await db.from("vehicle_orders").select("*").eq("order_reference", p.orderReference).maybeSingle();
-    if (o && o.status !== "paid") {
+    const tbl = String(p.orderReference).startsWith("vexp-") ? "vehicle_expert_orders" : "vehicle_orders";
+    const { data: o } = await db.from(tbl).select("*").eq("order_reference", p.orderReference).maybeSingle();
+    if (o && !["paid", "in_progress", "done"].includes(o.status)) {
       const ok = p.transactionStatus === "Approved" && Number(p.amount) >= Number(o.amount);
-      await db.from("vehicle_orders").update(ok ? { status: "paid", paid_at: new Date().toISOString(), raw: p } : { status: String(p.transactionStatus || "declined").toLowerCase(), raw: p }).eq("id", o.id);
+      await db.from(tbl).update(ok ? { status: "paid", paid_at: new Date().toISOString(), raw: p } : { status: String(p.transactionStatus || "declined").toLowerCase(), raw: p }).eq("id", o.id);
     }
     const time = Math.floor(Date.now() / 1000);
     return new Response(JSON.stringify({ orderReference: p.orderReference, status: "accept", time, signature: hmac([p.orderReference, "accept", time].join(";")) }),
@@ -601,6 +604,52 @@ Deno.serve(async (req) => {
         productName: [productName], productPrice: [amount], productCount: [1], clientEmail: email, language: "UA",
         returnUrl: `${base}/functions/v1/vehicle-check?return=${token}`, serviceUrl: `${base}/functions/v1/vehicle-check`,
       } });
+    }
+
+    // ---- детальна перевірка за VIN (вручну, 500 грн): замовлення + форма WayForPay ----
+    if (p.action === "expert_checkout") {
+      if (!MERCHANT || !SECRET) return json({ error: "not_configured" }, 503);
+      const pq = parseQ(p.q);
+      const email = String(p.email ?? "").trim().toLowerCase();
+      const phone = String(p.phone ?? "").replace(/[^\d+]/g, "").slice(0, 16) || null;
+      if (!pq) return json({ error: "bad_query" }, 400);
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return json({ error: "bad_email" }, 400);
+      // VIN: з запиту, з реєстру МВС за номером, з оголошень, або вписаний клієнтом
+      let vin: string | null = pq.vin ? pq.q : null, vehicle: string | null = null;
+      if (!vin) {
+        const { main } = await collect(pq);
+        if (main?.vin) { vin = main.vin; const v = vehicleInfo(main.evs); vehicle = v ? [v.brand, v.model, v.year].filter(Boolean).join(" ") : null; }
+        else vin = (await plateVin(pq.q).catch(() => null))?.vin ?? null;
+      }
+      const uv = String(p.vin ?? "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+      if (!vin && /^[A-HJ-NPR-Z0-9]{17}$/.test(uv)) vin = uv;
+      if (!vin) return json({ error: "need_vin" }, 422);
+      const { data: sp } = await db.from("service_prices").select("price, active").eq("code", "vehicle_expert").maybeSingle();
+      if (!sp?.active) return json({ error: "unavailable" }, 503);
+      const amount = Number(sp.price);
+      const { count } = await db.from("vehicle_expert_orders").select("id", { count: "exact", head: true }).eq("email", email).gt("created_at", new Date(Date.now() - 3600e3).toISOString());
+      if ((count ?? 0) >= 5) return json({ error: "too_many" }, 429);
+      const token = crypto.randomUUID().replace(/-/g, "") + crypto.randomUUID().replace(/-/g, "").slice(0, 8);
+      const orderReference = `vexp-${Date.now()}-${token.slice(0, 6)}`;
+      const { error } = await db.from("vehicle_expert_orders").insert({ token, q: pq.q, vin, vehicle, email, phone, amount, order_reference: orderReference });
+      if (error) { console.error("expert insert:", error); return json({ error: "server_error" }, 500); }
+      const productName = `Детальна перевірка авто за VIN ${vin}`;
+      const orderDate = Math.floor(Date.now() / 1000);
+      const sig = hmac([MERCHANT, DOMAIN, orderReference, orderDate, amount, "UAH", productName, 1, amount].join(";"));
+      const base = Deno.env.get("SUPABASE_URL");
+      return json({ token, form: {
+        merchantAccount: MERCHANT, merchantDomainName: DOMAIN, merchantSignature: sig, orderReference, orderDate, amount, currency: "UAH",
+        productName: [productName], productPrice: [amount], productCount: [1], clientEmail: email, language: "UA",
+        returnUrl: `${base}/functions/v1/vehicle-check?xret=${token}`, serviceUrl: `${base}/functions/v1/vehicle-check`,
+      } });
+    }
+    // довідка для клієнта за токеном замовлення
+    if (p.action === "expert_get") {
+      const t = String(p.t ?? "");
+      if (!/^[a-f0-9]{40}$/.test(t)) return json({ error: "bad_token" }, 400);
+      const { data: o } = await db.from("vehicle_expert_orders").select("q, vin, vehicle, status, created_at, paid_at, done_at, result").eq("token", t).maybeSingle();
+      if (!o) return json({ error: "not_found" }, 404);
+      return json({ ...o, result: o.status === "done" ? o.result : null });
     }
 
     if (p.action === "report") {

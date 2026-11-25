@@ -99,11 +99,48 @@ ${packHtml}
   return { sent: 1 };
 }
 
+// детальна перевірка за VIN: kind 'paid' — клієнту підтвердження + адміну нова заявка; 'done' — клієнту посилання на довідку
+const ADMIN_TO = (Deno.env.get("ADMIN_EMAIL") ?? "dimka123494@gmail.com").split(",").map((x) => x.trim()).filter(Boolean);
+async function sendMail(to: string[], subject: string, html: string, text: string, idem: string, tag: string) {
+  const r = await fetch("https://api.resend.com/emails", {
+    method: "POST", headers: { Authorization: `Bearer ${KEY}`, "Content-Type": "application/json", "Idempotency-Key": idem },
+    body: JSON.stringify({ from: FROM, to, reply_to: REPLY, subject, html, text, tags: [{ name: "type", value: tag }] }),
+  });
+  if (!r.ok) console.error("resend", tag, r.status, await r.text());
+  return r.ok;
+}
+async function expertMail(db: any, id: string, kind: string) {
+  const col = kind === "done" ? "done_mailed_at" : kind === "paid" ? "paid_mailed_at" : "";
+  if (!col) return { error: "bad_kind" };
+  const { data: o } = await db.from("vehicle_expert_orders").update({ [col]: new Date().toISOString() }).eq("id", id).is(col, null).select("*").maybeSingle();
+  if (!o) return { skipped: "already" };
+  const url = `${SITE}/dovidka-avto?t=${o.token}`;
+  const what = `${o.vehicle ? esc(o.vehicle) + ", " : ""}VIN ${esc(o.vin)}`;
+  const wrap = (b: string) => `<div style="font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;font-size:15px;line-height:1.55;color:#111;max-width:520px">${b}<p style="margin:0;color:#888;font-size:12px">НомерОК · forwardcarua.com</p></div>`;
+  const btn = (t: string) => `<p style="margin:0 0 20px"><a href="${url}" style="display:inline-block;background:#10b981;color:#fff;text-decoration:none;font-weight:600;padding:12px 22px;border-radius:10px">${t}</a></p>`;
+  let ok = true;
+  if (kind === "paid") {
+    ok = await sendMail([o.email], `Детальну перевірку авто ${o.vin} прийнято`,
+      wrap(`<p style="margin:0 0 12px">Дякуємо за оплату!</p><p style="margin:0 0 16px">Ми прийняли замовлення на детальну перевірку авто (${what}): обмеження, ДРОРМ, штрафи, виконавчі провадження й обтяження. Коли довідка буде готова, ми надішлемо лист — вона відкриється за цим посиланням.</p>${btn("Статус перевірки")}<p style="margin:0 0 20px;color:#444">Оплачено ${esc(o.amount)} грн. Питання — просто дайте відповідь на цей лист.</p>`),
+      `Дякуємо за оплату!\n\nМи прийняли замовлення на детальну перевірку авто (${o.vehicle ? o.vehicle + ", " : ""}VIN ${o.vin}). Коли довідка буде готова, надішлемо лист.\nСтатус: ${url}\n\nОплачено ${o.amount} грн.\n\nНомерОК · forwardcarua.com`, `vexp-paid-${o.id}`, "expert_paid");
+    await sendMail(ADMIN_TO, `🔎 Нова детальна перевірка: ${o.vin}`,
+      wrap(`<p style="margin:0 0 12px"><b>Оплачено ${esc(o.amount)} грн</b> — детальна перевірка авто.</p><p style="margin:0 0 16px">${what}<br>Запит клієнта: ${esc(o.q)}<br>Email: ${esc(o.email)}${o.phone ? "<br>Телефон: " + esc(o.phone) : ""}</p><p style="margin:0 0 20px"><a href="${SITE}/admin#vexpert">Відкрити в адмінці</a></p>`),
+      `Оплачено ${o.amount} грн — детальна перевірка.\n${o.vehicle ?? ""} VIN ${o.vin}\nЗапит: ${o.q}\nEmail: ${o.email}${o.phone ? "\nТелефон: " + o.phone : ""}\n${SITE}/admin#vexpert`, `vexp-admin-${o.id}`, "expert_admin");
+  } else {
+    ok = await sendMail([o.email], `Довідка про авто ${o.vin} готова`,
+      wrap(`<p style="margin:0 0 12px">Добрий день!</p><p style="margin:0 0 16px">Детальна перевірка авто (${what}) завершена. Довідку можна відкрити й завантажити в PDF за посиланням.</p>${btn("Відкрити довідку")}<p style="margin:0 0 20px;color:#444">Не пересилайте посилання стороннім. Питання — просто дайте відповідь на цей лист.</p>`),
+      `Добрий день!\n\nДетальна перевірка авто (${o.vehicle ? o.vehicle + ", " : ""}VIN ${o.vin}) завершена.\nДовідка: ${url}\n\nНомерОК · forwardcarua.com`, `vexp-done-${o.id}`, "expert_done");
+  }
+  if (!ok) { await db.from("vehicle_expert_orders").update({ [col]: null }).eq("id", id); return { error: "send_failed" }; }
+  return { sent: 1 };
+}
+
 Deno.serve(async (req) => {
   const db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
   if (!KEY) KEY = (await db.from("app_secrets").select("value").eq("name", "RESEND_API_KEY").maybeSingle()).data?.value ?? "";
   if (!KEY) return json({ skipped: "no_resend_key" });
   const body = await req.json().catch(() => ({}));
+  if (body?.expert) return json(await expertMail(db, String(body.expert), String(body.kind ?? "")));
   if (body?.paid) return json(await paidMail(db, String(body.paid), String(body.id ?? "")));
   const now = Date.now();
   const { data: pend, error } = await db.from("vehicle_orders").select("id, q, email, amount, created_at")

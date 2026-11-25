@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Довідка про авто | НомерОК</title>
+<meta name="robots" content="noindex,nofollow">
+<meta name="referrer" content="no-referrer">
+<meta name="theme-color" content="#0a0f0d">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.7.0/dist/tabler-icons.min.css">
+<link rel="stylesheet" href="/assets/css/app.css">
+<style>
+@media print{.nav,.no-print{display:none!important}body{background:#fff;color:#000}.card{border-color:#ccc}}
+</style>
+<link rel="manifest" href="/manifest.webmanifest">
+<script async src="https://www.googletagmanager.com/gtag/js?id=AW-18171698074"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'AW-18171698074');
+</script>
+</head>
+<body>
+<nav class="nav no-print">
+  <a class="nav-brand" href="/">Митний<span>Брокер</span></a>
+  <div class="nav-links"><a class="nav-link" href="/perevirka-avto">Перевірка авто</a></div>
+</nav>
+<div class="page">
+  <main class="container-narrow" style="padding-top:2rem;padding-bottom:3rem">
+    <div class="card" id="dv"><p class="text-sm text-muted">Завантажуємо…</p></div>
+  </main>
+</div>
+<script src="/assets/js/config.js"></script>
+<script src="/assets/js/db.js"></script>
+<script src="/assets/js/vehicle-check.js"></script>
+<script>
+(function(){
+  const box = document.getElementById('dv');
+  const t = new URLSearchParams(location.search).get('t') || '';
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+  const dt = s => s ? new Date(s).toLocaleDateString('uk-UA', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '';
+  const head = d => '<div class="text-xs text-muted" style="text-transform:uppercase;letter-spacing:.06em">Довідка за результатами перевірки</div>' +
+    '<h1 class="h-md" style="margin:.25rem 0">' + esc(d.vehicle || 'Транспортний засіб') + '</h1>' +
+    '<div class="text-sm">VIN: <b style="font-family:monospace;letter-spacing:.04em">' + esc(d.vin) + '</b>' + (d.q && d.q !== d.vin ? ' · запит: ' + esc(d.q) : '') + '</div>';
+  if (!/^[a-f0-9]{40}$/.test(t)){ box.innerHTML = '<h1 class="h-md">Довідку не знайдено</h1><p class="text-sm text-muted">Перевірте посилання з листа.</p>'; return; }
+  let tries = 0, tracked = false;
+  async function load(){
+    tries++;
+    try{
+      const res = await fetch(SUPABASE_URL + '/functions/v1/vehicle-check', { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: SUPABASE_ANON }, body: JSON.stringify({ action: 'expert_get', t }) });
+      const d = await res.json().catch(() => ({}));
+      if (res.status === 404 || d.error){ box.innerHTML = '<h1 class="h-md">Довідку не знайдено</h1><p class="text-sm text-muted">Посилання недійсне.</p>'; return; }
+      const paid = ['paid', 'in_progress', 'done'].includes(d.status);
+      if (paid && !tracked && sessionStorage.getItem('vxTracked') !== t){
+        tracked = true; try{ track('purchase', { value: 500, currency: 'UAH', transaction_id: 'vx' + t.slice(0, 10), items: [{ item_name: 'vehicle_expert' }] }); sessionStorage.setItem('vxTracked', t); }catch(e){}
+      }
+      if (d.status === 'done' && d.result){
+        const S = (d.result.sections || {});
+        const secs = VehicleCheck.EXPERT_SECTIONS.map(([k, label]) => {
+          const x = S[k] || {}; if (!x.text && !x.st) return '';
+          const st = x.st === 'ok' ? '<span class="vx-st ok">не виявлено</span>' : x.st === 'bad' ? '<span class="vx-st bad">виявлено</span>' : '';
+          return '<div class="vx-sec"><h3>' + esc(label) + ' ' + st + '</h3>' + (x.text ? '<p>' + esc(x.text) + '</p>' : '') + '</div>';
+        }).join('');
+        box.innerHTML = '<div class="vx-doc">' + head(d) +
+          '<div class="text-xs text-muted" style="margin:.35rem 0 1rem">Дата перевірки: ' + dt(d.done_at) + '</div>' + secs +
+          '<p class="text-xs text-muted" style="margin-top:1rem">Довідка містить відомості станом на дату перевірки, без персональних даних. НомерОК · forwardcarua.com</p></div>' +
+          '<div class="row no-print" style="gap:8px;margin-top:1rem"><button class="btn btn-primary" onclick="window.print()"><i class="ti ti-file-download"></i>Завантажити PDF</button></div>';
+        document.title = 'Довідка про авто ' + d.vin + ' | НомерОК';
+        return;
+      }
+      if (paid){
+        box.innerHTML = head(d) + '<div style="margin-top:1rem;padding:14px;border-radius:10px;background:rgba(245,166,35,.08);border:.5px solid rgba(245,166,35,.4)"><b><i class="ti ti-clock"></i> Оплату отримано — перевірка в роботі</b>' +
+          '<p class="text-sm text-muted" style="margin:.35rem 0 0">Коли довідка буде готова, ми надішлемо лист на ваш email, а вона з’явиться на цій сторінці.</p></div>';
+        return;
+      }
+      if (d.status === 'pending' || d.status === 'inprocessing'){
+        box.innerHTML = '<h1 class="h-md">Чекаємо підтвердження оплати…</h1><p class="text-sm text-muted">Зазвичай це кілька секунд. Сторінка оновиться сама.</p>';
+        if (tries < 60) setTimeout(load, 3000);
+        else box.innerHTML += '<p class="text-sm">Оплата ще не підтверджена. Якщо гроші списано — напишіть на <a href="mailto:custom@forwardcarua.com">custom@forwardcarua.com</a>, вкажіть VIN ' + esc(d.vin) + '.</p>';
+        return;
+      }
+      box.innerHTML = '<h1 class="h-md">Оплату не завершено</h1><p class="text-sm text-muted">Статус: ' + esc(d.status) + '. Гроші не списано. <a href="/perevirka-avto?q=' + encodeURIComponent(d.q || d.vin) + '">Спробувати ще раз</a>.</p>';
+    }catch(e){ box.innerHTML = '<p class="text-sm">Не вдалося завантажити — оновіть сторінку.</p>'; }
+  }
+  load();
+})();
+</script>
+</body>
+</html>

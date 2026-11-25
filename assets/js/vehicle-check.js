@@ -230,7 +230,7 @@ const VehicleCheck = (() => {
       '<div class="row" style="gap:8px;flex-wrap:wrap;justify-content:center"><input id="vcLinkVin" class="input" maxlength="17" placeholder="17 символів, напр. WVWZZZ1KZ6W312345" style="flex:1 1 220px;text-transform:uppercase">' +
       '<button type="button" class="btn btn-primary" onclick="VehicleCheck.linkVin(\'' + esc(r.q) + '\')">Перевірити</button></div>' +
       '<div class="msg" id="vcLinkMsg" style="margin-top:.5rem"></div><p class="text-xs text-muted" style="margin:.5rem 0 0">VIN є у свідоцтві про реєстрацію, під лобовим склом і в оголошенні про продаж. Пару «номер — VIN» запамʼятаємо, щоб наступного разу авто знаходилось за номером.</p></div>' : '';
-    return reg + sec('Розшук', w) + dec + ask + cvBox(dv || r.q, 'notfound', dv ? !isUaVin(dv) : true) + watchBox(dv || r.q, 'notfound');
+    return reg + sec('Розшук', w) + dec + ask + expertBox(dv || r.q, 'notfound', !dv) + cvBox(dv || r.q, 'notfound', dv ? !isUaVin(dv) : true) + watchBox(dv || r.q, 'notfound');
   }
   // номер є в оголошенні на AUTO.RIA → VIN з оголошення; знайшли — показуємо результат заново (сервер уже бачить пару в архіві)
   async function riaLookup(plate){
@@ -280,6 +280,59 @@ const VehicleCheck = (() => {
       '<p class="cv-note">Партнерське посилання. Послугу надає та продає carVertical (UAB cV Group). Усі права на звіт належать carVertical.</p></div>';
   }
   function cvClick(src){ try{ if (typeof gtag === 'function') gtag('event', 'carvertical_click', { source: src }); }catch(e){} try{ track('carvertical_click', { source: src }); }catch(e){} }
+  // ── детальна перевірка за VIN (вручну, за реєстрами) — 500 грн, довідка приходить на email ──
+  let EXPERT_PRICE = 500;
+  const EXPERT_SECTIONS = [['restrictions', 'Обмеження'], ['drorm', 'ДРОРМ'], ['fines', 'Штрафи'], ['enforcement', 'Виконавчі провадження'], ['encumbrances', 'Обтяження'], ['conclusion', 'Висновок']];
+  function expertBox(q, src, needVin){
+    if (!q) return '';
+    const id = 'vx' + Math.random().toString(36).slice(2, 7);
+    return '<div class="card vc-expert no-print" id="' + id + '" data-q="' + esc(q) + '" data-src="' + esc(src || '') + '">' +
+      '<div class="vc-expert-head"><i class="ti ti-file-search"></i><div><b>Детальна перевірка за реєстрами</b>' +
+      '<div class="text-sm text-muted">Обмеження, ДРОРМ, штрафи, виконавчі провадження та обтяження — за VIN</div></div></div>' +
+      '<button class="btn btn-block vc-expert-btn" onclick="VehicleCheck.expertOpen(\'' + id + '\')"><i class="ti ti-shield-check"></i>Замовити детальну перевірку · ' + EXPERT_PRICE + ' грн</button>' +
+      '<div class="vc-expert-form" style="display:none">' +
+        (needVin ? '<div class="field"><label class="label">VIN авто</label><input class="input" data-f="vin" maxlength="17" placeholder="17 символів" style="text-transform:uppercase"></div>' : '') +
+        '<div class="field"><label class="label">Email — сюди прийде довідка</label><input class="input" data-f="email" type="email" autocomplete="email" placeholder="you@example.com"></div>' +
+        '<div class="field"><label class="label">Телефон (необовʼязково)</label><input class="input" data-f="phone" type="tel" autocomplete="tel" placeholder="+380"></div>' +
+        '<div class="msg" data-f="msg"></div>' +
+        '<button class="btn btn-block vc-expert-pay" onclick="VehicleCheck.expertPay(\'' + id + '\')"><i class="ti ti-credit-card"></i>Оплатити ' + EXPERT_PRICE + ' грн</button>' +
+        '<p class="text-xs text-muted" style="margin:.5rem 0 0">Після оплати довідку надішлемо на email.</p>' +
+      '</div></div>';
+  }
+  function expertOpen(id){
+    const b = document.getElementById(id); if (!b) return;
+    b.querySelector('.vc-expert-btn').style.display = 'none'; b.querySelector('.vc-expert-form').style.display = '';
+    const e = b.querySelector('[data-f=email]'), main = document.getElementById('vcEmail');
+    if (e && main && main.value && !e.value) e.value = main.value;
+    (b.querySelector('[data-f=vin]') || e).focus();
+    try{ track('expert_open', { source: b.dataset.src }); }catch(x){}
+  }
+  async function expertPay(id){
+    const b = document.getElementById(id); if (!b) return;
+    const f = k => b.querySelector('[data-f=' + k + ']'), m = f('msg'), btn = b.querySelector('.vc-expert-pay');
+    const email = (f('email').value || '').trim(), phone = f('phone') ? f('phone').value.trim() : '', vin = f('vin') ? f('vin').value.trim().toUpperCase() : '';
+    const fail = t => { m.className = 'msg show msg-err'; m.textContent = t; btn.disabled = false; btn.innerHTML = '<i class="ti ti-credit-card"></i>Оплатити ' + EXPERT_PRICE + ' грн'; };
+    if (f('vin') && !/^[A-HJ-NPR-Z0-9]{17}$/.test(vin)) return fail('Вкажіть VIN — 17 символів (латиниця й цифри, без I, O, Q)');
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return fail('Вкажіть email — на нього прийде довідка');
+    btn.disabled = true; btn.textContent = 'Переходимо до оплати…';
+    try{
+      const d = await call({ action: 'expert_checkout', q: b.dataset.q, email, phone, vin });
+      try{ track('begin_checkout', { value: EXPERT_PRICE, currency: 'UAH', items: [{ item_name: 'vehicle_expert' }] }); }catch(x){}
+      const form = document.createElement('form');
+      form.method = 'POST'; form.action = 'https://secure.wayforpay.com/pay'; form.acceptCharset = 'utf-8';
+      Object.entries(d.form).forEach(([k, v]) => (Array.isArray(v) ? v : [v]).forEach(val => {
+        const i = document.createElement('input'); i.type = 'hidden'; i.name = Array.isArray(v) ? k + '[]' : k; i.value = val; form.appendChild(i); }));
+      document.body.appendChild(form); form.submit();
+    }catch(e){
+      if (e.message === 'need_vin' && !f('vin')){
+        f('email').closest('.field').insertAdjacentHTML('beforebegin', '<div class="field"><label class="label">VIN авто</label><input class="input" data-f="vin" maxlength="17" placeholder="17 символів" style="text-transform:uppercase"></div>');
+        return fail('Для цього номера VIN невідомий — впишіть його, будь ласка');
+      }
+      fail(e.message === 'too_many' ? 'Забагато замовлень з цього email — спробуйте за годину' : e.message === 'bad_email' ? 'Перевірте email' : 'Оплата тимчасово недоступна. Напишіть на custom@forwardcarua.com');
+    }
+  }
+  (async () => { try{ const sb = await sbReady(); const { data } = await sb.from('service_prices').select('price, active').eq('code', 'vehicle_expert').maybeSingle(); if (data && data.active) EXPERT_PRICE = Number(data.price); }catch(e){} })();
+
   function summary(r){
     if (!r.found && r.wanted && r.wanted.found) return wAlert(r.wanted) + '<p class="text-xs text-muted">У реєстраційних даних МВС за «' + esc(r.q) + '» записів немає — дані з бази транспорту в розшуку.</p>';
     if (!r.found) return notFound(r);
@@ -311,7 +364,7 @@ const VehicleCheck = (() => {
       '<h4 class="vc-h">Останній запис</h4><div class="vc-tiles">' + lockTile('Дата', '14.06.2023', 'calendar') + lockTile('Операція', 'Перереєстрація на нового власника', 'file-text') +
         lockTile('Регіон', 'Київська обл.', 'map-pin') + lockTile('Власник', 'Фізична особа', 'user') + '</div>' +
       '<a class="btn btn-ghost btn-block vc-histbtn" href="#vcBuy" onclick="return VehicleCheck.toBuy()"><i class="ti ti-lock"></i>Історія реєстрацій · ' + (L.history || r.events) + ' ' + plural(L.history || r.events, 'запис', 'записи', 'записів') + '</a>' +
-      '</div>' + buyBox(r) + watchBox(r.q, 'summary') + cvBox(r.by === 'vin' ? r.q : r.q, 'summary', r.by === 'vin' ? !isUaVin(r.q) : (r.origin === 'import' || (r.vin_info && r.vin_info.country && r.vin_info.country !== 'Україна'))) + '<a class="vc-fab" href="#vcBuy" onclick="return VehicleCheck.toBuy()"><i class="ti ti-shopping-cart"></i>Повний звіт · ' + PACKS[1] + ' грн</a>';
+      '</div>' + buyBox(r) + expertBox(r.q, 'summary', false) + watchBox(r.q, 'summary') + cvBox(r.by === 'vin' ? r.q : r.q, 'summary', r.by === 'vin' ? !isUaVin(r.q) : (r.origin === 'import' || (r.vin_info && r.vin_info.country && r.vin_info.country !== 'Україна'))) + '<a class="vc-fab" href="#vcBuy" onclick="return VehicleCheck.toBuy()"><i class="ti ti-shopping-cart"></i>Повний звіт · ' + PACKS[1] + ' грн</a>';
   }
   // «Стежити за авто»: безкоштовні сповіщення в Telegram про нові операції МВС і розшук (функція vehicle-watch)
   const watchBox = (q, src) => !q ? '' : '<div class="card vc-watch no-print" style="margin-top:1rem;display:flex;gap:12px;align-items:center;flex-wrap:wrap">' +
@@ -512,7 +565,7 @@ const VehicleCheck = (() => {
       '<p class="text-xs text-muted" style="margin:1.25rem 0 0">Перевірено ' + date(r.checked_at) + '. Джерело — відкриті дані Головного сервісного центру МВС («Відомості про транспортні засоби та їх власників», «Транспортні засоби в розшуку») ' +
         (r.data_until ? 'за 2013–' + esc(r.data_until) + ' рр. ' : '') + 'Імена, адреси й контакти власників у відкритих даних не публікуються. ' +
         (r.token ? (Number(r.price) > 0 ? 'Оплачено карткою ' + r.price + ' грн. ' : 'Звіт з пакета. ') + 'Збережіть посилання на цю сторінку.' : r.price > 0 ? 'Списано ' + r.price + ' грн з балансу.' : r.price === 0 ? 'Без оплати (повторний перегляд).' : '') + '</p>' +
-      watchBox(r.vin || r.q, 'report') + cvBox(r.vin || r.q, 'report', r.vin ? !isUaVin(r.vin) : r.origin === 'import') + '<div class="row no-print" style="gap:8px;margin-top:1rem"><button class="btn btn-primary" id="vcPdfBtn" onclick="VehicleCheck.pdf()"><i class="ti ti-file-download"></i>Завантажити PDF</button></div>';
+      expertBox(r.vin || r.q, 'report', false) + watchBox(r.vin || r.q, 'report') + cvBox(r.vin || r.q, 'report', r.vin ? !isUaVin(r.vin) : r.origin === 'import') + '<div class="row no-print" style="gap:8px;margin-top:1rem"><button class="btn btn-primary" id="vcPdfBtn" onclick="VehicleCheck.pdf()"><i class="ti ti-file-download"></i>Завантажити PDF</button></div>';
   }
 
   // «Можливо, ви мали на увазі»: схожі номери з реєстру (сплутані О/0, латинські літери, яких немає на номерах)
@@ -646,5 +699,5 @@ const VehicleCheck = (() => {
   }
   function show(k){ const c = (window.__vcHist || [])[k]; if (c) openReport({ ...c.report, price: c.price }); }
 
-  return { watch, linkVin, cvBox, cvClick, isUaVin, setPack, redeem, copyVin, crSet, toBuy, mount, mountBuy, loadPhotos, pdf, search, run, payCard, report, summary, reopen, mountHistory, show, loadPrice };
+  return { expertOpen, expertPay, expertBox, EXPERT_SECTIONS, watch, linkVin, cvBox, cvClick, isUaVin, setPack, redeem, copyVin, crSet, toBuy, mount, mountBuy, loadPhotos, pdf, search, run, payCard, report, summary, reopen, mountHistory, show, loadPrice };
 })();
