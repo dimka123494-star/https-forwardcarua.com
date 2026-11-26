@@ -394,7 +394,7 @@ button.card{color:var(--text);font:inherit;-webkit-appearance:none;appearance:no
 .vc-locked:hover{border-color:var(--green)}
 .vc-histbtn{margin-top:1rem}
 .vc-fab{position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom));z-index:60;display:inline-flex;gap:8px;align-items:center;padding:12px 18px;border-radius:999px;
-  background:var(--green);color:#06120c;font-weight:700;text-decoration:none;box-shadow:0 8px 24px rgba(0,0,0,.35);transition:opacity .2s,transform .2s}
+  background:var(--blue);color:#fff;font-weight:700;text-decoration:none;box-shadow:0 8px 24px rgba(15,41,66,.25);transition:opacity .2s,transform .2s}
 .vc-fab.hide{opacity:0;transform:translateY(20px);pointer-events:none}
 body.ap .vc-fab{bottom:calc(84px + env(safe-area-inset-bottom))}
 
@@ -517,7 +517,7 @@ body.ap .vc-fab{bottom:calc(84px + env(safe-area-inset-bottom))}
 .vc-expert{margin-top:1rem;border-color:rgba(245,166,35,.45)}
 .vc-expert-head{display:flex;gap:12px;align-items:flex-start;margin-bottom:.85rem}
 .vc-expert-head>i{font-size:26px;color:var(--amber);line-height:1}
-.vc-expert-btn,.vc-expert-pay{background:var(--amber);color:#1a1205;font-weight:600;border:0}
+.vc-expert-btn,.vc-expert-pay{background:var(--navy);color:#fff;font-weight:600;border:0}
 .vc-expert-btn:hover,.vc-expert-pay:hover{filter:brightness(1.06)}
 .vx-doc .vx-sec{border-top:.5px solid var(--border);padding:.85rem 0}
 .vx-doc .vx-sec:first-of-type{border-top:0}

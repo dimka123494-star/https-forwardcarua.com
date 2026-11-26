@@ -45,7 +45,7 @@ const CompanyCheck = (() => {
       '<div class="msg" id="ccMsg"></div>' +
       '<div id="ccCab" style="display:none;margin-bottom:12px"><button class="btn btn-primary btn-block" id="ccBtn" onclick="CompanyCheck.run(\'' + code + '\')"><i class="ti ti-wallet"></i>Списати ' + price + ' грн з балансу кабінету</button></div>' +
       '<div id="ccCard"><div class="field"><label class="label" for="ccEmail">Email для чека й посилання на звіт</label><input class="input" id="ccEmail" type="email" autocomplete="email" placeholder="you@example.com"></div>' +
-        '<button class="btn btn-block" id="ccPay" style="background:var(--green);color:#06120c;font-weight:600" onclick="CompanyCheck.payCard(\'' + code + '\')"><i class="ti ti-credit-card"></i>Оплатити карткою ' + price + ' грн</button>' +
+        '<button class="btn btn-block" id="ccPay" style="background:var(--blue);color:#fff;font-weight:600" onclick="CompanyCheck.payCard(\'' + code + '\')"><i class="ti ti-credit-card"></i>Оплатити карткою ' + price + ' грн</button>' +
         '<p class="text-xs text-muted" style="margin:.5rem 0 0">Оплата через WayForPay (Visa, Mastercard, Apple Pay, Google Pay). Після оплати одразу відкриється звіт із кнопкою «Завантажити PDF», а посилання на нього прийде на email.</p></div>';
     // є кабінет — пропонуємо списати з балансу
     try{ const u = await currentUser(); if (u){ const b = await getMyBroker(); if (b){ document.getElementById('ccCab').style.display = ''; const e = document.getElementById('ccEmail'); if (e) e.value = u.email || ''; } else { const e = document.getElementById('ccEmail'); if (e) e.value = u.email || ''; } } }catch(e){}
