@@ -457,7 +457,7 @@ const VehicleCheck = (() => {
       '<div class="msg" id="vcMsg" style="margin-top:.75rem"></div>' +
       '<div id="vcCab" style="display:none;margin-top:.75rem"><button class="btn btn-primary btn-block" id="vcBtn" onclick="VehicleCheck.run()"></button><div class="text-xs text-muted" id="vcCabNote" style="margin-top:.4rem"></div></div>' +
       '<div id="vcCard" style="margin-top:.75rem"><div class="field"><label class="label" for="vcEmail">Email для чека й посилання на звіт</label><input class="input" id="vcEmail" type="email" autocomplete="email" placeholder="you@example.com"></div>' +
-      '<button class="btn btn-block" id="vcPay" style="background:var(--green);color:#06120c;font-weight:600" onclick="VehicleCheck.payCard()"><i class="ti ti-credit-card"></i>' + payLabel() + '</button>' +
+      '<button class="btn btn-block" id="vcPay" style="background:var(--blue);color:#fff;font-weight:600" onclick="VehicleCheck.payCard()"><i class="ti ti-credit-card"></i>' + payLabel() + '</button>' +
       '<p class="text-xs text-muted" style="margin:.5rem 0 0">WayForPay: Visa, Mastercard, Apple Pay, Google Pay. Звіт відкриється одразу після оплати й прийде на email.</p></div></div>';
   }
   // кабінет: кнопка залежить від залишку пакета й вибраної кількості

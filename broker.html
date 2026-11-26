@@ -18,7 +18,7 @@
   gtag('js', new Date()); gtag('config', 'AW-18171698074');
 </script>
 
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.7.0/dist/tabler-icons.min.css">
 <link rel="stylesheet" href="/assets/css/app.css">
 <style>
@@ -43,7 +43,7 @@
 .rv-reply{margin-top:10px;padding:10px 12px;background:var(--surface2);border-left:2px solid var(--green);
   border-radius:0 var(--r-sm) var(--r-sm) 0}
 .star-pick{display:flex;gap:6px;margin-bottom:1rem}
-.sp{font-size:30px;cursor:pointer;color:rgba(255,255,255,.18);user-select:none;transition:color .1s;line-height:1}
+.sp{font-size:30px;cursor:pointer;color:rgba(15,41,66,.18);user-select:none;transition:color .1s;line-height:1}
 .sp.lit{color:var(--amber)}
 @media(max-width:768px){.b-hero{grid-template-columns:auto 1fr}.b-cta{grid-column:1/-1;min-width:0}.two-col{grid-template-columns:1fr}.rating-box{grid-template-columns:1fr;gap:12px}}
 </style>
@@ -106,7 +106,7 @@ function brokerIdFromUrl(){
 function starRow(n, size = 14){
   let h = '';
   for (let i = 1; i <= 5; i++)
-    h += '<span style="font-size:' + size + 'px;color:' + (i <= n ? 'var(--amber)' : 'rgba(255,255,255,.18)') + '">★</span>';
+    h += '<span style="font-size:' + size + 'px;color:' + (i <= n ? 'var(--amber)' : 'rgba(15,41,66,.18)') + '">★</span>';
   return h;
 }
 
