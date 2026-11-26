@@ -113,6 +113,7 @@
       <section class="cab-pane active" id="pane-dash">
         <h1 class="h-md" style="margin-bottom:1.25rem">Дашборд</h1>
         <div id="upsell"></div>
+        <div id="svcNudge"></div>
         <div class="card" id="tgCard" style="margin-bottom:1.25rem"></div>
         <div class="stat-grid" style="margin-bottom:1.25rem">
           <div class="stat"><div class="stat-val" style="color:var(--blue)" id="sViews">0</div><div class="stat-label">Переглядів профілю</div></div>
@@ -543,6 +544,17 @@ async function setStatus(id, status){
 
 /* ---------- Дашборд ---------- */
 async function renderDash(){
+  // без послуг брокер випадає з фільтра каталогу, без цін — немає «від X грн» на картці
+  const sv = broker.broker_services || [], nud = document.getElementById('svcNudge');
+  if (nud && broker.kind !== 'carrier'){
+    const noPrice = sv.length && !sv.some(x => Number(x.price_from) > 0);
+    nud.innerHTML = !sv.length || noPrice
+      ? '<div class="card" style="margin-bottom:1.25rem;border-color:rgba(245,166,35,.45)"><div class="row" style="gap:12px;align-items:flex-start">' +
+        '<i class="ti ti-alert-triangle" style="font-size:22px;color:var(--amber)"></i><div style="flex:1"><b>' + (sv.length ? 'Вкажіть ціни на послуги' : 'Додайте послуги в профіль') + '</b>' +
+        '<div class="text-sm text-muted" style="margin:.25rem 0 .75rem">' + (sv.length ? 'На картці в каталозі зʼявиться «від X грн» — на такі профілі клікають частіше.' : 'Без послуг клієнти не знайдуть вас через фільтр каталогу — ви показуєтесь лише без фільтрів.') + '</div>' +
+        '<button class="btn btn-primary btn-sm" onclick="pane(\'services\', document.querySelector(\'[data-pane=services]\'))">Перейти до послуг</button></div></div></div>'
+      : '';
+  }
   const stats = await brokerStats(broker.id);
   document.getElementById('sViews').textContent  = broker.views_count || 0;
   document.getElementById('sMonth').textContent  = stats.month;

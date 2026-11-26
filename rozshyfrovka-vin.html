@@ -83,13 +83,22 @@
 <body>
 <nav class="nav">
   <a class="nav-brand" href="/">Митний<span>Брокер</span></a>
-  <div class="nav-links"><a class="nav-link" href="/perevirka-avto">Перевірка авто</a><a class="nav-link active" href="/rozshyfrovka-vin">Розшифровка VIN</a><a class="nav-link" href="/perevirka-kompanii">Перевірка компанії</a><a class="nav-link" href="/reyestr-brokeriv">Митні брокери</a></div>
+  <div class="nav-links">
+    <a class="nav-link" href="/">Митні брокери</a>
+    <div class="nav-dd"><button class="nav-link active" type="button" aria-haspopup="true">Для водіїв <i class="ti ti-chevron-down"></i></button><div class="nav-dd-menu"><a href="/perevirka-avto"><i class="ti ti-car"></i>Перевірка авто за номером / VIN</a><a href="/rozshyfrovka-vin" class="active"><i class="ti ti-barcode"></i>Розшифровка VIN</a><a href="/kalkulyator-rozmytnennya"><i class="ti ti-calculator"></i>Калькулятор розмитнення</a><a href="/"><i class="ti ti-users"></i>Знайти митного брокера</a><a href="/zayavka"><i class="ti ti-send"></i>Заявка брокерам без дзвінків</a><a href="/app"><i class="ti ti-device-mobile"></i>Застосунок НомерОК</a></div></div>
+    <div class="nav-dd"><button class="nav-link" type="button" aria-haspopup="true">Для бізнесу <i class="ti ti-chevron-down"></i></button><div class="nav-dd-menu"><a href="/perevirka-kompanii"><i class="ti ti-building"></i>Перевірка компанії за ЄДРПОУ</a><a href="/perevirka-perevizhnyka"><i class="ti ti-truck"></i>Перевірка перевізника</a><a href="/perevezennya"><i class="ti ti-package"></i>Біржа вантажів ВантажПоруч</a><a href="/rmpd"><i class="ti ti-file-certificate"></i>RMPD, SENT, CMR — документи</a><a href="/punkty-propusku"><i class="ti ti-map-pin"></i>Брокери в пунктах пропуску</a><a href="/dlya-brokeriv"><i class="ti ti-briefcase"></i>Для митних брокерів</a><a href="/taryfy"><i class="ti ti-tag"></i>Тарифи для брокерів</a></div></div>
+    <a class="nav-link" href="/statti/">Статті</a>
+  </div>
   <div class="nav-actions">
     <a class="btn btn-ghost btn-sm" href="/vhid?next=%2Fkabinet">Увійти</a>
     <button class="nav-burger" onclick="document.getElementById('menu').classList.toggle('open')" aria-label="Меню"><i class="ti ti-menu-2"></i></button>
   </div>
 </nav>
-<div class="mobile-menu" id="menu"><a href="/perevirka-avto">Перевірка авто</a><a href="/rozshyfrovka-vin">Розшифровка VIN</a><a href="/perevirka-kompanii">Перевірка компанії</a><a href="/reyestr-brokeriv">Митні брокери</a><a href="/vhid">Увійти в кабінет</a></div>
+<div class="mobile-menu" id="menu">
+  <p class="mm-h">Для водіїв</p><a href="/perevirka-avto"><i class="ti ti-car"></i>Перевірка авто за номером / VIN</a><a href="/rozshyfrovka-vin"><i class="ti ti-barcode"></i>Розшифровка VIN</a><a href="/kalkulyator-rozmytnennya"><i class="ti ti-calculator"></i>Калькулятор розмитнення</a><a href="/"><i class="ti ti-users"></i>Знайти митного брокера</a><a href="/zayavka"><i class="ti ti-send"></i>Заявка брокерам без дзвінків</a><a href="/app"><i class="ti ti-device-mobile"></i>Застосунок НомерОК</a>
+  <p class="mm-h">Для бізнесу</p><a href="/perevirka-kompanii"><i class="ti ti-building"></i>Перевірка компанії за ЄДРПОУ</a><a href="/perevirka-perevizhnyka"><i class="ti ti-truck"></i>Перевірка перевізника</a><a href="/perevezennya"><i class="ti ti-package"></i>Біржа вантажів ВантажПоруч</a><a href="/rmpd"><i class="ti ti-file-certificate"></i>RMPD, SENT, CMR — документи</a><a href="/punkty-propusku"><i class="ti ti-map-pin"></i>Брокери в пунктах пропуску</a><a href="/dlya-brokeriv"><i class="ti ti-briefcase"></i>Для митних брокерів</a><a href="/taryfy"><i class="ti ti-tag"></i>Тарифи для брокерів</a>
+  <p class="mm-h">Ще</p><a href="/statti/"><i class="ti ti-news"></i>Корисні статті</a><a href="/vhid" id="menuAuth"><i class="ti ti-user"></i>Увійти в кабінет</a><a href="/terms"><i class="ti ti-file-text"></i>Публічна оферта</a>
+</div>
 
 <div class="page">
   <section class="container-narrow page-hero" style="padding-bottom:.5rem">

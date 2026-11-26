@@ -333,6 +333,17 @@ const VehicleCheck = (() => {
   }
   (async () => { try{ const sb = await sbReady(); const { data } = await sb.from('service_prices').select('price, active').eq('code', 'vehicle_expert').maybeSingle(); if (data && data.active) EXPERT_PRICE = Number(data.price); }catch(e){} })();
 
+  // наступний логічний крок після перевірки: розмитнення (для ввезених / іноземних VIN) або оформлення купівлі
+  function nextStep(r, vin){
+    const foreign = (vin && !isUaVin(vin)) || (r && (r.origin === 'import' || (r.vin_info && r.vin_info.country && r.vin_info.country !== 'Україна')));
+    const it = (href, ic, t, d) => '<a class="vc-next-it" href="' + href + '"><i class="ti ' + ic + '"></i><div><b>' + t + '</b><div class="text-xs text-muted">' + d + '</div></div><i class="ti ti-chevron-right"></i></a>';
+    return '<div class="vc-next no-print"><div class="vc-next-h">Що далі</div>' +
+      (foreign ? it('/kalkulyator-rozmytnennya', 'ti-calculator', 'Порахувати розмитнення', 'Мито, акциз і ПДВ за хвилину') : '') +
+      it('/zayavka', 'ti-users', foreign ? 'Розмитнити через брокера у вашій області' : 'Митний брокер у вашій області', 'Одна заявка — відповідають кілька брокерів, без дзвінків') +
+      (foreign ? '' : it('/rozshyfrovka-vin', 'ti-barcode', 'Розшифрувати VIN', 'Комплектація, двигун, країна збирання — безкоштовно')) +
+      '</div>';
+  }
+
   function summary(r){
     if (!r.found && r.wanted && r.wanted.found) return wAlert(r.wanted) + '<p class="text-xs text-muted">У реєстраційних даних МВС за «' + esc(r.q) + '» записів немає — дані з бази транспорту в розшуку.</p>';
     if (!r.found) return notFound(r);
@@ -364,7 +375,7 @@ const VehicleCheck = (() => {
       '<h4 class="vc-h">Останній запис</h4><div class="vc-tiles">' + lockTile('Дата', '14.06.2023', 'calendar') + lockTile('Операція', 'Перереєстрація на нового власника', 'file-text') +
         lockTile('Регіон', 'Київська обл.', 'map-pin') + lockTile('Власник', 'Фізична особа', 'user') + '</div>' +
       '<a class="btn btn-ghost btn-block vc-histbtn" href="#vcBuy" onclick="return VehicleCheck.toBuy()"><i class="ti ti-lock"></i>Історія реєстрацій · ' + (L.history || r.events) + ' ' + plural(L.history || r.events, 'запис', 'записи', 'записів') + '</a>' +
-      '</div>' + buyBox(r) + expertBox(r.q, 'summary', false) + watchBox(r.q, 'summary') + cvBox(r.by === 'vin' ? r.q : r.q, 'summary', r.by === 'vin' ? !isUaVin(r.q) : (r.origin === 'import' || (r.vin_info && r.vin_info.country && r.vin_info.country !== 'Україна'))) + '<a class="vc-fab" href="#vcBuy" onclick="return VehicleCheck.toBuy()"><i class="ti ti-shopping-cart"></i>Повний звіт · ' + PACKS[1] + ' грн</a>';
+      '</div>' + buyBox(r) + expertBox(r.q, 'summary', false) + nextStep(r, null) + watchBox(r.q, 'summary') + cvBox(r.by === 'vin' ? r.q : r.q, 'summary', r.by === 'vin' ? !isUaVin(r.q) : (r.origin === 'import' || (r.vin_info && r.vin_info.country && r.vin_info.country !== 'Україна'))) + '<a class="vc-fab" href="#vcBuy" onclick="return VehicleCheck.toBuy()"><i class="ti ti-shopping-cart"></i>Повний звіт · ' + PACKS[1] + ' грн</a>';
   }
   // «Стежити за авто»: безкоштовні сповіщення в Telegram про нові операції МВС і розшук (функція vehicle-watch)
   const watchBox = (q, src) => !q ? '' : '<div class="card vc-watch no-print" style="margin-top:1rem;display:flex;gap:12px;align-items:center;flex-wrap:wrap">' +
@@ -565,7 +576,7 @@ const VehicleCheck = (() => {
       '<p class="text-xs text-muted" style="margin:1.25rem 0 0">Перевірено ' + date(r.checked_at) + '. Джерело — відкриті дані Головного сервісного центру МВС («Відомості про транспортні засоби та їх власників», «Транспортні засоби в розшуку») ' +
         (r.data_until ? 'за 2013–' + esc(r.data_until) + ' рр. ' : '') + 'Імена, адреси й контакти власників у відкритих даних не публікуються. ' +
         (r.token ? (Number(r.price) > 0 ? 'Оплачено карткою ' + r.price + ' грн. ' : 'Звіт з пакета. ') + 'Збережіть посилання на цю сторінку.' : r.price > 0 ? 'Списано ' + r.price + ' грн з балансу.' : r.price === 0 ? 'Без оплати (повторний перегляд).' : '') + '</p>' +
-      expertBox(r.vin || r.q, 'report', false) + watchBox(r.vin || r.q, 'report') + cvBox(r.vin || r.q, 'report', r.vin ? !isUaVin(r.vin) : r.origin === 'import') + '<div class="row no-print" style="gap:8px;margin-top:1rem"><button class="btn btn-primary" id="vcPdfBtn" onclick="VehicleCheck.pdf()"><i class="ti ti-file-download"></i>Завантажити PDF</button></div>';
+      expertBox(r.vin || r.q, 'report', false) + nextStep(r, r.vin) + watchBox(r.vin || r.q, 'report') + cvBox(r.vin || r.q, 'report', r.vin ? !isUaVin(r.vin) : r.origin === 'import') + '<div class="row no-print" style="gap:8px;margin-top:1rem"><button class="btn btn-primary" id="vcPdfBtn" onclick="VehicleCheck.pdf()"><i class="ti ti-file-download"></i>Завантажити PDF</button></div>';
   }
 
   // «Можливо, ви мали на увазі»: схожі номери з реєстру (сплутані О/0, латинські літери, яких немає на номерах)

@@ -66,13 +66,22 @@
 <body>
 <nav class="nav">
   <a class="nav-brand" href="/">Митний<span>Брокер</span></a>
-  <div class="nav-links"><a class="nav-link active" href="/perevirka-avto">Перевірка авто</a><a class="nav-link" href="/kalkulyator-rozmytnennya">Калькулятор розмитнення</a><a class="nav-link" href="/perevirka-perevizhnyka">Перевірка перевізника</a><a class="nav-link" href="/perevirka-kompanii">Перевірка компанії</a><a class="nav-link" href="/reyestr-brokeriv">Митні брокери</a></div>
+  <div class="nav-links">
+    <a class="nav-link" href="/">Митні брокери</a>
+    <div class="nav-dd"><button class="nav-link active" type="button" aria-haspopup="true">Для водіїв <i class="ti ti-chevron-down"></i></button><div class="nav-dd-menu"><a href="/perevirka-avto" class="active"><i class="ti ti-car"></i>Перевірка авто за номером / VIN</a><a href="/rozshyfrovka-vin"><i class="ti ti-barcode"></i>Розшифровка VIN</a><a href="/kalkulyator-rozmytnennya"><i class="ti ti-calculator"></i>Калькулятор розмитнення</a><a href="/"><i class="ti ti-users"></i>Знайти митного брокера</a><a href="/zayavka"><i class="ti ti-send"></i>Заявка брокерам без дзвінків</a><a href="/app"><i class="ti ti-device-mobile"></i>Застосунок НомерОК</a></div></div>
+    <div class="nav-dd"><button class="nav-link" type="button" aria-haspopup="true">Для бізнесу <i class="ti ti-chevron-down"></i></button><div class="nav-dd-menu"><a href="/perevirka-kompanii"><i class="ti ti-building"></i>Перевірка компанії за ЄДРПОУ</a><a href="/perevirka-perevizhnyka"><i class="ti ti-truck"></i>Перевірка перевізника</a><a href="/perevezennya"><i class="ti ti-package"></i>Біржа вантажів ВантажПоруч</a><a href="/rmpd"><i class="ti ti-file-certificate"></i>RMPD, SENT, CMR — документи</a><a href="/punkty-propusku"><i class="ti ti-map-pin"></i>Брокери в пунктах пропуску</a><a href="/dlya-brokeriv"><i class="ti ti-briefcase"></i>Для митних брокерів</a><a href="/taryfy"><i class="ti ti-tag"></i>Тарифи для брокерів</a></div></div>
+    <a class="nav-link" href="/statti/">Статті</a>
+  </div>
   <div class="nav-actions">
     <a class="btn btn-ghost btn-sm" href="/vhid?next=%2Fkabinet%23vehicles">Увійти</a>
     <button class="nav-burger" onclick="document.getElementById('menu').classList.toggle('open')" aria-label="Меню"><i class="ti ti-menu-2"></i></button>
   </div>
 </nav>
-<div class="mobile-menu" id="menu"><a href="/perevirka-kompanii">Перевірка компанії</a><a href="/perevirka-avto">Перевірка авто</a><a href="/kalkulyator-rozmytnennya">Калькулятор розмитнення</a><a href="/perevirka-perevizhnyka">Перевірка перевізника</a><a href="/reyestr-brokeriv">Митні брокери</a><a href="/vhid">Увійти в кабінет</a></div>
+<div class="mobile-menu" id="menu">
+  <p class="mm-h">Для водіїв</p><a href="/perevirka-avto"><i class="ti ti-car"></i>Перевірка авто за номером / VIN</a><a href="/rozshyfrovka-vin"><i class="ti ti-barcode"></i>Розшифровка VIN</a><a href="/kalkulyator-rozmytnennya"><i class="ti ti-calculator"></i>Калькулятор розмитнення</a><a href="/"><i class="ti ti-users"></i>Знайти митного брокера</a><a href="/zayavka"><i class="ti ti-send"></i>Заявка брокерам без дзвінків</a><a href="/app"><i class="ti ti-device-mobile"></i>Застосунок НомерОК</a>
+  <p class="mm-h">Для бізнесу</p><a href="/perevirka-kompanii"><i class="ti ti-building"></i>Перевірка компанії за ЄДРПОУ</a><a href="/perevirka-perevizhnyka"><i class="ti ti-truck"></i>Перевірка перевізника</a><a href="/perevezennya"><i class="ti ti-package"></i>Біржа вантажів ВантажПоруч</a><a href="/rmpd"><i class="ti ti-file-certificate"></i>RMPD, SENT, CMR — документи</a><a href="/punkty-propusku"><i class="ti ti-map-pin"></i>Брокери в пунктах пропуску</a><a href="/dlya-brokeriv"><i class="ti ti-briefcase"></i>Для митних брокерів</a><a href="/taryfy"><i class="ti ti-tag"></i>Тарифи для брокерів</a>
+  <p class="mm-h">Ще</p><a href="/statti/"><i class="ti ti-news"></i>Корисні статті</a><a href="/vhid" id="menuAuth"><i class="ti ti-user"></i>Увійти в кабінет</a><a href="/terms"><i class="ti ti-file-text"></i>Публічна оферта</a>
+</div>
 
 <div class="page">
   <section class="container-narrow page-hero" style="padding-bottom:.5rem">
@@ -84,15 +93,6 @@
   <section class="container-narrow" style="padding-top:1rem;padding-bottom:1.5rem">
     <h2 style="font-size:22px;margin:0 0 .75rem">Перевірити авто</h2>
     <div id="vcMount"></div>
-  </section>
-  <section class="container-narrow" style="padding-top:0;padding-bottom:1.5rem">
-    <div class="card app-promo">
-      <img class="app-promo-ic" src="/assets/icons/icon-192.png" alt="" width="64" height="64">
-      <div class="app-promo-tx"><b>Застосунок НомерОК</b>
-        <div class="text-sm text-muted">Наведіть камеру телефона на номерний знак — застосунок сам прочитає номер і покаже історію авто. Безкоштовно, без App Store.</div>
-        <a class="btn btn-primary btn-sm app-promo-btn" href="/app?source=site"><i class="ti ti-device-mobile"></i>Відкрити застосунок</a></div>
-      <figure class="app-promo-qr"><img src="/assets/icons/app-qr.png" alt="QR-код застосунку НомерОК" width="132" height="132"><figcaption class="text-xs text-muted">Скануйте камерою телефона</figcaption></figure>
-    </div>
   </section>
   <section class="container-narrow seo">
     <h2>Що є в повному звіті</h2>
@@ -113,6 +113,15 @@
     </div>
     <h2>Питання й відповіді</h2>
     <div class="faq" onclick="this.classList.toggle('open')"><div class="faq-q">Що показує перевірка авто за номером? <i class="ti ti-chevron-down"></i></div><div class="faq-a">Марку, модель, рік, колір, пальне й обʼєм двигуна, дату першої реєстрації в Україні, скільки разів змінювався власник, чи ввезене авто з-за кордону і яка остання операція в сервісному центрі МВС. У повному звіті — уся історія реєстрацій з датами й областями, повний VIN, номерні знаки авто та перевірка в базі розшуку.</div></div><div class="faq" onclick="this.classList.toggle('open')"><div class="faq-q">Звідки дані? <i class="ti ti-chevron-down"></i></div><div class="faq-a">З відкритих даних Головного сервісного центру МВС на data.gov.ua: «Відомості про транспортні засоби та їх власників» (усі реєстраційні операції з 2013 року) і «Інформація про транспортні засоби, що перебувають у розшуку». Ми оновлюємо їх щотижня, щойно МВС публікує нові дані.</div></div><div class="faq" onclick="this.classList.toggle('open')"><div class="faq-q">Чи можна дізнатися власника авто? <i class="ti ti-chevron-down"></i></div><div class="faq-a">Ні. МВС не публікує імена, адреси й телефони власників — лише тип власника (фізична чи юридична особа) і область реєстрації. Сервіси, які «показують власника», беруть дані з незаконних баз; ми цього не робимо.</div></div><div class="faq" onclick="this.classList.toggle('open')"><div class="faq-q">Можна перевірити за VIN-кодом? <i class="ti ti-chevron-down"></i></div><div class="faq-a">Так. Введіть 17-значний VIN — знайдемо номерні знаки авто й історію операцій.</div></div><div class="faq" onclick="this.classList.toggle('open')"><div class="faq-q">Скільки коштує? <i class="ti ti-chevron-down"></i></div><div class="faq-a">Коротка довідка — безкоштовно. Повний звіт — <span class="vcPrice">50</span> грн: оплата карткою (Visa, Mastercard, Apple Pay, Google Pay) без реєстрації або з балансу кабінету. Повторний перегляд того самого авто в кабінеті протягом 30 днів — безкоштовно.</div></div><div class="faq" onclick="this.classList.toggle('open')"><div class="faq-q">Що перевірити перед купівлею вживаного авто? <i class="ti ti-chevron-down"></i></div><div class="faq-a">Порівняйте рік, колір, обʼєм двигуна й VIN зі свідоцтвом про реєстрацію; подивіться, як часто змінювався власник і чи немає зняття з обліку чи розшуку. Обтяження (заставу, арешт) перевіряйте окремо в Державному реєстрі обтяжень рухомого майна.</div></div>
+  </section>
+  <section class="container-narrow" style="padding-top:0;padding-bottom:2.5rem">
+    <div class="card app-promo">
+      <img class="app-promo-ic" src="/assets/icons/icon-192.png" alt="" width="64" height="64">
+      <div class="app-promo-tx"><b>Застосунок НомерОК</b>
+        <div class="text-sm text-muted">Наведіть камеру телефона на номерний знак — застосунок сам прочитає номер і покаже історію авто. Безкоштовно, без App Store.</div>
+        <a class="btn btn-primary btn-sm app-promo-btn" href="/app?source=site"><i class="ti ti-device-mobile"></i>Відкрити застосунок</a></div>
+      <figure class="app-promo-qr"><img src="/assets/icons/app-qr.png" alt="QR-код застосунку НомерОК" width="132" height="132"><figcaption class="text-xs text-muted">Скануйте камерою телефона</figcaption></figure>
+    </div>
   </section>
 </div>
 

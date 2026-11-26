@@ -117,13 +117,9 @@
 <nav class="nav">
   <button class="nav-brand" onclick="go('/')">Митний<span>Брокер</span></button>
   <div class="nav-links">
-    <button class="nav-link active" id="navCatalog" onclick="go('/')">Каталог</button>
-    <button class="nav-link" id="navPricing" onclick="go('/taryfy')">Тарифи</button>
-    <a class="nav-link" href="/kalkulyator-rozmytnennya">Калькулятор</a>
-    <a class="nav-link" href="/perevirka-kompanii">Перевірка компанії</a>
-    <a class="nav-link" href="/zayavka">Заявка</a>
-    <a class="nav-link" href="/perevezennya">Біржа вантажів</a>
-    <a class="nav-link" href="/dlya-brokeriv">Для брокерів</a>
+    <a class="nav-link" href="/">Митні брокери</a>
+    <div class="nav-dd"><button class="nav-link" type="button" aria-haspopup="true">Для водіїв <i class="ti ti-chevron-down"></i></button><div class="nav-dd-menu"><a href="/perevirka-avto"><i class="ti ti-car"></i>Перевірка авто за номером / VIN</a><a href="/rozshyfrovka-vin"><i class="ti ti-barcode"></i>Розшифровка VIN</a><a href="/kalkulyator-rozmytnennya"><i class="ti ti-calculator"></i>Калькулятор розмитнення</a><a href="/"><i class="ti ti-users"></i>Знайти митного брокера</a><a href="/zayavka"><i class="ti ti-send"></i>Заявка брокерам без дзвінків</a><a href="/app"><i class="ti ti-device-mobile"></i>Застосунок НомерОК</a></div></div>
+    <div class="nav-dd"><button class="nav-link" type="button" aria-haspopup="true">Для бізнесу <i class="ti ti-chevron-down"></i></button><div class="nav-dd-menu"><a href="/perevirka-kompanii"><i class="ti ti-building"></i>Перевірка компанії за ЄДРПОУ</a><a href="/perevirka-perevizhnyka"><i class="ti ti-truck"></i>Перевірка перевізника</a><a href="/perevezennya"><i class="ti ti-package"></i>Біржа вантажів ВантажПоруч</a><a href="/rmpd"><i class="ti ti-file-certificate"></i>RMPD, SENT, CMR — документи</a><a href="/punkty-propusku"><i class="ti ti-map-pin"></i>Брокери в пунктах пропуску</a><a href="/dlya-brokeriv"><i class="ti ti-briefcase"></i>Для митних брокерів</a><a href="/taryfy"><i class="ti ti-tag"></i>Тарифи для брокерів</a></div></div>
     <a class="nav-link" href="/statti/">Статті</a>
   </div>
   <div class="nav-actions">
@@ -134,22 +130,9 @@
 </nav>
 
 <div class="mobile-menu" id="menu">
-  <button onclick="go('/');toggleMenu()">Каталог брокерів</button>
-  <button onclick="go('/taryfy');toggleMenu()">Тарифи для брокерів</button>
-  <a href="/kalkulyator-rozmytnennya">Калькулятор розмитнення</a>
-  <a href="/zayavka">Залишити заявку</a>
-  <a href="/perevezennya">Біржа вантажів ВантажПоруч</a>
-  <a href="/rozshyfrovka-vin">Розшифровка VIN-коду</a>
-  <a href="/perevirka-kompanii">Перевірка компанії за ЄДРПОУ</a>
-  <a href="/perevirka-perevizhnyka">Перевірка перевізника за ЄДРПОУ</a>
-  <a href="/perevirka-avto">Перевірка авто за номером</a>
-  <a href="/app">Застосунок НомерОК</a>
-  <a href="/punkty-propusku">Брокери в пунктах пропуску</a>
-  <a href="/dlya-perevizhnykiv">Для перевізників</a>
-  <a href="/dlya-brokeriv">Для брокерів</a>
-  <a href="/statti/">Корисні статті</a>
-  <a href="/vhid" id="menuAuth">Увійти в кабінет</a>
-  <a href="/terms">Публічна оферта</a>
+  <p class="mm-h">Для водіїв</p><a href="/perevirka-avto"><i class="ti ti-car"></i>Перевірка авто за номером / VIN</a><a href="/rozshyfrovka-vin"><i class="ti ti-barcode"></i>Розшифровка VIN</a><a href="/kalkulyator-rozmytnennya"><i class="ti ti-calculator"></i>Калькулятор розмитнення</a><a href="/"><i class="ti ti-users"></i>Знайти митного брокера</a><a href="/zayavka"><i class="ti ti-send"></i>Заявка брокерам без дзвінків</a><a href="/app"><i class="ti ti-device-mobile"></i>Застосунок НомерОК</a>
+  <p class="mm-h">Для бізнесу</p><a href="/perevirka-kompanii"><i class="ti ti-building"></i>Перевірка компанії за ЄДРПОУ</a><a href="/perevirka-perevizhnyka"><i class="ti ti-truck"></i>Перевірка перевізника</a><a href="/perevezennya"><i class="ti ti-package"></i>Біржа вантажів ВантажПоруч</a><a href="/rmpd"><i class="ti ti-file-certificate"></i>RMPD, SENT, CMR — документи</a><a href="/punkty-propusku"><i class="ti ti-map-pin"></i>Брокери в пунктах пропуску</a><a href="/dlya-brokeriv"><i class="ti ti-briefcase"></i>Для митних брокерів</a><a href="/taryfy"><i class="ti ti-tag"></i>Тарифи для брокерів</a>
+  <p class="mm-h">Ще</p><a href="/statti/"><i class="ti ti-news"></i>Корисні статті</a><a href="/vhid" id="menuAuth"><i class="ti ti-user"></i>Увійти в кабінет</a><a href="/terms"><i class="ti ti-file-text"></i>Публічна оферта</a>
 </div>
 
 <!-- ========== КАТАЛОГ ========== -->
@@ -227,11 +210,15 @@
           <tr><td>Довідка по VIN: дані авто, країна, євростандарт, PDF з QR</td><td>5 на місяць</td><td>Без ліміту</td><td>Без ліміту</td><td>Без ліміту</td></tr>
           <tr><td>Електронна візитівка з QR і фірмовим кольором</td><td>—</td><td>✓</td><td>✓</td><td>✓</td></tr>
           <tr><td>Консультації бухгалтера та юриста з митних питань</td><td>—</td><td>Безкоштовно</td><td>Безкоштовно</td><td>Безкоштовно</td></tr>
-          <tr><td>Статистика переглядів</td><td>—</td><td>✓</td><td>✓</td><td>✓</td></tr>
+          <tr><td>Статистика переглядів</td><td>—</td><td>✓</td><td>Розширена</td><td>Розширена</td></tr>
+          <tr><td>Пріоритетна підтримка</td><td>—</td><td>—</td><td>✓</td><td>✓</td></tr>
           <tr><td>Вища позиція в списку</td><td>—</td><td>—</td><td>✓</td><td>✓</td></tr>
           <tr><td>Значок ТОП</td><td>—</td><td>—</td><td>✓</td><td>✓</td></tr>
           <tr><td>Банер на головній</td><td>—</td><td>—</td><td>—</td><td>✓</td></tr>
           <tr><td>Персональний менеджер</td><td>—</td><td>—</td><td>—</td><td>✓</td></tr>
+          <tr><td>Перша позиція в каталозі</td><td>—</td><td>—</td><td>—</td><td>✓</td></tr>
+          <tr><td>Банер у результатах пошуку</td><td>—</td><td>—</td><td>—</td><td>✓</td></tr>
+          <tr><td>Експорт заявок (API)</td><td>—</td><td>—</td><td>—</td><td>✓</td></tr>
         </tbody>
       </table>
     </div>
@@ -314,8 +301,8 @@ function go(path, silent){
   const pricing = path === '/taryfy';
   document.getElementById('view-catalog').style.display = pricing ? 'none' : 'block';
   document.getElementById('view-pricing').style.display = pricing ? 'block' : 'none';
-  document.getElementById('navCatalog').classList.toggle('active', !pricing);
-  document.getElementById('navPricing').classList.toggle('active', pricing);
+  document.getElementById('navCatalog')?.classList.toggle('active', !pricing);
+  document.getElementById('navPricing')?.classList.toggle('active', pricing);
   document.getElementById('menu').classList.remove('open');
   if (pricing) setMeta(META.pricing.t, META.pricing.d, '/taryfy');
   else applyRegionMeta(document.getElementById('fRegion').value);
@@ -393,11 +380,11 @@ function renderBrokers(){
       '<div class="bcard-top">' +
         '<div class="avatar av-' + esc(plan) + '">' + avatarInner(b) + '</div>' +
         '<div style="flex:1;min-width:0">' +
-          '<div class="bcard-name">' + esc(b.name) +
+          '<div class="bcard-name">' + esc(prettyName(b.name)) +
             (b.is_verified ? '<i class="ti ti-rosette-discount-check" style="color:var(--green);font-size:15px" title="Контакти перевірено"></i>' : '') +
           '</div>' +
           '<div class="bcard-loc"><i class="ti ti-map-pin" style="font-size:11px"></i>' +
-            esc([b.city, b.region].filter(Boolean).join(', ') || 'Україна') + '</div>' +
+            esc(placeText(b)) + '</div>' +
         '</div>' +
         '<span class="badge badge-' + esc(plan) + '">' + planEmoji(plan) + ' ' + planLabel(plan) + '</span>' +
       '</div>' +
@@ -408,8 +395,8 @@ function renderBrokers(){
       '<div class="bcard-foot">' +
         (rating > 0
           ? '<span class="row" style="gap:6px"><span class="stars">' + '★'.repeat(Math.round(rating)) + '</span><strong>' +
-            rating.toFixed(1) + '</strong><span class="text-xs text-muted">(' + (b.rating_count || 0) + ')</span></span>'
-          : '<span class="text-xs text-muted">Ще без відгуків</span>') +
+            rating.toFixed(1) + '</strong><span class="text-xs text-muted">(' + (b.rating_count || 0) + ')</span>' + (priceFrom(b) ? ' <span class="bcard-price">від ' + priceFrom(b).toLocaleString('uk-UA') + ' грн</span>' : '') + '</span>'
+          : (priceFrom(b) ? '<span class="bcard-price">від ' + priceFrom(b).toLocaleString('uk-UA') + ' грн</span>' : b.is_verified ? '<span class="text-xs" style="color:var(--green)"><i class="ti ti-phone-check"></i> Контакти перевірено</span>' : '<span></span>')) +
         '<div class="bcard-actions">' +
           '<a class="btn btn-ghost btn-sm" href="/broker/' + esc(b.id) + '">Профіль</a>' +
           '<a class="btn btn-primary btn-sm" href="/zayavka?broker=' + esc(b.id) + '">Заявка</a>' +
@@ -429,7 +416,7 @@ function toggleBilling(){
 const PLAN_FEATURES = {
   free:     [['Профіль у каталозі',1],['Показ у своєму регіоні',1],['До 5 заявок на місяць',1],['3 послуги в профілі',1],['Калькулятор розмитнення авто + PDF',1],['Довідка по VIN з євростандартом — 5/міс',1],['Електронна візитівка',0],['Консультації бухгалтера й юриста',0],['Інші регіони',0],['Вища позиція в списку',0],['Статистика переглядів',0]],
   standard: [['Профіль у каталозі',1],['Вся Україна',1],['До 30 заявок на місяць',1],['10 послуг у профілі',1],['Калькулятор УКТ ЗЕД + PDF',1],['Довідки по VIN без ліміту',1],['Електронна візитівка + QR',1],['Свій колір візитівки',1],['Безкоштовні консультації бухгалтера й юриста з митних питань',1],['Статистика переглядів',1],['Вища позиція в списку',0],['Значок ТОП',0]],
-  pro:      [['Все зі «Стандарт»',1],['Без ліміту заявок',1],['Вища позиція в списку',1],['Значок ТОП',1],['Пріоритетна підтримка',1],['Розширена статистика',1],['Банер на головній',0]],
+  pro:      [['Все зі «Стандарт»',1],['Без ліміту заявок',1],['20 послуг у профілі',1],['Вища позиція в списку',1],['Значок ТОП',1],['Пріоритетна підтримка',1],['Розширена статистика',1],['Банер на головній',0]],
   premium:  [['Все з «Про»',1],['Перша позиція в каталозі',1],['Банер на головній',1],['Банер у результатах пошуку',1],['Персональний менеджер',1],['Без ліміту послуг',1],['Експорт заявок (API)',1]]
 };
 function renderPlans(){
@@ -454,7 +441,7 @@ function renderPlans(){
       '<div class="plan-price">' + perMonth + ' <small>грн</small></div>' +
       '<div class="plan-period">' + (key === 'free' ? 'назавжди' : (yearly ? '/місяць · ' + fmtMoney(p.year) + ' за рік' : '/місяць')) + '</div>' +
       '<ul class="plan-list">' +
-        PLAN_FEATURES[key].map(f => '<li class="' + (f[1] ? 'on' : '') + '"><i class="ti ti-' + (f[1] ? 'check' : 'x') + '"></i>' + f[0] + '</li>').join('') +
+        PLAN_FEATURES[key].filter(f => f[1]).map(f => '<li class="on"><i class="ti ti-check"></i>' + f[0] + '</li>').join('') +
       '</ul>' + btn + '</div>';
   }).join('');
 }

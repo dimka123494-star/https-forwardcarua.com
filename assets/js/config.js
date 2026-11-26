@@ -113,10 +113,33 @@ function initials(n){
   if (w.length === 1) return (w[0].match(/[\p{L}\p{N}]/gu) || ['?']).slice(0, 2).join('').toUpperCase();
   return w.map(x => x.match(/[\p{L}\p{N}]/u)[0]).join('').slice(0, 2).toUpperCase();
 }
+/** Назва як у документах: «VITALII MELNIK» / «МИТНИЙ ПАРТНЕР» → «Vitalii Melnik» / «Митний Партнер»; ТОВ, ФОП тощо лишаються великими */
+function prettyName(n){
+  const s = String(n ?? '').trim().replace(/\s+/g, ' ');
+  const letters = s.replace(/[^\p{L}]/gu, '');
+  if (letters.length < 4 || letters !== letters.toUpperCase()) return s;   // уже звичайний регістр — не чіпаємо
+  const KEEP = /^(ТОВ|ФОП|ПП|ПРАТ|ПАТ|АТ|ДП|КП|ТДВ|LTD|LLC|UA|ЄС|EU|ЮА)$/;
+  return s.split(' ').map(w => KEEP.test(w.replace(/[«»"'.,]/g, '')) ? w : w.toLowerCase().replace(/(^|[«"'(\-])(\p{L})/gu, (m, a, c) => a + c.toUpperCase())).join(' ');
+}
+/** Місце: «м. КИЇВ» + «м. Київ» → «Київ»; «Ірпінь» + «Київська» → «Ірпінь, Київська обл.» */
+function placeText(b){
+  const city = prettyName(String(b && b.city || '').replace(/^\s*(м|смт|с|сел)\.\s*/i, '')).trim();
+  let reg = String(b && b.region || '').trim();
+  if (/^м\.?\s/i.test(reg)) reg = '';                         // «м. Київ» — місто-регіон, окремо не пишемо
+  else if (reg && !/обл/.test(reg)) reg += ' обл.';
+  if (!city && /^м\.?\s/i.test(String(b && b.region || ''))) return String(b.region).replace(/^м\.?\s*/i, '');
+  return [city, reg].filter(Boolean).join(', ') || 'Україна';
+}
+/** Найнижча ціна послуг брокера, грн (або null) */
+function priceFrom(b){
+  const p = (b && b.broker_services || []).map(s => Number(s.price_from)).filter(x => x > 0);
+  return p.length ? Math.min(...p) : null;
+}
 /** Вміст аватарки: логотип (платні тарифи) або ініціали */
 function avatarInner(b){
   const paid = b && b.plan && b.plan !== 'free' && (!b.plan_expires_at || new Date(b.plan_expires_at) > new Date());
-  if (paid && b.logo_url) return '<img src="' + esc(b.logo_url) + '" alt="' + esc(b.name || '') + '" loading="lazy">';
+  // якщо логотип не завантажився — показуємо ініціали, а не порожній кружок
+  if (paid && b.logo_url) return '<img src="' + esc(b.logo_url) + '" alt="' + esc(b.name || '') + '" loading="lazy" onerror="this.replaceWith(document.createTextNode(\'' + esc(initials(b.name)).replace(/'/g, '') + '\'))">';
   return esc(initials(b && b.name));
 }
 /** Безпечне посилання на сайт брокера */
