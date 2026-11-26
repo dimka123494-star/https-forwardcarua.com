@@ -363,6 +363,7 @@
         <h1 class="h-md">Перевірки компаній і авто <span class="text-sm text-muted" id="ckTotal"></span></h1>
         <button class="btn-quiet" onclick="loadChecks()"><i class="ti ti-refresh"></i> Оновити</button>
       </div>
+      <div class="card" id="mkCard" style="margin-bottom:1.25rem;display:none"></div>
       <div class="card" id="phMod" style="margin-bottom:1.25rem;display:none"></div>
       <div class="stat-grid" id="ckStats" style="margin-bottom:1.25rem"></div>
       <div class="table-wrap table-scroll"><table>
@@ -593,10 +594,32 @@ async function loadAll(){
   rmLoadPrices();
   loadChecks().catch(e => console.error(e));
   loadVx().catch(e => console.error(e));
+  loadMkt().catch(e => console.error(e));
   try { sentAdm = await adminSent(); renderSentAdm(); } catch(e){ console.error(e); }
   try { delegAdm = await adminDeleg(); renderDelegAdm(); } catch(e){ console.error(e); }
   try { cargoAdm = await adminCargo(); renderCargoAdm(); } catch(e){ console.error(e); }
   try { vehAdm = await adminVehicles(); renderVehAdm(); } catch(e){ console.error(e); }
+}
+
+/* ---------- Розсилка покупцям: надіслано / згоди / відписки ---------- */
+async function loadMkt(){
+  const sb = await sbReady();
+  const [{ data: sends }, { data: cts }] = await Promise.all([
+    sb.from('marketing_sends').select('campaign, email, sent_at').order('sent_at', { ascending: false }).limit(5000),
+    sb.from('marketing_contacts').select('email, consent_at, unsubscribed_at').limit(5000)]);
+  const S = sends || [], C = cts || [];
+  if (!S.length && !C.length) return;
+  const consent = C.filter(c => c.consent_at && !c.unsubscribed_at), unsub = C.filter(c => c.unsubscribed_at);
+  const camps = {};
+  S.forEach(x => { const k = camps[x.campaign] || (camps[x.campaign] = { n: 0, at: x.sent_at }); k.n++; if (x.sent_at < k.at) k.at = x.sent_at; });
+  const tile = (n, l, c) => '<div class="stat"><div class="stat-val"' + (c ? ' style="color:' + c + '"' : '') + '>' + n + '</div><div class="stat-label">' + l + '</div></div>';
+  const el = document.getElementById('mkCard'); el.style.display = '';
+  el.innerHTML = '<div class="spread" style="margin-bottom:.75rem"><div class="card-title" style="margin:0"><i class="ti ti-mail"></i> Розсилка покупцям</div><button class="btn-quiet" onclick="loadMkt()"><i class="ti ti-refresh"></i></button></div>' +
+    '<div class="stat-grid">' + tile(S.length, 'Листів надіслано') + tile(consent.length, 'Погодились на новини', 'var(--green)') + tile(unsub.length, 'Відписались', unsub.length ? 'var(--red)' : '') + '</div>' +
+    '<div class="text-xs text-muted" style="margin-top:.75rem">' + Object.entries(camps).map(([k, v]) => esc(k) + ': ' + v.n + ' лист. · ' + new Date(v.at).toLocaleDateString('uk-UA')).join('<br>') + '</div>' +
+    (consent.length ? '<details style="margin-top:.6rem"><summary class="text-sm" style="cursor:pointer">Хто погодився (' + consent.length + ')</summary><div class="text-xs" style="margin-top:.4rem">' +
+      consent.map(c => esc(c.email) + ' <span class="text-muted">' + new Date(c.consent_at).toLocaleDateString('uk-UA') + '</span>').join('<br>') + '</div></details>' : '') +
+    '<p class="hint" style="margin:.6rem 0 0">Наступні розсилки йдуть лише тим, хто погодився. Переходи з листів — у Google Analytics, кампанія з мітки utm_campaign.</p>';
 }
 
 /* ---------- Детальні перевірки авто (500 грн) ---------- */
