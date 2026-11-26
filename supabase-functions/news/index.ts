@@ -81,7 +81,9 @@ Deno.serve(async (req) => {
     if (!ok) return json({ error: "unauthorized" }, 401);
     const make = CAMPAIGNS[String(p.campaign)];
     if (!make) return json({ error: "bad_campaign" }, 400);
-    let KEY = Deno.env.get("RESEND_API_KEY") ?? "";
+    // окремий ключ Resend лише для news.forwardcarua.com (ключ звітів обмежений доменом mail.forwardcarua.com)
+    let KEY = Deno.env.get("RESEND_NEWS_KEY") ?? Deno.env.get("RESEND_API_KEY") ?? "";
+    if (!Deno.env.get("RESEND_NEWS_KEY")) KEY = (await db.from("app_secrets").select("value").eq("name", "RESEND_NEWS_KEY").maybeSingle()).data?.value || KEY;
     if (!KEY) KEY = (await db.from("app_secrets").select("value").eq("name", "RESEND_API_KEY").maybeSingle()).data?.value ?? "";
     if (!KEY) return json({ error: "no_resend_key" }, 500);
     let list: string[];
