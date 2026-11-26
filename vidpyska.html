@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Розсилка НомерОК</title>
+<meta name="robots" content="noindex,nofollow">
+<meta name="referrer" content="no-referrer">
+<meta name="theme-color" content="#0a0f0d">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.7.0/dist/tabler-icons.min.css">
+<link rel="stylesheet" href="/assets/css/app.css">
+</head>
+<body>
+<nav class="nav">
+  <a class="nav-brand" href="/">Митний<span>Брокер</span></a>
+  <div class="nav-links"><a class="nav-link" href="/perevirka-avto">Перевірка авто</a></div>
+</nav>
+<div class="page">
+  <main class="container-narrow" style="padding-top:2rem;padding-bottom:3rem">
+    <div class="card" id="vp"><p class="text-sm text-muted">Зачекайте…</p></div>
+  </main>
+</div>
+<script src="/assets/js/config.js"></script>
+<script>
+(function(){
+  const box = document.getElementById('vp');
+  const q = new URLSearchParams(location.search), t = q.get('t') || '', sub = q.get('a') === 's';
+  const call = action => fetch(SUPABASE_URL + '/functions/v1/news', { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: SUPABASE_ANON }, body: JSON.stringify({ action, t }) }).then(r => r.ok);
+  const done = action => action === 'sub'
+    ? '<h1 class="h-md"><i class="ti ti-circle-check" style="color:var(--green)"></i> Дякуємо!</h1><p class="text-sm text-muted">Надсилатимемо знижки на перевірки й новини НомерОК — не частіше кількох разів на місяць. Відписатися можна в будь-якому листі.</p>'
+    : '<h1 class="h-md">Ви відписалися</h1><p class="text-sm text-muted">Більше рекламних листів не надсилатимемо. Листи про ваші замовлення (звіти, довідки) приходитимуть як і раніше.</p><button class="btn btn-ghost btn-sm" id="vpUndo" style="margin-top:.75rem">Я передумав — хочу отримувати новини</button>';
+  const fail = '<h1 class="h-md">Посилання недійсне</h1><p class="text-sm text-muted">Напишіть на <a href="mailto:custom@forwardcarua.com">custom@forwardcarua.com</a> — відпишемо вручну.</p>';
+  function run(action){
+    call(action).then(ok => {
+      box.innerHTML = ok ? done(action) : fail;
+      const u = document.getElementById('vpUndo'); if (u) u.onclick = () => run('sub');
+      try{ track(action === 'sub' ? 'newsletter_subscribe' : 'newsletter_unsubscribe', {}); }catch(e){}
+    }).catch(() => { box.innerHTML = '<p class="text-sm">Не вдалося — оновіть сторінку.</p>'; });
+  }
+  if (!t) { box.innerHTML = fail; return; }
+  // згоду даємо лише явним натисканням (поштові сканери відкривають посилання самі)
+  if (sub){ box.innerHTML = '<h1 class="h-md">Новини НомерОК</h1><p class="text-sm text-muted">Знижки на перевірки авто й новини сервісу — не частіше кількох разів на місяць. Відписатися можна в будь-якому листі.</p><button class="btn btn-primary" id="vpYes" style="margin-top:.75rem">Так, хочу отримувати новини</button>';
+    document.getElementById('vpYes').onclick = () => run('sub'); return; }
+  run('unsub');
+})();
+</script>
+</body>
+</html>
