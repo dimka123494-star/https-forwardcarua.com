@@ -25,15 +25,16 @@
   html,body{background:#F8FAFC}
   .ap-top{position:sticky;top:0;z-index:20;background:rgba(15,41,66,.92);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
     padding:calc(env(safe-area-inset-top) + 10px) 16px 10px;display:flex;align-items:center;justify-content:space-between;border-bottom:.5px solid var(--border)}
-  .ap-brand{font-weight:800;font-size:18px;color:var(--text);text-decoration:none}.ap-brand span{color:var(--green)}
+  .ap-top .btn-ghost,.ap-top .btn-quiet{color:#fff;border-color:rgba(255,255,255,.35);background:transparent}
+  .ap-brand{font-weight:800;font-size:18px;color:#fff;text-decoration:none}.ap-brand span{color:#F59E0B}
   .ap-main{max-width:680px;margin:0 auto;padding:16px 16px calc(env(safe-area-inset-bottom) + 96px)}
   .ap-pane{display:none}.ap-pane.on{display:block}
   .ap-h{font-size:22px;font-weight:700;margin:.25rem 0 .35rem}
   .ap-sub{font-size:13px;color:var(--muted);margin:0 0 1rem;line-height:1.5}
   .ap-tabs{position:fixed;left:0;right:0;bottom:0;z-index:30;display:grid;grid-template-columns:repeat(4,1fr);
-    background:rgba(14,20,18,.96);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-top:.5px solid var(--border);padding:6px 6px calc(env(safe-area-inset-bottom) + 6px)}
+    background:rgba(255,255,255,.97);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-top:.5px solid var(--border);padding:6px 6px calc(env(safe-area-inset-bottom) + 6px)}
   .ap-tab{background:none;border:0;color:var(--muted);font:inherit;font-size:11px;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 0;border-radius:10px;cursor:pointer;-webkit-appearance:none;appearance:none}
-  .ap-tab i{font-size:22px}.ap-tab.on{color:var(--green);background:rgba(16,185,129,.08)}
+  .ap-tab i{font-size:22px}.ap-tab.on{color:var(--blue);background:rgba(217,119,6,.10)}
   .ap-install{display:none;margin-bottom:12px;border-color:var(--green)}
   .ap-recent a{display:flex;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:.5px solid var(--border);color:var(--text);text-decoration:none;font-size:14px}
   .ap-recent a:last-child{border-bottom:0}
