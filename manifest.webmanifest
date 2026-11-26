@@ -8,8 +8,8 @@
   "display": "standalone",
   "orientation": "portrait",
   "lang": "uk",
-  "background_color": "#0a0f0d",
-  "theme_color": "#0a0f0d",
+  "background_color": "#F8FAFC",
+  "theme_color": "#0F2942",
   "categories": ["business", "utilities", "auto"],
   "icons": [
     { "src": "/assets/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
