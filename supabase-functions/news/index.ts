@@ -3,13 +3,15 @@
 //  POST {action:"sub", t}     → згода отримувати новини (кнопка в листі → /vidpyska?a=s&t=…)
 //  POST {action:"send", campaign, test} + x-cron-secret → розсилка кампанії: test=true — лише на ADMIN_EMAIL;
 //       інакше всім покупцям (оплачені звіти авто, компаній, детальні перевірки), крім відписаних і тих, кому вже надіслано.
-// Закон «Про електронну комерцію», ст. 10: лист позначений як рекламний, у кожному — робоча відписка; без згоди — не частіше одного листа.
+// Закон «Про електронну комерцію», ст. 10 ч. 3: без згоди можна, якщо в кожному листі є відписка — лист позначений як рекламний, відписка в один клік.
+// Правила: не частіше 1 листа на ~місяць одній людині (marketing_recipients пропускає тих, кому писали за 25 днів);
+// розсилки йдуть з окремого піддомену news.forwardcarua.com, щоб скарги на спам не зачепили листи зі звітами (mail.forwardcarua.com).
 // Деплой без verify_jwt.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { createHmac } from "node:crypto";
 
 const SITE = "https://forwardcarua.com";
-const FROM = "НомерОК <noreply@mail.forwardcarua.com>";
+const FROM = Deno.env.get("NEWS_FROM") ?? "НомерОК <news@news.forwardcarua.com>";
 const REPLY = "custom@forwardcarua.com";
 const ADMIN = Deno.env.get("ADMIN_EMAIL") ?? "dimka123494@gmail.com";
 const CORS = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, content-type, apikey, x-client-info, x-cron-secret", "Access-Control-Allow-Methods": "POST, OPTIONS" };
@@ -103,7 +105,13 @@ Deno.serve(async (req) => {
           headers: { "List-Unsubscribe": `<${SITE}/vidpyska?t=${token(email)}>, <mailto:${REPLY}?subject=unsubscribe>` },
           tags: [{ name: "type", value: "newsletter" }] }),
       });
-      if (r.ok) sent++; else { failed.push(email); console.error("resend", r.status, await r.text()); if (!p.test) await db.from("marketing_sends").delete().eq("campaign", p.campaign).eq("email", email); }
+      if (r.ok) sent++; else {
+        const body = await r.text();
+        failed.push(email); console.error("resend", r.status, body);
+        if (!p.test) await db.from("marketing_sends").delete().eq("campaign", p.campaign).eq("email", email);
+        // піддомен розсилки ще не підтверджено в Resend — зупиняємось, а не шлемо з адреси звітів
+        if (r.status === 403 || /domain/i.test(body)) return json({ error: "news_domain_not_verified", detail: body.slice(0, 200), sent }, 409);
+      }
       await new Promise((ok) => setTimeout(ok, 600));   // ліміт Resend — 2 листи/с
     }
     return json({ campaign: p.campaign, test: !!p.test, recipients: list.length, sent, failed: failed.length });

@@ -33,6 +33,10 @@ returns table(email text) language sql stable security definer set search_path =
     and c.unsubscribed_at is null
     and (not p_consent_only or c.consent_at is not null)
     and not exists (select 1 from marketing_sends s where s.campaign = p_campaign and s.email = b.email)
+    -- не частіше одного рекламного листа на ~місяць
+    and not exists (select 1 from marketing_sends s where s.email = b.email and s.sent_at > now() - interval '25 days')
+    -- першим 29 покупцям лист 2026-12-vin-expert обіцяв: «без згоди більше рекламних листів не надсилатимемо»
+    and (c.consent_at is not null or not exists (select 1 from marketing_sends s where s.email = b.email and s.campaign = '2026-12-vin-expert'))
   order by 1;
 $$;
 revoke all on function marketing_recipients(text, boolean) from public, anon, authenticated;

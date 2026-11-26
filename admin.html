@@ -619,7 +619,7 @@ async function loadMkt(){
     '<div class="text-xs text-muted" style="margin-top:.75rem">' + Object.entries(camps).map(([k, v]) => esc(k) + ': ' + v.n + ' лист. · ' + new Date(v.at).toLocaleDateString('uk-UA')).join('<br>') + '</div>' +
     (consent.length ? '<details style="margin-top:.6rem"><summary class="text-sm" style="cursor:pointer">Хто погодився (' + consent.length + ')</summary><div class="text-xs" style="margin-top:.4rem">' +
       consent.map(c => esc(c.email) + ' <span class="text-muted">' + new Date(c.consent_at).toLocaleDateString('uk-UA') + '</span>').join('<br>') + '</div></details>' : '') +
-    '<p class="hint" style="margin:.6rem 0 0">Наступні розсилки йдуть лише тим, хто погодився. Переходи з листів — у Google Analytics, кампанія з мітки utm_campaign.</p>';
+    '<p class="hint" style="margin:.6rem 0 0">Розсилки йдуть усім покупцям, крім відписаних, не частіше одного листа на місяць, з адреси news@news.forwardcarua.com. Тим, хто отримав перший лист (2026-12-vin-expert), — лише після згоди: так було обіцяно в ньому. Переходи з листів — у Google Analytics, кампанія з мітки utm_campaign.</p>';
 }
 
 /* ---------- Детальні перевірки авто (500 грн) ---------- */
