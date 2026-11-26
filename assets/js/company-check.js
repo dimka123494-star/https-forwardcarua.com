@@ -54,6 +54,7 @@ const CompanyCheck = (() => {
   async function payCard(code){
     const btn = document.getElementById('ccPay'), m = document.getElementById('ccMsg');
     const email = (document.getElementById('ccEmail').value || '').trim();
+    if (typeof adsUserData === 'function') adsUserData(email);
     const fail = t => { m.className = 'msg show msg-err'; m.textContent = t; btn.disabled = false; btn.innerHTML = '<i class="ti ti-credit-card"></i>Оплатити карткою ' + price + ' грн'; };
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return fail('Вкажіть email — на нього прийде чек, а звіт буде за посиланням');
     btn.disabled = true; btn.textContent = 'Переходимо до оплати…';

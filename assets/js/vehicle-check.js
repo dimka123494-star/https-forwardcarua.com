@@ -314,7 +314,7 @@ const VehicleCheck = (() => {
     const fail = t => { m.className = 'msg show msg-err'; m.textContent = t; btn.disabled = false; btn.innerHTML = '<i class="ti ti-credit-card"></i>Оплатити ' + EXPERT_PRICE + ' грн'; };
     if (f('vin') && !/^[A-HJ-NPR-Z0-9]{17}$/.test(vin)) return fail('Вкажіть VIN — 17 символів (латиниця й цифри, без I, O, Q)');
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return fail('Вкажіть email — на нього прийде довідка');
-    btn.disabled = true; btn.textContent = 'Переходимо до оплати…';
+    btn.disabled = true; btn.textContent = 'Переходимо до оплати…'; adsUserData(email);
     try{
       const d = await call({ action: 'expert_checkout', q: b.dataset.q, email, phone, vin });
       try{ track('begin_checkout', { value: EXPERT_PRICE, currency: 'UAH', items: [{ item_name: 'vehicle_expert' }] }); }catch(x){}
@@ -634,6 +634,7 @@ const VehicleCheck = (() => {
   async function payCard(){
     const btn = document.getElementById('vcPay'), m = document.getElementById('vcMsg');
     const email = (document.getElementById('vcEmail').value || '').trim();
+    adsUserData(email);
     const fail = t => { m.className = 'msg show msg-err'; m.textContent = t; btn.disabled = false; btn.innerHTML = '<i class="ti ti-credit-card"></i>' + payLabel(); };
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return fail('Вкажіть email — на нього прийде чек, а звіт буде за посиланням');
     btn.disabled = true; btn.textContent = 'Переходимо до оплати…';

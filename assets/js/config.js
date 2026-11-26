@@ -174,10 +174,15 @@ const ADS_ID = 'AW-18171698074';
 const ADS_CONVERSIONS = { sign_up: 'YyTkCMyO8rMdEJq3-NhD', rmpd_submit: 'c5D6CM-O8rMdEJq3-NhD', sent_submit: 'c5D6CM-O8rMdEJq3-NhD', deleg_submit: 'c5D6CM-O8rMdEJq3-NhD', cmr_create: 'c5D6CM-O8rMdEJq3-NhD', tg_lead: 'c5D6CM-O8rMdEJq3-NhD',
   // «Покупка»: оплата звіту карткою (purchase на /zvit-avto, /zvit) і з балансу кабінету (vehicle_check, company_check)
   purchase: 'alJJCILQybEcEJq3-NhD', vehicle_check: 'alJJCILQybEcEJq3-NhD', company_check: 'alJJCILQybEcEJq3-NhD' };
+// Розширені конверсії Google Ads: email покупця запамʼятовуємо перед переходом на оплату (на 2 год),
+// на сторінці звіту передаємо в gtag('set','user_data') — Google хешує його сам (SHA-256) і не бачить адреси
+function adsUserData(email){ try{ if (email) localStorage.setItem('adsEm', JSON.stringify({ e: String(email).trim().toLowerCase(), at: Date.now() })); }catch(e){} }
+function adsEmail(){ try{ const x = JSON.parse(localStorage.getItem('adsEm') || 'null'); if (x && Date.now() - x.at < 7200e3) return x.e; localStorage.removeItem('adsEm'); }catch(e){} return null; }
 function track(event, params = {}){
   if (typeof gtag !== 'function') return;
   gtag('event', event, params);
   const label = ADS_CONVERSIONS[event];
+  if (label && !params.test && !params.repeat){ const em = adsEmail(); if (em) gtag('set', 'user_data', { email: em }); }
   // repeat — безкоштовний повторний перегляд, не покупка; transaction_id прибирає дублі при повторному відкритті звіту
   if (label && !params.test && !params.repeat) gtag('event', 'conversion', { send_to: ADS_ID + '/' + label, value: Number(params.value) || 1, currency: 'UAH', transaction_id: params.id || params.transaction_id || undefined });
 }
