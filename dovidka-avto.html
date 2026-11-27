@@ -60,7 +60,8 @@
       const d = await res.json().catch(() => ({}));
       if (res.status === 404 || d.error){ box.innerHTML = '<h1 class="h-md">Довідку не знайдено</h1><p class="text-sm text-muted">Посилання недійсне.</p>'; return; }
       const paid = ['paid', 'in_progress', 'done'].includes(d.status);
-      if (paid && !tracked && sessionStorage.getItem('vxTracked') !== t){
+      if (paid && !tracked && sessionStorage.getItem('vxTracked') !== t && !(function(){ try{ return localStorage.getItem('vx:' + t) || (d.paid_at && Date.now() - Date.parse(d.paid_at) > 3 * 3600e3); }catch(e){ return false; } })()){
+        try{ localStorage.setItem('vx:' + t, '1'); }catch(e){}
         tracked = true; try{ track('purchase', { value: 500, currency: 'UAH', transaction_id: 'vx' + t.slice(0, 10), items: [{ item_name: 'vehicle_expert' }] }); sessionStorage.setItem('vxTracked', t); }catch(e){}
       }
       if (d.status === 'done' && d.result){

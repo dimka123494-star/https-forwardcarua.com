@@ -65,7 +65,9 @@
       if (d.status === 'paid' && d.report){
         box.innerHTML = CompanyCheck.report(Object.assign({}, d.report, { token: t }));
         document.title = 'Аналіз: ' + (d.report.name || 'ЄДРПОУ ' + d.report.code) + ' | МитнийБрокер';
-        if (tries === 1 || sessionStorage.getItem('ccTracked') !== t){ try{ track('purchase', { value: d.report.price, currency: 'UAH', transaction_id: t.slice(0, 12), items: [{ item_name: 'company_check' }] }); sessionStorage.setItem('ccTracked', t); }catch(e){} }
+        // «Покупка» — лише один раз, одразу після оплати: звіт зібрано щойно (checked_at < 3 год) і в цьому браузері ще не рахували;
+        // повторні відкриття звіту з листа не мають подвоювати конверсії в Google Ads / Analytics
+        if ((function(){ try{ const k = 'ccTracked:' + t; if (localStorage.getItem(k)) return false; const at = Date.parse(d.report.checked_at || d.report.generated_at || ''); if (at && Date.now() - at > 3 * 3600e3) return false; localStorage.setItem(k, '1'); return true; }catch(e){ return sessionStorage.getItem('ccTracked') !== t; } })()){ try{ track('purchase', { value: d.report.price, currency: 'UAH', transaction_id: t.slice(0, 12), items: [{ item_name: 'company_check' }] }); sessionStorage.setItem('ccTracked', t); }catch(e){} }
         return;
       }
       if (d.status === 'pending' || d.status === 'inprocessing' || !d.status){
